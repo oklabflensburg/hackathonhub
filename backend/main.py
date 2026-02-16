@@ -28,7 +28,7 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Nuxt frontend
+    allow_origins=["http://localhost:3001"],  # Nuxt frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -790,7 +790,7 @@ async def github_callback(
         result = await authenticate_with_github(code, db)
 
         # Redirect to frontend with token in query parameter
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")
         import urllib.parse
         token = urllib.parse.quote(result["access_token"])
 
@@ -815,7 +815,7 @@ async def github_callback(
         return RedirectResponse(url=redirect_url)
     except Exception as e:
         # On error, redirect to frontend with error
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")
         import urllib.parse
         error_msg = urllib.parse.quote(str(e))
 

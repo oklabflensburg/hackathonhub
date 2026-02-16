@@ -23,16 +23,17 @@ services:
   frontend:
     build: ./frontend3
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       - NUXT_PUBLIC_API_URL=http://backend:8000
+      - PORT=3001
     volumes:
       - ./frontend3:/app
       - /app/node_modules
     depends_on:
       backend:
         condition: service_healthy
-    command: pnpm run dev
+    command: pnpm run dev --port 3001
 
   db:
     image: postgres:15-alpine

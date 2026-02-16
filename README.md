@@ -116,7 +116,7 @@ cd hackathon-dashboard
 ### 2. Set up GitHub OAuth
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Create a new OAuth App
-3. Set Homepage URL: `http://localhost:3000`
+3. Set Homepage URL: `http://localhost:3001`
 4. Set Authorization callback URL: `http://localhost:8000/api/auth/github/callback`
 5. Copy Client ID and Client Secret
 
@@ -152,7 +152,7 @@ docker-compose down
 ```
 
 The application will be available at:
-- **Frontend**: http://localhost:3000
+- **Frontend**: http://localhost:3001
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs (Swagger UI)
 - **Alternative Docs**: http://localhost:8000/redoc (ReDoc)
@@ -274,7 +274,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 GITHUB_CALLBACK_URL=http://localhost:8000/api/auth/github/callback
 
 # Frontend URL for CORS
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3001
 
 # Email Configuration (optional)
 SMTP_HOST=smtp.gmail.com
