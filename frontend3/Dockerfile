@@ -22,5 +22,9 @@ RUN pnpm run build
 # Expose port
 EXPOSE 3001
 
+# Set port environment variable
+ENV PORT=3001
+ENV NITRO_PORT=3001
+
 # Start the application
-CMD ["pnpm", "run", "preview", "--port", "3001"]
+CMD ["pnpm", "run", "preview"]

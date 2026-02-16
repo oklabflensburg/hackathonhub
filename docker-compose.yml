@@ -27,13 +27,14 @@ services:
     environment:
       - NUXT_PUBLIC_API_URL=http://backend:8000
       - PORT=3001
+      - NITRO_PORT=3001
     volumes:
       - ./frontend3:/app
       - /app/node_modules
     depends_on:
       backend:
         condition: service_healthy
-    command: pnpm run dev --port 3001
+    command: pnpm run dev
 
   db:
     image: postgres:15-alpine

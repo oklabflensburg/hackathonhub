@@ -26,5 +26,11 @@ export default defineNuxtConfig({
       githubClientId: process.env.NUXT_PUBLIC_GITHUB_CLIENT_ID || '',
       appName: 'Hackathon Dashboard'
     }
+  },
+  devServer: {
+    port: process.env.PORT ? parseInt(process.env.PORT) : 3001
+  },
+  nitro: {
+    preset: 'node-server'
   }
 })
