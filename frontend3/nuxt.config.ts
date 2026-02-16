@@ -29,8 +29,5 @@ export default defineNuxtConfig({
   },
   devServer: {
     port: process.env.PORT ? parseInt(process.env.PORT) : 3001
-  },
-  nitro: {
-    preset: 'node-server'
   }
 })
