@@ -34,7 +34,7 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    command: pnpm run dev
+    command: node .output/server/index.mjs
 
   db:
     image: postgres:15-alpine
