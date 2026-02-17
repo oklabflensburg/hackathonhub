@@ -126,7 +126,7 @@ def increment_project_view_count(db: Session, project_id: int):
 
 def get_hackathon(db: Session, hackathon_id: int):
     from sqlalchemy import func, select
-    
+
     # Subquery to count projects per hackathon
     project_count_subquery = (
         select(
@@ -136,16 +136,17 @@ def get_hackathon(db: Session, hackathon_id: int):
         .group_by(models.Project.hackathon_id)
         .subquery()
     )
-    
+
     # Query hackathon with left join to get project count
     result = db.query(
         models.Hackathon,
-        func.coalesce(project_count_subquery.c.project_count, 0).label('project_count')
+        func.coalesce(project_count_subquery.c.project_count,
+                      0).label('project_count')
     ).outerjoin(
         project_count_subquery,
         models.Hackathon.id == project_count_subquery.c.hackathon_id
     ).filter(models.Hackathon.id == hackathon_id).first()
-    
+
     if result:
         hackathon, project_count = result
         # Add project_count as an attribute
@@ -156,7 +157,7 @@ def get_hackathon(db: Session, hackathon_id: int):
 
 def get_hackathon_with_details(db: Session, hackathon_id: int):
     from sqlalchemy import func, select
-    
+
     # Subquery to count projects per hackathon
     project_count_subquery = (
         select(
@@ -166,11 +167,12 @@ def get_hackathon_with_details(db: Session, hackathon_id: int):
         .group_by(models.Project.hackathon_id)
         .subquery()
     )
-    
+
     # Query hackathon with left join to get project count
     result = db.query(
         models.Hackathon,
-        func.coalesce(project_count_subquery.c.project_count, 0).label('project_count')
+        func.coalesce(project_count_subquery.c.project_count,
+                      0).label('project_count')
     ).outerjoin(
         project_count_subquery,
         models.Hackathon.id == project_count_subquery.c.hackathon_id
@@ -180,7 +182,7 @@ def get_hackathon_with_details(db: Session, hackathon_id: int):
         joinedload(models.Hackathon.registrations),
         joinedload(models.Hackathon.chat_rooms)
     ).filter(models.Hackathon.id == hackathon_id).first()
-    
+
     if result:
         hackathon, project_count = result
         # Add project_count as an attribute
@@ -191,7 +193,7 @@ def get_hackathon_with_details(db: Session, hackathon_id: int):
 
 def get_hackathons(db: Session, skip: int = 0, limit: int = 100):
     from sqlalchemy import func, select
-    
+
     # Subquery to count projects per hackathon
     project_count_subquery = (
         select(
@@ -201,23 +203,24 @@ def get_hackathons(db: Session, skip: int = 0, limit: int = 100):
         .group_by(models.Project.hackathon_id)
         .subquery()
     )
-    
+
     # Query hackathons with left join to get project count
     hackathons = db.query(
         models.Hackathon,
-        func.coalesce(project_count_subquery.c.project_count, 0).label('project_count')
+        func.coalesce(project_count_subquery.c.project_count,
+                      0).label('project_count')
     ).outerjoin(
         project_count_subquery,
         models.Hackathon.id == project_count_subquery.c.hackathon_id
     ).offset(skip).limit(limit).all()
-    
+
     # Convert to list of Hackathon objects with project_count added
     result = []
     for hackathon, project_count in hackathons:
         # Add project_count as an attribute
         hackathon.project_count = project_count
         result.append(hackathon)
-    
+
     return result
 
 
@@ -239,8 +242,16 @@ def get_active_hackathons(db: Session, skip: int = 0, limit: int = 100):
     ).offset(skip).limit(limit).all()
 
 
-def create_hackathon(db: Session, hackathon: schemas.HackathonCreate, owner_id: int = None):
+def create_hackathon(
+    db: Session,
+    hackathon: schemas.HackathonCreate,
+    owner_id: int = None
+):
     hackathon_data = hackathon.dict()
+    # Remove fields that don't exist in the Hackathon model
+    # project_count is a computed field in the schema, not a database column
+    if 'project_count' in hackathon_data:
+        del hackathon_data['project_count']
     if owner_id is not None:
         hackathon_data['owner_id'] = owner_id
     db_hackathon = models.Hackathon(**hackathon_data)
@@ -250,10 +261,17 @@ def create_hackathon(db: Session, hackathon: schemas.HackathonCreate, owner_id: 
     return db_hackathon
 
 
-def update_hackathon(db: Session, hackathon_id: int, hackathon_update: schemas.HackathonUpdate):
+def update_hackathon(
+    db: Session, 
+    hackathon_id: int, 
+    hackathon_update: schemas.HackathonUpdate
+):
     db_hackathon = get_hackathon(db, hackathon_id)
     if db_hackathon:
         update_data = hackathon_update.dict(exclude_unset=True)
+        # Remove fields that don't exist in the Hackathon model
+        if 'project_count' in update_data:
+            del update_data['project_count']
         for key, value in update_data.items():
             setattr(db_hackathon, key, value)
         db.commit()
@@ -690,7 +708,7 @@ def get_comment(db: Session, comment_id: int):
 
 def get_comments_by_project(db: Session, project_id: int, skip: int = 0, limit: int = 100):
     from sqlalchemy.orm import joinedload
-    
+
     return db.query(models.Comment).filter(
         models.Comment.project_id == project_id,
         models.Comment.parent_comment_id.is_(None)  # Top-level comments only
@@ -751,14 +769,14 @@ def delete_comment(db: Session, comment_id: int):
         ).all()
         for vote in votes:
             db.delete(vote)
-        
+
         # Also clean up any corrupted votes with NULL comment_id
         # Do this before flush to ensure they're gone
         cleanup_corrupted_comment_votes(db)
-        
+
         # Flush to ensure votes are deleted before comment deletion
         db.flush()
-        
+
         # Now delete the comment
         db.delete(db_comment)
         db.commit()
@@ -775,7 +793,7 @@ def get_comment_vote(db: Session, comment_id: int, user_id: int):
 def create_comment_vote(db: Session, vote: schemas.CommentVoteCreate, user_id: int, comment_id: int):
     # Clean up any corrupted votes first
     cleanup_corrupted_comment_votes(db)
-    
+
     # Check if vote already exists
     existing_vote = get_comment_vote(db, comment_id, user_id)
 
