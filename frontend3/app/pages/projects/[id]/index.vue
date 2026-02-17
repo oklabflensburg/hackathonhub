@@ -24,7 +24,7 @@
     </div>
 
     <!-- Project Details -->
-    <div v-else-if="project" class="max-w-6xl mx-auto px-4 sm:px-6">
+    <div v-else-if="project" class="max-w-6xl mx-auto px-0 sm:px-2 md:px-4 lg:px-6">
       <!-- Project Header -->
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
