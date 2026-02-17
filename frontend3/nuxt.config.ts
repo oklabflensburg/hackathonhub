@@ -32,7 +32,7 @@ export default defineNuxtConfig({
   },
 
   i18n: {
-    vueI18n: "./i18n.config.ts",
+    vueI18n: "../i18n/i18n.config.ts",
     locales: [
       { code: "de", iso: "de-DE", file: "de.json", name: "Deutsch" },
       { code: "en", iso: "en-US", file: "en.json", name: "English" },
@@ -46,5 +46,8 @@ export default defineNuxtConfig({
       cookieKey: "i18n_redirected",
       redirectOn: "root",
     },
+    bundle: {
+      optimizeTranslationDirective: false
+    }
   },
 })
