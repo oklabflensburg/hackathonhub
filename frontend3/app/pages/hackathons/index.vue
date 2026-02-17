@@ -249,6 +249,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
+const config = useRuntimeConfig()
 const searchQuery = ref('')
 const activeFilter = ref('all')
 const hackathons = ref<any[]>([])
@@ -278,7 +279,7 @@ const fetchHackathons = async (page: number = 1) => {
     const skip = (page - 1) * pageSize.value
     const limit = pageSize.value
     
-    const response = await fetch(`http://localhost:8000/api/hackathons?skip=${skip}&limit=${limit}`)
+    const response = await fetch(`${config.public.apiUrl}/api/hackathons?skip=${skip}&limit=${limit}`)
     if (!response.ok) {
       throw new Error(`Failed to fetch hackathons: ${response.status}`)
     }

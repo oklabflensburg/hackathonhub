@@ -441,6 +441,7 @@ import { useUIStore } from '~/stores/ui'
 
 const uiStore = useUIStore()
 const route = useRoute()
+const config = useRuntimeConfig()
 
 const activeTab = ref<'project' | 'hackathon'>('project')
 const tabs = [
@@ -509,7 +510,7 @@ const fetchHackathons = async () => {
   hackathonsLoading.value = true
   hackathonsError.value = null
   try {
-    const response = await fetch('http://localhost:8000/api/hackathons')
+    const response = await fetch(`${config.public.apiUrl}/api/hackathons`)
     if (!response.ok) {
       throw new Error(`Failed to fetch hackathons: ${response.status}`)
     }

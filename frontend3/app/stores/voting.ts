@@ -20,6 +20,7 @@ export interface ProjectVoteStats {
 
 export const useVotingStore = defineStore('voting', () => {
   const authStore = useAuthStore()
+  const config = useRuntimeConfig()
   const votes = ref<Map<number, Vote>>(new Map()) // project_id -> Vote
   const projectStats = ref<Map<number, ProjectVoteStats>>(new Map())
   const isLoading = ref<Map<number, boolean>>(new Map())
@@ -127,7 +128,7 @@ export const useVotingStore = defineStore('voting', () => {
 
   async function getProjectVoteStats(projectId: number) {
     try {
-      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
       const response = await fetch(`${backendUrl}/api/projects/${projectId}/vote-stats`)
       
       if (response.ok) {
