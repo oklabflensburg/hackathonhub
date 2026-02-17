@@ -632,7 +632,7 @@ const submitProject = async () => {
     }
     
     // Make real API call with authentication using fetchWithAuth for auto-refresh
-    const response = await authStore.fetchWithAuth('/api/projects/', {
+    const response = await authStore.fetchWithAuth('/api/projects', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
