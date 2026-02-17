@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header, Query
+from fastapi import FastAPI, Depends, HTTPException, Header, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import timedelta
@@ -11,6 +11,8 @@ import schemas
 import crud
 import auth
 import email_service
+from i18n.middleware import LocaleMiddleware
+from i18n.translations import get_translation
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +26,9 @@ app = FastAPI(
     description="Backend API for Hackathon Dashboard with GitHub OAuth",
     version="1.0.0"
 )
+
+# Add i18n middleware
+app.add_middleware(LocaleMiddleware)
 
 
 @app.get("/")
@@ -61,12 +66,15 @@ async def create_project(
 @app.get("/api/projects/{project_id}", response_model=schemas.Project)
 async def get_project(
     project_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    request: Request = None
 ):
     """Get a specific project by ID"""
     project = crud.get_project(db, project_id=project_id)
     if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+        locale = getattr(request.state, 'locale', 'en') if request else 'en'
+        detail = get_translation("errors.project_not_found", locale)
+        raise HTTPException(status_code=404, detail=detail)
     return project
 
 

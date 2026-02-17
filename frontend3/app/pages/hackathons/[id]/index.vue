@@ -9,14 +9,14 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Hackathons
+          {{ $t('hackathons.details.backToHackathons') }}
         </NuxtLink>
       </div>
 
       <!-- Loading state -->
       <div v-if="loading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-        <p class="mt-4 text-gray-600 dark:text-gray-400">Loading hackathon details...</p>
+         <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.loadingDetails') }}</p>
       </div>
 
       <!-- Hackathon details -->
@@ -68,7 +68,7 @@
             <div class="lg:col-span-2">
               <!-- Description -->
               <div class="mb-8">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Description</h2>
+                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.description') }}</h2>
                 <div class="prose dark:prose-invert max-w-none">
                   <p class="text-gray-700 dark:text-gray-300">{{ hackathon.description }}</p>
                 </div>
@@ -76,7 +76,7 @@
 
               <!-- Prizes -->
               <div class="mb-8" v-if="hackathon.prizes && hackathon.prizes.length > 0">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Prizes</h2>
+                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.prizes') }}</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div
                     v-for="(prize, idx) in hackathon.prizes"
@@ -99,7 +99,7 @@
 
               <!-- Rules -->
               <div v-if="hackathon.rules">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Rules & Guidelines</h2>
+                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.rulesAndGuidelines') }}</h2>
                 <div class="bg-gray-50 dark:bg-gray-700/50 p-4 sm:p-5 lg:p-6 rounded-xl">
                   <div class="prose dark:prose-invert max-w-none">
                     <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ hackathon.rules }}</p>
@@ -112,7 +112,7 @@
             <div class="lg:col-span-1">
               <!-- Stats -->
               <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 sm:p-5 lg:p-6 mb-6">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Hackathon Stats</h3>
+                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.hackathonStats') }}</h3>
                 <div class="space-y-4">
                   <div class="flex justify-between items-center">
                     <span class="text-gray-600 dark:text-gray-400">Status</span>
@@ -136,7 +136,7 @@
                     <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.project_count || 0 }}</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span class="text-gray-600 dark:text-gray-400">Registration Deadline</span>
+                     <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.registrationDeadline') }}</span>
                     <span class="font-bold text-gray-900 dark:text-white">{{ formatDateTime(hackathon.registration_deadline) }}</span>
                   </div>
                 </div>
@@ -144,7 +144,7 @@
 
               <!-- Location Map -->
               <div v-if="hackathon.latitude && hackathon.longitude" class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 sm:p-5 lg:p-6 mb-6">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Location</h3>
+                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.location') }}</h3>
                 <div class="aspect-video rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
                   <iframe 
                     width="100%" 
@@ -186,7 +186,7 @@
                     <svg v-else class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    {{ registrationLoading ? 'Registering...' : 'Register Now' }}
+                    {{ registrationLoading ? $t('hackathons.details.registering') : $t('hackathons.details.registerNow') }}
                   </button>
                   <div v-else class="w-full p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl text-center">
                     <div class="flex items-center justify-center text-green-600 dark:text-green-400 mb-2">
@@ -210,7 +210,7 @@
                   <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Edit Hackathon
+                   {{ $t('hackathons.details.editHackathon') }}
                 </button>
                 
                 <NuxtLink 
@@ -220,7 +220,7 @@
                   <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
-                  View Projects
+                  {{ $t('hackathons.details.viewProjects') }}
                 </NuxtLink>
 
                 <button 
@@ -236,7 +236,7 @@
 
               <!-- Organizers -->
               <div class="mt-6" v-if="hackathon.organizers && hackathon.organizers.length > 0">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Organizers</h3>
+                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.organizers') }}</h3>
                 <div class="space-y-3">
                   <div 
                     v-for="organizer in hackathon.organizers" 
@@ -265,7 +265,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <div class="p-4 sm:p-5 lg:p-6">
             <div class="flex justify-between items-center mb-6">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Hackathon</h2>
+               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $t('hackathons.details.editHackathon') }}</h2>
               <button 
                 @click="cancelEdit"
                 class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -303,9 +303,9 @@
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Start Date
-                  </label>
+                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     {{ $t('hackathons.details.startDate') }}
+                   </label>
                   <input
                     v-model="editForm.start_date"
                     type="datetime-local"
@@ -314,9 +314,9 @@
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    End Date
-                  </label>
+                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     {{ $t('hackathons.details.endDate') }}
+                   </label>
                   <input
                     v-model="editForm.end_date"
                     type="datetime-local"
@@ -348,9 +348,9 @@
                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   :placeholder="$t('hackathons.details.imageUrlPlaceholder')"
                 />
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Enter a URL for the hackathon banner image. Leave empty to use default.
-                </p>
+                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                   {{ $t('hackathons.details.imageUrlHelper') }}
+                 </p>
               </div>
 
               <div>
@@ -363,7 +363,7 @@
                     @click="editForm.prizes.push({name: '', description: '', value: ''})"
                     class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                   >
-                    + Add Prize
+                     + {{ $t('hackathons.details.addPrize') }}
                   </button>
                 </div>
                 
@@ -386,7 +386,7 @@
                     
                     <div class="space-y-2">
                       <div>
-                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Prize Name</label>
+                         <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{ $t('hackathons.details.prizeName') }}</label>
                         <input
                           v-model="prize.name"
                           type="text"
@@ -404,7 +404,7 @@
                         />
                       </div>
                       <div>
-                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Value</label>
+                         <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{ $t('hackathons.details.value') }}</label>
                         <input
                           v-model="prize.value"
                           type="text"
@@ -416,15 +416,15 @@
                   </div>
                   
                   <div v-if="editForm.prizes.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                    No prizes added yet. Click "Add Prize" to add one.
+                     {{ $t('hackathons.details.noPrizesAdded') }}
                   </div>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Rules & Guidelines
-                </label>
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                   {{ $t('hackathons.details.rulesAndGuidelines') }}
+                 </label>
                 <textarea
                   v-model="editForm.rules"
                   rows="4"
@@ -442,7 +442,7 @@
                     @click="editForm.organizers.push({name: '', role: ''})"
                     class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
                   >
-                    + Add Organizer
+                     + {{ $t('hackathons.details.addOrganizer') }}
                   </button>
                 </div>
                 
@@ -465,7 +465,7 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <div>
-                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Name</label>
+                         <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{ $t('hackathons.details.name') }}</label>
                         <input
                           v-model="organizer.name"
                           type="text"
@@ -474,7 +474,7 @@
                         />
                       </div>
                       <div>
-                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Role</label>
+                         <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{ $t('hackathons.details.role') }}</label>
                         <input
                           v-model="organizer.role"
                           type="text"
@@ -486,15 +486,15 @@
                   </div>
                   
                   <div v-if="editForm.organizers.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                    No organizers added yet. Click "Add Organizer" to add one.
+                     {{ $t('hackathons.details.noOrganizersAdded') }}
                   </div>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Prize Pool
-                </label>
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                   {{ $t('hackathons.details.prizePool') }}
+                 </label>
                 <input
                   v-model="editForm.prize_pool"
                   type="text"
@@ -510,7 +510,7 @@
                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   :disabled="editLoading"
                 >
-                  Cancel
+                  {{ $t('hackathons.details.cancel') }}
                 </button>
                 <button
                   type="submit"
@@ -521,7 +521,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  {{ editLoading ? 'Saving...' : 'Save Changes' }}
+                  {{ editLoading ? $t('hackathons.details.saving') : $t('hackathons.details.saveChanges') }}
                 </button>
               </div>
             </form>
@@ -536,11 +536,11 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Hackathon Not Found</h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">The hackathon you're looking for doesn't exist or has been removed.</p>
-        <NuxtLink to="/hackathons" class="btn btn-primary">
-          Browse Hackathons
-        </NuxtLink>
+         <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ $t('hackathons.details.notFoundTitle') }}</h3>
+         <p class="text-gray-600 dark:text-gray-400 mb-6">{{ $t('hackathons.details.notFoundDescription') }}</p>
+         <NuxtLink to="/hackathons" class="btn btn-primary">
+           {{ $t('hackathons.details.browseHackathons') }}
+         </NuxtLink>
       </div>
   </div>
 </template>
@@ -550,11 +550,13 @@ import { ref, onMounted } from 'vue'
 import { format } from 'date-fns'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const id = route.params.id as string
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const { t } = useI18n()
 
 const loading = ref(true)
 const error = ref(false)
@@ -723,13 +725,13 @@ const checkRegistrationStatus = async () => {
 const registerForHackathon = async () => {
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
-    uiStore.showWarning('Please login to register for this hackathon.', 'Authentication Required')
+    uiStore.showWarning(t('hackathons.details.loginToRegister'), t('common.authenticationRequired'))
     return
   }
   
   // Check if already registered
   if (isRegistered.value) {
-    uiStore.showInfo('You are already registered for this hackathon.', 'Already Registered')
+    uiStore.showInfo(t('hackathons.details.alreadyRegistered'), t('common.alreadyRegistered'))
     return
   }
   
@@ -781,9 +783,9 @@ const shareHackathon = () => {
       url: window.location.href
     })
   } else {
-    navigator.clipboard.writeText(window.location.href)
-    uiStore.showSuccess('Link copied to clipboard!')
-  }
+     navigator.clipboard.writeText(window.location.href)
+     uiStore.showSuccess(t('hackathons.details.linkCopied'))
+   }
 }
 
 const editHackathon = async () => {
@@ -828,7 +830,7 @@ const cancelEdit = () => {
 
 const saveEdit = async () => {
   if (!authStore.isAuthenticated) {
-    if (confirm('You need to login to save changes. Would you like to login now?')) {
+    if (confirm(t('hackathons.details.loginToSaveChanges'))) {
       authStore.loginWithGitHub()
     }
     return
@@ -909,8 +911,8 @@ const saveEdit = async () => {
     hackathon.value.rules = updatedHackathon.rules
     hackathon.value.prize_pool = updatedHackathon.prize_pool
     
-    uiStore.showSuccess('Hackathon updated successfully!')
-    editing.value = false
+     uiStore.showSuccess(t('hackathons.details.hackathonUpdated'))
+     editing.value = false
     
   } catch (error) {
     console.error('Error updating hackathon:', error)
