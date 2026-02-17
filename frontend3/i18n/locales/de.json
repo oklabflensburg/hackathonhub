@@ -90,9 +90,13 @@
      "noPrize": "Kein Preis",
      "upcoming": "Bevorstehend",
      "unknownHackathon": "Unbekannter Hackathon",
-     "alreadyRegistered": "Bereits registriert",
-     "authenticationRequired": "Authentifizierung erforderlich"
-   },
+       "alreadyRegistered": "Bereits registriert",
+       "authenticationRequired": "Authentifizierung erforderlich",
+       "updateError": "Aktualisierungsfehler",
+       "registrationError": "Registrierungsfehler",
+       "unknownError": "Unbekannter Fehler",
+       "description": "Beschreibung"
+    },
   "auth": {
     "loginWithGitHub": "Mit GitHub anmelden",
     "signUpWithGitHub": "Mit GitHub anmelden",
@@ -309,6 +313,7 @@
       "addOrganizer": "Organisator hinzufügen",
       "name": "Name",
       "role": "Rolle",
+      "imageUrl": "Bild-URL",
       "imageUrlPlaceholder": "https://beispiel.com/bild.jpg",
       "prizeNamePlaceholder": "z.B., Erster Platz",
       "prizeDescriptionPlaceholder": "z.B., Hauptpreis für das Gewinnerteam",
@@ -324,17 +329,27 @@
        "viewProjects": "Projekte ansehen",
        "startDate": "Startdatum",
        "endDate": "Enddatum",
-       "imageUrlHelper": "Gib eine URL für das Hackathon-Bannerbild ein. Leer lassen, um das Standardbild zu verwenden.",
-       "prizePool": "Preisgeld",
+        "imageUrlHelper": "Gib eine URL für das Hackathon-Bannerbild ein. Leer lassen, um das Standardbild zu verwenden.",
+        "remove": "Entfernen",
+        "prizeNumber": "Preis #{number}",
+        "organizerNumber": "Organisator #{number}",
+        "prizePool": "Preisgeld",
        "notFoundTitle": "Hackathon nicht gefunden",
        "notFoundDescription": "Der gesuchte Hackathon existiert nicht oder wurde entfernt.",
        "browseHackathons": "Hackathons durchsuchen",
        "loginToRegister": "Bitte melde dich an, um dich für diesen Hackathon zu registrieren.",
        "alreadyRegistered": "Du bist bereits für diesen Hackathon registriert.",
-       "linkCopied": "Link in die Zwischenablage kopiert!",
-       "loginToSaveChanges": "Du musst dich anmelden, um Änderungen zu speichern. Möchtest du dich jetzt anmelden?",
-       "hackathonUpdated": "Hackathon erfolgreich aktualisiert!"
-     }
+        "linkCopied": "Link in die Zwischenablage kopiert!",
+         "share": "Teilen",
+         "viewLargerMap": "Größere Karte anzeigen",
+         "registered": "Registriert",
+         "registrationSuccess": "Erfolgreich für den Hackathon registriert!",
+         "registrationFailed": "Registrierung fehlgeschlagen",
+         "loginToSaveChanges": "Du musst dich anmelden, um Änderungen zu speichern. Möchtest du dich jetzt anmelden?",
+         "loginToEdit": "Bitte melde dich an, um Hackathons zu bearbeiten",
+        "hackathonUpdated": "Hackathon erfolgreich aktualisiert!",
+        "failedToUpdate": "Hackathon konnte nicht aktualisiert werden"
+      }
   },
   "projects": {
     "title": "Projekte",

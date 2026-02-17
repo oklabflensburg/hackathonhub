@@ -114,27 +114,27 @@
               <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 sm:p-5 lg:p-6 mb-6">
                  <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.hackathonStats') }}</h3>
                 <div class="space-y-4">
-                  <div class="flex justify-between items-center">
-                    <span class="text-gray-600 dark:text-gray-400">Status</span>
-                    <span 
-                      :class="{
-                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300': hackathon.status === 'active',
-                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300': hackathon.status === 'upcoming',
-                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300': hackathon.status === 'completed'
-                      }"
-                      class="px-3 py-1 rounded-full text-sm font-medium capitalize"
-                    >
-                      {{ hackathon.status }}
-                    </span>
-                  </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-gray-600 dark:text-gray-400">Participants</span>
-                    <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.participant_count || 0 }}</span>
-                  </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-gray-600 dark:text-gray-400">Projects</span>
-                    <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.project_count || 0 }}</span>
-                  </div>
+                   <div class="flex justify-between items-center">
+                     <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.status') }}</span>
+                     <span 
+                       :class="{
+                         'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300': hackathon.status === 'active',
+                         'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300': hackathon.status === 'upcoming',
+                         'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300': hackathon.status === 'completed'
+                       }"
+                       class="px-3 py-1 rounded-full text-sm font-medium capitalize"
+                     >
+                       {{ hackathon.status }}
+                     </span>
+                   </div>
+                   <div class="flex justify-between items-center">
+                     <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.participants') }}</span>
+                     <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.participant_count || 0 }}</span>
+                   </div>
+                   <div class="flex justify-between items-center">
+                     <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.projects') }}</span>
+                     <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.project_count || 0 }}</span>
+                   </div>
                   <div class="flex justify-between items-center">
                      <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.registrationDeadline') }}</span>
                     <span class="font-bold text-gray-900 dark:text-white">{{ formatDateTime(hackathon.registration_deadline) }}</span>
@@ -165,7 +165,7 @@
                     target="_blank" 
                     class="text-primary-600 dark:text-primary-400 hover:underline"
                   >
-                    View larger map
+                    {{ $t('hackathons.details.viewLargerMap') }}
                   </a>
                 </div>
               </div>
@@ -193,11 +193,11 @@
                       <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span class="font-bold">Registered</span>
-                    </div>
-                    <p class="text-sm text-green-700 dark:text-green-300">
-                      You are registered for this hackathon
-                    </p>
+                       <span class="font-bold">{{ $t('hackathons.details.registered') }}</span>
+                     </div>
+                     <p class="text-sm text-green-700 dark:text-green-300">
+                       {{ $t('hackathons.details.alreadyRegistered') }}
+                     </p>
                   </div>
                 </div>
                 
@@ -229,8 +229,8 @@
                 >
                   <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                  Share
+                   </svg>
+                  {{ $t('hackathons.details.share') }}
                 </button>
               </div>
 
@@ -277,29 +277,29 @@
             </div>
 
             <form @submit.prevent="saveEdit" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Name
-                </label>
-                <input
-                  v-model="editForm.name"
-                  type="text"
-                  required
-                  class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                   {{ $t('hackathons.details.name') }}
+                 </label>
+                 <input
+                   v-model="editForm.name"
+                   type="text"
+                   required
+                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                 />
+               </div>
 
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Description
-                </label>
-                <textarea
-                  v-model="editForm.description"
-                  rows="3"
-                  required
-                  class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                ></textarea>
-              </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                   {{ $t('hackathons.details.description') }}
+                 </label>
+                 <textarea
+                   v-model="editForm.description"
+                   rows="3"
+                   required
+                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                 ></textarea>
+               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -327,9 +327,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Location
-                </label>
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                   {{ t('hackathons.details.location') }}
+                 </label>
                 <input
                   v-model="editForm.location"
                   type="text"
@@ -339,9 +339,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Image URL
-                </label>
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                   {{ t('hackathons.details.imageUrl') }}
+                 </label>
                 <input
                   v-model="editForm.image_url"
                   type="url"
@@ -355,9 +355,9 @@
 
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Prizes
-                  </label>
+                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                     {{ t('hackathons.details.prizes') }}
+                   </label>
                   <button
                     type="button"
                     @click="editForm.prizes.push({name: '', description: '', value: ''})"
@@ -373,15 +373,15 @@
                     :key="index"
                     class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg"
                   >
-                    <div class="flex justify-between items-start mb-2">
-                      <span class="font-medium text-gray-700 dark:text-gray-300">Prize #{{ index + 1 }}</span>
-                      <button
-                        type="button"
-                        @click="editForm.prizes.splice(index, 1)"
-                        class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                      >
-                        Remove
-                      </button>
+                     <div class="flex justify-between items-start mb-2">
+                       <span class="font-medium text-gray-700 dark:text-gray-300">{{ $t('hackathons.details.prizeNumber', { number: index + 1 }) }}</span>
+                       <button
+                         type="button"
+                         @click="editForm.prizes.splice(index, 1)"
+                         class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                       >
+                         {{ $t('hackathons.details.remove') }}
+                       </button>
                     </div>
                     
                     <div class="space-y-2">
@@ -395,7 +395,7 @@
                         />
                       </div>
                       <div>
-                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Description</label>
+                         <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{ t('common.description') }}</label>
                         <input
                           v-model="prize.description"
                           type="text"
@@ -434,9 +434,9 @@
 
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Organizers
-                  </label>
+                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                     {{ t('hackathons.details.organizers') }}
+                   </label>
                   <button
                     type="button"
                     @click="editForm.organizers.push({name: '', role: ''})"
@@ -452,15 +452,15 @@
                     :key="index"
                     class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg"
                   >
-                    <div class="flex justify-between items-start mb-2">
-                      <span class="font-medium text-gray-700 dark:text-gray-300">Organizer #{{ index + 1 }}</span>
-                      <button
-                        type="button"
-                        @click="editForm.organizers.splice(index, 1)"
-                        class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                      >
-                        Remove
-                      </button>
+                     <div class="flex justify-between items-start mb-2">
+                       <span class="font-medium text-gray-700 dark:text-gray-300">{{ $t('hackathons.details.organizerNumber', { number: index + 1 }) }}</span>
+                       <button
+                         type="button"
+                         @click="editForm.organizers.splice(index, 1)"
+                         class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                       >
+                         {{ $t('hackathons.details.remove') }}
+                       </button>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -756,20 +756,20 @@ const registerForHackathon = async () => {
     
     const result = await response.json()
     
-    if (result.is_new) {
-      uiStore.showSuccess('Successfully registered for the hackathon!')
-      isRegistered.value = true
-      // Update hackathon participant count
-      if (hackathon.value) {
-        hackathon.value.participant_count = (hackathon.value.participant_count || 0) + 1
-      }
-    } else {
-      uiStore.showInfo('You are already registered for this hackathon.', 'Already Registered')
-      isRegistered.value = true
-    }
-  } catch (error) {
-    console.error('Registration error:', error)
-    uiStore.showError(`Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'Registration Error')
+     if (result.is_new) {
+       uiStore.showSuccess(t('hackathons.details.registrationSuccess'))
+       isRegistered.value = true
+       // Update hackathon participant count
+       if (hackathon.value) {
+         hackathon.value.participant_count = (hackathon.value.participant_count || 0) + 1
+       }
+     } else {
+       uiStore.showInfo(t('hackathons.details.alreadyRegistered'), t('common.alreadyRegistered'))
+       isRegistered.value = true
+     }
+   } catch (error) {
+     console.error('Registration error:', error)
+     uiStore.showError(`${t('hackathons.details.registrationFailed')}: ${error instanceof Error ? error.message : t('common.unknownError')}`, t('common.registrationError'))
   } finally {
     registrationLoading.value = false
   }
@@ -790,7 +790,7 @@ const shareHackathon = () => {
 
 const editHackathon = async () => {
   if (!authStore.isAuthenticated) {
-    uiStore.showWarning('Please log in to edit hackathons', 'Authentication Required')
+    uiStore.showWarning(t('hackathons.details.loginToEdit'), t('common.authenticationRequired'))
     return
   }
   
@@ -871,7 +871,7 @@ const saveEdit = async () => {
     
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.detail || 'Failed to update hackathon')
+      throw new Error(errorData.detail || t('hackathons.details.failedToUpdate'))
     }
     
     const updatedHackathon = await response.json()
@@ -916,7 +916,7 @@ const saveEdit = async () => {
     
   } catch (error) {
     console.error('Error updating hackathon:', error)
-    uiStore.showError(`Failed to update hackathon: ${error instanceof Error ? error.message : 'Unknown error'}`, 'Update Error')
+    uiStore.showError(`${t('hackathons.details.failedToUpdate')}: ${error instanceof Error ? error.message : t('common.unknownError')}`, t('common.updateError'))
   } finally {
     editLoading.value = false
   }
