@@ -46,7 +46,7 @@
               type="text"
               required
               class="input"
-              placeholder="Enter your project name"
+               :placeholder="$t('create.projectForm.fields.projectNamePlaceholder')"
             />
           </div>
 
@@ -58,7 +58,7 @@
               required
               rows="4"
               class="input"
-              placeholder="Describe your project, what problem it solves, and how it works"
+               :placeholder="$t('create.projectForm.fields.descriptionPlaceholder')"
             ></textarea>
           </div>
 
@@ -101,7 +101,7 @@
                  v-model="newTech"
                  type="text"
                  class="input rounded-r-none"
-                 placeholder="Add a technology (e.g., React, Python)"
+                  :placeholder="$t('create.projectForm.fields.techPlaceholder')"
                  @keydown.enter.prevent="addTech"
                />
                <button
@@ -127,13 +127,13 @@
                    v-model="member.name"
                    type="text"
                    class="input flex-1"
-                   placeholder="Team member name"
+                    :placeholder="$t('create.projectForm.fields.memberNamePlaceholder')"
                  />
                  <input
                    v-model="member.email"
                    type="email"
                    class="input flex-1"
-                   placeholder="Email address"
+                    :placeholder="$t('create.projectForm.fields.emailPlaceholder')"
                  />
                  <button
                    type="button"
@@ -166,7 +166,7 @@
               v-model="form.repository_url"
               type="url"
               class="input"
-              placeholder="https://github.com/username/project"
+               :placeholder="$t('create.projectForm.fields.githubPlaceholder')"
             />
           </div>
 
@@ -177,7 +177,7 @@
               v-model="form.live_url"
               type="url"
               class="input"
-              placeholder="https://project-demo.example.com"
+               :placeholder="$t('create.projectForm.fields.demoPlaceholder')"
             />
           </div>
 
@@ -215,7 +215,7 @@
               v-model="form.image_path"
               type="url"
               class="input"
-              placeholder="https://example.com/project-image.jpg"
+               :placeholder="$t('hackathons.details.imageUrlPlaceholder')"
             />
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Optional: URL to a project screenshot or logo

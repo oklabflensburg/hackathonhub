@@ -9,8 +9,8 @@
         userVote === 'up' ? 'vote-button-up-active' : '',
         isVotingInProgress ? 'opacity-50 cursor-not-allowed' : ''
       ]"
-      :title="userVote === 'up' ? 'Remove upvote' : 'Upvote'"
-      aria-label="Upvote"
+       :title="userVote === 'up' ? $t('votes.removeUpvote') : $t('votes.upvote')"
+       :aria-label="$t('votes.upvote')"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
@@ -27,8 +27,8 @@
         userVote === 'down' ? 'vote-button-down-active' : '',
         isVotingInProgress ? 'opacity-50 cursor-not-allowed' : ''
       ]"
-      :title="userVote === 'down' ? 'Remove downvote' : 'Downvote'"
-      aria-label="Downvote"
+       :title="userVote === 'down' ? $t('votes.removeDownvote') : $t('votes.downvote')"
+       :aria-label="$t('votes.downvote')"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -55,6 +55,7 @@ import { ref, computed } from 'vue'
 import { useVotingStore } from '~/stores/voting'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   projectId: number
@@ -66,6 +67,7 @@ const props = defineProps<{
 const votingStore = useVotingStore()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const { t } = useI18n()
 
 const isVotingInProgress = ref(false)
 
@@ -104,7 +106,7 @@ const userVote = computed(() => {
 // Methods
 const handleVote = async (voteType: 'up' | 'down') => {
   if (!authStore.isAuthenticated) {
-    uiStore.showError('Please login to vote')
+    uiStore.showError(t('votes.pleaseLogin'))
     return
   }
 
@@ -116,13 +118,13 @@ const handleVote = async (voteType: 'up' | 'down') => {
     // If user is clicking the same vote type again, remove the vote
     if (userVote.value === voteType) {
       await votingStore.removeVote(props.projectId)
-      uiStore.showSuccess('Vote removed')
+      uiStore.showSuccess(t('votes.voteRemoved'))
     } else {
       await votingStore.voteForProject(props.projectId, voteType)
-      uiStore.showSuccess(`Vote ${voteType === 'up' ? 'upvoted' : 'downvoted'} successfully`)
+      uiStore.showSuccess(voteType === 'up' ? t('votes.upvotedSuccessfully') : t('votes.downvotedSuccessfully'))
     }
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : 'Failed to vote')
+    uiStore.showError(error instanceof Error ? error.message : t('votes.failedToVote'))
   } finally {
     isVotingInProgress.value = false
   }

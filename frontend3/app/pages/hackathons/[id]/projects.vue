@@ -26,7 +26,7 @@
             <div class="relative">
               <input
                 type="text"
-                placeholder="Search projects..."
+                :placeholder="$t('projects.searchPlaceholder')"
                 class="input pl-10"
                 v-model="searchQuery"
               />

@@ -3,9 +3,9 @@
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Projects</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $t('projects.title') }}</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-2">
-          Discover innovative projects from hackathons around the world
+          {{ $t('projects.subtitle') }}
         </p>
       </div>
       <div class="flex items-center space-x-4">
@@ -13,7 +13,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search projects..."
+            :placeholder="$t('projects.searchPlaceholder')"
             class="input pl-10"
           />
           <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -21,16 +21,16 @@
           </svg>
         </div>
         <select v-model="sortBy" class="input">
-          <option value="newest">Newest First</option>
-          <option value="popular">Most Popular</option>
-          <option value="votes">Top Voted</option>
-          <option value="recent">Recently Updated</option>
+          <option value="newest">{{ $t('projects.sortOptions.newest') }}</option>
+          <option value="popular">{{ $t('projects.sortOptions.popular') }}</option>
+          <option value="votes">{{ $t('projects.sortOptions.votes') }}</option>
+          <option value="recent">{{ $t('projects.sortOptions.recent') }}</option>
         </select>
         <NuxtLink to="/create" class="btn btn-primary">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          Submit Project
+          {{ $t('projects.submitProject') }}
         </NuxtLink>
       </div>
     </div>
@@ -42,7 +42,7 @@
           <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
           </svg>
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Filtering by tags:</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('projects.filteringByTags') }}</span>
         </div>
         <button
           @click="clearAllTags"
@@ -51,7 +51,7 @@
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
-          Clear all
+          {{ $t('projects.clearAll') }}
         </button>
       </div>
       <div class="flex flex-wrap gap-2">
@@ -145,14 +145,14 @@
           <div class="absolute bottom-4 left-4 right-4">
             <div class="flex items-center justify-between">
               <span class="text-white text-sm font-medium">
-                {{ project.demo ? 'Live Demo' : 'Prototype' }}
+                {{ project.demo ? $t('projects.projectStatus.liveDemo') : $t('projects.projectStatus.prototype') }}
               </span>
               <a
                 v-if="project.github"
                 :href="project.github"
                 target="_blank"
                 class="text-white hover:text-gray-200"
-                title="View on GitHub"
+                :title="$t('projects.viewOnGitHub')"
               >
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
@@ -165,13 +165,13 @@
         <!-- Stats and Actions -->
         <div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
           <div class="flex items-center space-x-6">
-            <div class="text-center">
+               <div class="text-center">
               <div class="text-lg font-bold text-gray-900 dark:text-white">{{ project.views }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Views</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.stats.views') }}</div>
             </div>
             <div class="text-center">
               <div class="text-lg font-bold text-gray-900 dark:text-white">{{ project.comments }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Comments</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.stats.comments') }}</div>
             </div>
           </div>
           <div class="flex items-center space-x-2">
@@ -186,9 +186,9 @@
 
         <!-- Team Members -->
         <div v-if="project.team && project.team.length > 0" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Team</span>
-            <span class="text-xs text-gray-500 dark:text-gray-400">{{ project.team.length }} members</span>
+           <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ $t('projects.team.team') }}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ project.team.length }} {{ $t('projects.team.members') }}</span>
           </div>
           <div class="flex -space-x-2">
             <div
@@ -204,7 +204,7 @@
             <div
               v-if="project.team.length > 4"
               class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center"
-              title="More team members"
+               :title="$t('projects.team.moreTeamMembers')"
             >
               <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
                 +{{ project.team.length - 4 }}
@@ -222,14 +222,14 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        No projects found
+       <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        {{ $t('projects.emptyState.noProjectsFound') }}
       </h3>
       <p class="text-gray-600 dark:text-gray-400 mb-6">
-        Try adjusting your search or be the first to submit a project!
+        {{ $t('projects.emptyState.description') }}
       </p>
       <NuxtLink to="/create" class="btn btn-primary">
-        Submit Your Project
+        {{ $t('projects.submitYourProject') }}
       </NuxtLink>
     </div>
 
@@ -244,7 +244,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-        Load More Projects
+        {{ $t('projects.loadMore') }}
       </button>
     </div>
   </div>
@@ -254,6 +254,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from '#imports'
 
+const { t } = useI18n()
 const route = useRoute()
 const searchQuery = ref('')
 const selectedTags = ref<string[]>([])
@@ -301,7 +302,7 @@ const fetchProjects = async () => {
     
     const response = await fetch(`${apiUrl}/api/projects?${params.toString()}`)
     if (!response.ok) {
-      throw new Error(`Failed to fetch projects: ${response.status}`)
+      throw new Error(`${t('projects.errors.failedToFetch')}: ${response.status}`)
     }
     const data = await response.json()
     
@@ -314,25 +315,25 @@ const fetchProjects = async () => {
     projects.value = data.map((project: any) => ({
       id: project.id,
       name: project.title,
-      author: project.owner?.name || 'Unknown',
-      hackathon: project.hackathon?.name || 'Unknown Hackathon',
+      author: project.owner?.name || t('common.unknown'),
+      hackathon: project.hackathon?.name || t('common.unknownHackathon'),
       status: project.status === 'active' ? 'Submitted' :
               project.status === 'winner' ? 'Winner' :
               project.status === 'finalist' ? 'Finalist' : 'Submitted',
-      description: project.description || 'No description available',
-      tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
-      image: project.image_path || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
-      demo: project.live_url || null,
-      github: project.repository_url || null,
-      views: project.view_count || 0,
-      comments: project.comment_count || 0,
-      upvotes: project.upvote_count || 0,
-      downvotes: project.downvote_count || 0,
-      userVote: null, // Would need to check user's vote from separate endpoint
-      team: project.owner ? [{ id: project.owner.id, name: project.owner.name }] : []
+       description: project.description || t('common.noDescription'),
+       tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
+       image: project.image_path || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
+       demo: project.live_url || null,
+       github: project.repository_url || null,
+       views: project.view_count || 0,
+       comments: project.comment_count || 0,
+       upvotes: project.upvote_count || 0,
+       downvotes: project.downvote_count || 0,
+       userVote: null, // Would need to check user's vote from separate endpoint
+       team: project.owner ? [{ id: project.owner.id, name: project.owner.name }] : []
     }))
-  } catch (err: any) {
-    error.value = err.message || 'Failed to load projects'
+   } catch (err: any) {
+    error.value = err.message || t('projects.errors.failedToLoad')
     console.error('Error fetching projects:', err)
     // Fallback to empty array
     projects.value = []
@@ -406,7 +407,7 @@ const loadMore = async () => {
     
     const response = await fetch(`${apiUrl}/api/projects?skip=${skip}&limit=${limit}`)
     if (!response.ok) {
-      throw new Error(`Failed to load more projects: ${response.status}`)
+      throw new Error(`${t('projects.errors.failedToLoadMore')}: ${response.status}`)
     }
     
     const data = await response.json()
@@ -420,12 +421,12 @@ const loadMore = async () => {
     const newProjects = data.map((project: any) => ({
       id: project.id,
       name: project.title,
-      author: project.owner?.name || 'Unknown',
-      hackathon: project.hackathon?.name || 'Unknown Hackathon',
+      author: project.owner?.name || t('common.unknown'),
+      hackathon: project.hackathon?.name || t('common.unknownHackathon'),
       status: project.status === 'active' ? 'Submitted' : 
               project.status === 'winner' ? 'Winner' :
               project.status === 'finalist' ? 'Finalist' : 'Submitted',
-      description: project.description || 'No description available',
+       description: project.description || t('common.noDescription'),
       tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
       image: project.image_path || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
       demo: project.live_url || null,

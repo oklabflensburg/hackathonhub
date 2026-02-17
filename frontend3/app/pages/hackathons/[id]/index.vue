@@ -346,7 +346,7 @@
                   v-model="editForm.image_url"
                   type="url"
                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
+                  :placeholder="$t('hackathons.details.imageUrlPlaceholder')"
                 />
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Enter a URL for the hackathon banner image. Leave empty to use default.
@@ -390,7 +390,7 @@
                         <input
                           v-model="prize.name"
                           type="text"
-                          placeholder="e.g., First Place"
+                          :placeholder="$t('hackathons.details.prizeNamePlaceholder')"
                           class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         />
                       </div>
@@ -399,7 +399,7 @@
                         <input
                           v-model="prize.description"
                           type="text"
-                          placeholder="e.g., Grand prize for the winning team"
+                          :placeholder="$t('hackathons.details.prizeDescriptionPlaceholder')"
                           class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         />
                       </div>
@@ -408,7 +408,7 @@
                         <input
                           v-model="prize.value"
                           type="text"
-                          placeholder="e.g., $5,000"
+                          :placeholder="$t('hackathons.details.prizeAmountPlaceholder')"
                           class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         />
                       </div>
@@ -469,7 +469,7 @@
                         <input
                           v-model="organizer.name"
                           type="text"
-                          placeholder="e.g., John Doe"
+                          :placeholder="$t('hackathons.details.organizerNamePlaceholder')"
                           class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         />
                       </div>
@@ -478,7 +478,7 @@
                         <input
                           v-model="organizer.role"
                           type="text"
-                          placeholder="e.g., Lead Organizer"
+                          :placeholder="$t('hackathons.details.organizerRolePlaceholder')"
                           class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         />
                       </div>
@@ -499,7 +499,7 @@
                   v-model="editForm.prize_pool"
                   type="text"
                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="$5,000"
+                  :placeholder="$t('hackathons.details.prizeAmountInputPlaceholder')"
                 />
               </div>
 

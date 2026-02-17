@@ -3,17 +3,17 @@
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Hackathons</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $t('hackathons.title') }}</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-2">
-          Discover and join hackathons from around the world
+          {{ $t('hackathons.subtitle') }}
         </p>
       </div>
       <div class="flex items-center space-x-4">
         <div class="relative">
-          <input
+           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search hackathons..."
+            :placeholder="$t('hackathons.searchPlaceholder')"
             class="input pl-10"
           />
           <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,7 +24,7 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          Create Hackathon
+           {{ $t('hackathons.createHackathon') }}
         </NuxtLink>
       </div>
     </div>
@@ -49,7 +49,7 @@
     <!-- Loading State -->
     <div v-if="isLoading" class="text-center py-12">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-      <p class="mt-4 text-gray-600 dark:text-gray-400">Loading hackathons...</p>
+       <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $t('hackathons.loading') }}</p>
     </div>
 
     <!-- Error State -->
@@ -59,12 +59,12 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.342 16.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
       </div>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        Failed to load hackathons
+       <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        {{ $t('hackathons.failedToLoad') }}
       </h3>
       <p class="text-gray-600 dark:text-gray-400 mb-6">{{ error }}</p>
       <button @click="() => { fetchHackathons(1) }" class="btn btn-primary">
-        Try Again
+           {{ $t('hackathons.tryAgain') }}
       </button>
     </div>
 
@@ -110,7 +110,7 @@
             </div>
             <div v-if="hackathon.prize" class="text-right">
               <div class="text-lg font-bold text-gray-900 dark:text-white">{{ hackathon.prize }}</div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">Prize Pool</div>
+               <div class="text-sm text-gray-500 dark:text-gray-400">{{ $t('hackathons.prizePool') }}</div>
             </div>
           </div>
 
@@ -122,15 +122,15 @@
           <div class="grid grid-cols-3 gap-4 py-4 border-t border-gray-100 dark:border-gray-800">
             <div class="text-center">
               <div class="text-xl font-bold text-gray-900 dark:text-white">{{ hackathon.participants }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Participants</div>
+               <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.participants') }}</div>
             </div>
             <div class="text-center">
               <div class="text-xl font-bold text-gray-900 dark:text-white">{{ hackathon.projects }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Projects</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projects') }}</div>
             </div>
             <div class="text-center">
               <div class="text-xl font-bold text-gray-900 dark:text-white">{{ hackathon.duration }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Duration</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.duration') }}</div>
             </div>
           </div>
 
@@ -163,7 +163,7 @@
               :to="`/hackathons/${hackathon.id}`"
               class="btn btn-primary px-4 py-2 text-sm"
             >
-              View Details
+               {{ $t('hackathons.viewDetails') }}
             </NuxtLink>
           </div>
         </div>
@@ -177,26 +177,26 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
       </div>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        No hackathons found
+       <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        {{ $t('hackathons.noHackathonsFound') }}
       </h3>
       <p class="text-gray-600 dark:text-gray-400 mb-6">
-        Try adjusting your search or filter to find what you're looking for.
+        {{ $t('hackathons.noHackathonsDescription') }}
       </p>
       <button @click="resetFilters" class="btn btn-primary">
-        Reset Filters
+        {{ $t('hackathons.resetFilters') }}
       </button>
     </div>
 
     <!-- Pagination -->
     <div v-if="!isLoading && !error && filteredHackathons.length > 0" class="flex items-center justify-between pt-8 border-t border-gray-200 dark:border-gray-700">
        <div class="text-sm text-gray-600 dark:text-gray-400">
-         <template v-if="searchQuery || activeFilter !== 'all'">
-           Showing {{ filteredHackathons.length }} of {{ hackathons.length }} loaded hackathons
-         </template>
-         <template v-else>
-           Showing {{ ((currentPage - 1) * pageSize) + 1 }}-{{ Math.min(currentPage * pageSize, totalHackathons) }} of {{ totalHackathons }} hackathons
-         </template>
+          <template v-if="searchQuery || activeFilter !== 'all'">
+            {{ $t('hackathons.showing') }} {{ filteredHackathons.length }} {{ $t('hackathons.of') }} {{ hackathons.length }} {{ $t('hackathons.loadedHackathons') }}
+          </template>
+          <template v-else>
+            {{ $t('hackathons.showing') }} {{ ((currentPage - 1) * pageSize) + 1 }}-{{ Math.min(currentPage * pageSize, totalHackathons) }} {{ $t('hackathons.of') }} {{ totalHackathons }} {{ $t('hackathons.hackathons') }}
+          </template>
        </div>
        <div class="flex items-center space-x-2">
          <button 
@@ -248,7 +248,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -265,12 +268,12 @@ const totalHackathons = ref(0)
 const hasMore = ref(true)
 
 const filters = [
-  { label: 'All Hackathons', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Upcoming', value: 'upcoming' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Online', value: 'online' },
-  { label: 'In-person', value: 'in-person' }
+  { label: t('hackathons.filters.all'), value: 'all' },
+  { label: t('hackathons.filters.active'), value: 'active' },
+  { label: t('hackathons.filters.upcoming'), value: 'upcoming' },
+  { label: t('hackathons.filters.completed'), value: 'completed' },
+  { label: t('hackathons.filters.online'), value: 'online' },
+  { label: t('hackathons.filters.inPerson'), value: 'in-person' }
 ]
 
 // Initialize search query from URL parameter

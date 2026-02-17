@@ -9,12 +9,12 @@
               <span class="text-white font-bold text-xl">H</span>
             </div>
             <div>
-              <h2 class="text-xl font-bold text-gray-900 dark:text-white">Hackathon Hub</h2>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Build. Collaborate. Win.</p>
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ t('app.name') }}</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('app.tagline') }}</p>
             </div>
           </div>
           <p class="text-gray-600 dark:text-gray-400 text-sm">
-            A platform for hackathon organizers, participants, and judges to collaborate, showcase projects, and drive innovation.
+            {{ t('app.description') }}
           </p>
           <div class="flex space-x-4">
             <a href="#" class="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
@@ -37,31 +37,31 @@
 
         <!-- Quick Links -->
         <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ t('footer.quickLinks') }}</h3>
           <ul class="space-y-2">
             <li>
               <NuxtLink to="/" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                Dashboard
+                {{ t('navigation.dashboard') }}
               </NuxtLink>
             </li>
             <li>
               <NuxtLink to="/hackathons" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                Hackathons
+                {{ t('navigation.hackathons') }}
               </NuxtLink>
             </li>
             <li>
               <NuxtLink to="/projects" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                Projects
+                {{ t('navigation.projects') }}
               </NuxtLink>
             </li>
             <li>
               <NuxtLink to="/create" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                Create
+                {{ t('navigation.create') }}
               </NuxtLink>
             </li>
             <li>
               <NuxtLink to="/about" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                About Us
+                {{ t('navigation.about') }}
               </NuxtLink>
             </li>
           </ul>
@@ -69,31 +69,31 @@
 
         <!-- Resources -->
         <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Resources</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ t('footer.resources') }}</h3>
           <ul class="space-y-2">
             <li>
               <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                Documentation
+                {{ t('footer.documentation') }}
               </a>
             </li>
             <li>
               <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                API Reference
+                {{ t('footer.apiReference') }}
               </a>
             </li>
             <li>
               <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                Tutorials
+                {{ t('footer.tutorials') }}
               </a>
             </li>
             <li>
               <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                Blog
+                {{ t('footer.blog') }}
               </a>
             </li>
             <li>
               <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                Community
+                {{ t('footer.community') }}
               </a>
             </li>
           </ul>
@@ -101,29 +101,29 @@
 
         <!-- Contact -->
         <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Contact Us</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ t('footer.contactUs') }}</h3>
           <ul class="space-y-2">
             <li class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              <span>hello@hackathonhub.dev</span>
+              <span>{{ t('footer.email') }}</span>
             </li>
             <li class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span>San Francisco, CA</span>
+              <span>{{ t('footer.location') }}</span>
             </li>
           </ul>
           <div class="mt-6">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Subscribe to our newsletter</h4>
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">{{ t('footer.newsletter') }}</h4>
              <div class="flex flex-col sm:flex-row max-w-full">
-                <input
+                 <input
                   v-model="newsletterEmail"
                   type="email"
-                  placeholder="Your email"
+                  :placeholder="t('footer.emailPlaceholder')"
                   :disabled="newsletterLoading"
                   class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-t-lg sm:rounded-l-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed w-full"
                   @keyup.enter="subscribeToNewsletter"
@@ -143,7 +143,7 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span v-else>Subscribe</span>
+                <span v-else>{{ t('footer.subscribe') }}</span>
               </button>
             </div>
             <div v-if="newsletterMessage" class="mt-2 text-sm" :class="newsletterSuccess ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
@@ -156,17 +156,17 @@
       <!-- Bottom Bar -->
       <div class="border-t border-gray-200 dark:border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
         <p class="text-gray-600 dark:text-gray-400 text-sm">
-          © 2024 Hackathon Hub. All rights reserved.
+          {{ t('footer.copyright') }}
         </p>
         <div class="flex space-x-6 mt-4 md:mt-0">
           <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm transition-colors">
-            Privacy Policy
+            {{ t('footer.privacyPolicy') }}
           </a>
           <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm transition-colors">
-            Terms of Service
+            {{ t('footer.termsOfService') }}
           </a>
           <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm transition-colors">
-            Cookie Policy
+            {{ t('footer.cookiePolicy') }}
           </a>
         </div>
       </div>
@@ -176,6 +176,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+
+const { t } = useI18n()
 
 const newsletterEmail = ref('')
 const newsletterLoading = ref(false)
@@ -193,7 +195,7 @@ const subscribeToNewsletter = async () => {
   // Basic email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(newsletterEmail.value)) {
-    newsletterMessage.value = 'Please enter a valid email address'
+    newsletterMessage.value = t('validation.emailInvalid')
     newsletterSuccess.value = false
     return
   }
@@ -229,12 +231,12 @@ const subscribeToNewsletter = async () => {
         newsletterMessage.value = ''
       }, 5000)
     } else {
-      newsletterMessage.value = data.detail || 'Failed to subscribe'
+      newsletterMessage.value = data.detail || t('errors.subscriptionFailed')
       newsletterSuccess.value = false
     }
   } catch (error: any) {
     console.error('Newsletter subscription error:', error)
-    newsletterMessage.value = 'Network error. Please try again.'
+    newsletterMessage.value = t('errors.networkError')
     newsletterSuccess.value = false
   } finally {
     newsletterLoading.value = false

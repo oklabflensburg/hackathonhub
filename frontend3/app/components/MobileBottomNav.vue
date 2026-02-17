@@ -16,7 +16,7 @@
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
-        <span class="text-xs font-medium">Home</span>
+        <span class="text-xs font-medium">{{ $t('navigation.home') }}</span>
       </NuxtLink>
 
       <!-- Hackathons -->
@@ -30,7 +30,7 @@
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
-        <span class="text-xs font-medium">Hackathons</span>
+        <span class="text-xs font-medium">{{ $t('navigation.hackathons') }}</span>
       </NuxtLink>
 
       <!-- Projects -->
@@ -44,7 +44,7 @@
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span class="text-xs font-medium">Projects</span>
+        <span class="text-xs font-medium">{{ $t('navigation.projects') }}</span>
       </NuxtLink>
 
       <!-- Create (Center with accent) -->
@@ -58,7 +58,7 @@
         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
-        <span class="text-xs font-medium mt-1">Create</span>
+        <span class="text-xs font-medium mt-1">{{ $t('navigation.create') }}</span>
       </NuxtLink>
 
       <!-- Profile -->
@@ -72,7 +72,7 @@
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
-        <span class="text-xs font-medium">Profile</span>
+        <span class="text-xs font-medium">{{ $t('navigation.profile') }}</span>
       </NuxtLink>
 
       <!-- Search -->
@@ -83,7 +83,7 @@
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <span class="text-xs font-medium">Search</span>
+        <span class="text-xs font-medium">{{ $t('navigation.search') }}</span>
       </button>
     </div>
   </nav>
@@ -100,7 +100,7 @@
           ref="searchInput"
           v-model="searchQuery"
           type="text"
-          placeholder="Search hackathons, projects, users..."
+          :placeholder="$t('navigation.searchPlaceholder')"
           class="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-500"
           @keyup.enter="performSearch"
         />
@@ -110,21 +110,21 @@
           </svg>
         </button>
       </div>
-      <div class="text-sm text-gray-500 dark:text-gray-400 text-center">
-        Type and press Enter to search across projects
+       <div class="text-sm text-gray-500 dark:text-gray-400 text-center">
+        {{ $t('navigation.searchInstructions') }}
       </div>
       <div class="mt-3 flex flex-wrap gap-2">
         <button
           @click="searchProjects"
           class="text-xs px-3 py-1.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-800/50 transition-colors"
         >
-          Search Projects
+          {{ $t('navigation.searchProjects') }}
         </button>
         <button
           @click="searchHackathons"
           class="text-xs px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors"
         >
-          Search Hackathons
+          {{ $t('navigation.searchHackathons') }}
         </button>
       </div>
     </div>
@@ -134,6 +134,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from '#imports'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const router = useRouter()
 const showSearch = ref(false)

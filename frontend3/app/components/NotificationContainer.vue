@@ -68,7 +68,7 @@
           <button
             @click="removeNotification(notification.id)"
             class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            aria-label="Close notification"
+             :aria-label="$t('common.close') + ' notification'"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -102,8 +102,10 @@
 
 <script setup lang="ts">
 import { useUIStore } from '~/stores/ui'
+import { useI18n } from 'vue-i18n'
 
 const uiStore = useUIStore()
+const { t } = useI18n()
 
 const notifications = computed(() => uiStore.notifications)
 

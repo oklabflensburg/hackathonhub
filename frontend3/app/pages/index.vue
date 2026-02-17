@@ -4,18 +4,17 @@
     <section class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-500 to-purple-600 p-8 md:p-12 text-white">
       <div class="relative z-10 max-w-3xl">
         <h1 class="text-4xl md:text-5xl font-bold mb-4">
-          Welcome to Hackathon Hub
+          {{ t('home.hero.title') }}
         </h1>
         <p class="text-xl mb-8 opacity-90">
-          The ultimate platform for hackathon organizers, participants, and judges. 
-          Collaborate, showcase projects, and drive innovation together.
+          {{ t('home.hero.description') }}
         </p>
         <div class="flex flex-wrap gap-4">
           <NuxtLink to="/hackathons" class="btn bg-white text-primary-600 hover:bg-gray-100">
-            Explore Hackathons
+            {{ t('home.hero.exploreHackathons') }}
           </NuxtLink>
           <NuxtLink to="/create" class="btn bg-transparent border-2 border-white hover:bg-white/10">
-            Create Project
+            {{ t('home.hero.createProject') }}
           </NuxtLink>
         </div>
       </div>
@@ -50,10 +49,10 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div>
-          <h3 class="font-semibold text-red-800 dark:text-red-300">Failed to load dashboard data</h3>
+          <h3 class="font-semibold text-red-800 dark:text-red-300">{{ t('errors.dashboardLoadFailed') }}</h3>
           <p class="text-red-700 dark:text-red-400 text-sm mt-1">{{ error }}</p>
           <button @click="fetchDashboardData" class="mt-3 text-sm text-red-600 dark:text-red-400 hover:underline">
-            Try again
+            {{ t('common.tryAgain') }}
           </button>
         </div>
       </div>
@@ -64,28 +63,28 @@
       <section class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
         <div class="card text-center">
           <div class="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">{{ stats.activeHackathons }}</div>
-          <div class="text-gray-600 dark:text-gray-400">Active Hackathons</div>
+          <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.activeHackathons') }}</div>
         </div>
         <div class="card text-center">
           <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">{{ stats.projectsSubmitted }}</div>
-          <div class="text-gray-600 dark:text-gray-400">Projects Submitted</div>
+          <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.projectsSubmitted') }}</div>
         </div>
         <div class="card text-center">
           <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">{{ stats.totalVotes }}</div>
-          <div class="text-gray-600 dark:text-gray-400">Total Votes</div>
+          <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.totalVotes') }}</div>
         </div>
         <div class="card text-center">
           <div class="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">{{ stats.activeParticipants }}</div>
-          <div class="text-gray-600 dark:text-gray-400">Active Participants</div>
+          <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.activeParticipants') }}</div>
         </div>
       </section>
 
     <!-- Featured Hackathons -->
     <section class="py-8">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Featured Hackathons</h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('home.featuredHackathons.title') }}</h2>
         <NuxtLink to="/hackathons" class="text-primary-600 dark:text-primary-400 hover:underline font-medium">
-          View All →
+          {{ t('common.viewAll') }} →
         </NuxtLink>
       </div>
        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -129,7 +128,7 @@
               :to="`/hackathons/${hackathon.id}`" 
               class="text-primary-600 dark:text-primary-400 hover:underline font-medium"
             >
-              View Details
+              {{ t('common.viewDetails') }}
             </NuxtLink>
           </div>
         </div>
@@ -139,9 +138,9 @@
     <!-- Top Projects -->
     <section class="py-8">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Top Voted Projects</h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('home.topProjects.title') }}</h2>
         <NuxtLink to="/projects" class="text-primary-600 dark:text-primary-400 hover:underline font-medium">
-          View All →
+          {{ t('common.viewAll') }} →
         </NuxtLink>
       </div>
        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -171,7 +170,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                   {{ project.name }}
                 </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400">by {{ project.author }}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('common.by') }} {{ project.author }}</p>
               </div>
             </div>
             <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">
@@ -199,21 +198,21 @@
     <!-- CTA Section -->
     <section class="text-center py-12">
       <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-        Ready to showcase your project?
+        {{ t('home.cta.title') }}
       </h2>
       <p class="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
-        Join thousands of developers, designers, and innovators who are building the future.
+        {{ t('home.cta.description') }}
       </p>
       <div class="flex flex-wrap justify-center gap-4">
         <NuxtLink to="/create" class="btn btn-primary px-8 py-3 text-lg">
-          Create Your Project
+          {{ t('home.cta.createProject') }}
         </NuxtLink>
         <button 
           v-if="!isAuthenticated"
           @click="loginWithGitHub"
           class="btn btn-outline px-8 py-3 text-lg"
         >
-          Sign Up with GitHub
+          {{ t('auth.signUpWithGitHub') }}
         </button>
       </div>
     </section>
@@ -224,7 +223,9 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const config = useRuntimeConfig()
 const apiUrl = config.public.apiUrl
@@ -256,14 +257,14 @@ const fetchDashboardData = async () => {
     // Fetch hackathons
     const hackathonsResponse = await fetch(`${apiUrl}/api/hackathons`)
     if (!hackathonsResponse.ok) {
-      throw new Error(`Failed to fetch hackathons: ${hackathonsResponse.status}`)
+      throw new Error(`${t('errors.fetchHackathonsFailed')}: ${hackathonsResponse.status}`)
     }
     const hackathonsData = await hackathonsResponse.json()
     
     // Fetch projects
     const projectsResponse = await fetch(`${apiUrl}/api/projects`)
     if (!projectsResponse.ok) {
-      throw new Error(`Failed to fetch projects: ${projectsResponse.status}`)
+      throw new Error(`${t('errors.fetchProjectsFailed')}: ${projectsResponse.status}`)
     }
     const projectsData = await projectsResponse.json()
     
@@ -288,12 +289,12 @@ const fetchDashboardData = async () => {
       return {
         id: hackathon.id,
         name: hackathon.name,
-        organization: hackathon.organization || 'Unknown',
-        status: hackathon.is_active ? 'Active' : 'Upcoming',
-        description: hackathon.description || 'No description available',
-        duration: `${hackathon.duration_hours || 48} hours`,
+        organization: hackathon.organization || t('common.unknown'),
+        status: hackathon.is_active ? t('common.active') : t('common.upcoming'),
+        description: hackathon.description || t('common.noDescription'),
+        duration: `${hackathon.duration_hours || 48} ${t('common.hours')}`,
         participants: `${hackathon.participant_count || 0}+`,
-        prize: hackathon.prize ? `$${hackathon.prize.toLocaleString()}` : 'No prize',
+        prize: hackathon.prize ? `$${hackathon.prize.toLocaleString()}` : t('common.noPrize'),
         imageUrl
       }
     })
@@ -318,9 +319,9 @@ const fetchDashboardData = async () => {
       return {
         id: project.id,
         name: project.title,
-        author: project.owner?.name || 'Unknown',
-        hackathon: project.hackathon?.name || 'Unknown Hackathon',
-        description: project.description || 'No description available',
+        author: project.owner?.name || t('common.unknown'),
+        hackathon: project.hackathon?.name || t('common.unknownHackathon'),
+        description: project.description || t('common.noDescription'),
         upvotes: project.upvote_count || 0,
         downvotes: project.downvote_count || 0,
         userVote: null, // Would need to check user's vote from separate endpoint
@@ -348,7 +349,7 @@ const fetchDashboardData = async () => {
     }
     
   } catch (err: any) {
-    error.value = err.message || 'Failed to load dashboard data'
+    error.value = err.message || t('errors.dashboardLoadFailed')
     console.error('Error fetching dashboard data:', err)
   } finally {
     loading.value = false
