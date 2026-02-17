@@ -378,7 +378,27 @@
     },
     "comments": {
       "addCommentPlaceholder": "Add a comment...",
-      "writeReplyPlaceholder": "Write a reply..."
+      "writeReplyPlaceholder": "Write a reply...",
+      "postComment": "Post Comment",
+      "postReply": "Post Reply",
+      "posting": "Posting...",
+      "signInToComment": "Please sign in to leave a comment",
+      "noCommentsYet": "No comments yet. Be the first to comment!"
+    },
+    "detail": {
+      "notFoundTitle": "Project Not Found",
+      "backToProjects": "Back to Projects",
+      "githubRepository": "GitHub Repository",
+      "liveDemo": "Live Demo",
+      "projectStats": "Project Stats",
+      "totalScore": "Total Score",
+      "actions": "Actions",
+      "editProject": "Edit Project",
+      "viewHackathon": "View Hackathon",
+      "description": "Description",
+      "technologies": "Technologies",
+      "links": "Links",
+      "comments": "Comments"
     }
   },
   "create": {

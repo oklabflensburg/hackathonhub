@@ -378,7 +378,27 @@
     },
     "comments": {
       "addCommentPlaceholder": "Kommentar hinzufügen...",
-      "writeReplyPlaceholder": "Antwort schreiben..."
+      "writeReplyPlaceholder": "Antwort schreiben...",
+      "postComment": "Kommentar posten",
+      "postReply": "Antwort posten",
+      "posting": "Wird gepostet...",
+      "signInToComment": "Bitte melde dich an, um einen Kommentar zu hinterlassen",
+      "noCommentsYet": "Noch keine Kommentare. Sei der Erste, der kommentiert!"
+    },
+    "detail": {
+      "notFoundTitle": "Projekt nicht gefunden",
+      "backToProjects": "Zurück zu Projekten",
+      "githubRepository": "GitHub-Repository",
+      "liveDemo": "Live-Demo",
+      "projectStats": "Projektstatistiken",
+      "totalScore": "Gesamtpunktzahl",
+      "actions": "Aktionen",
+      "editProject": "Projekt bearbeiten",
+      "viewHackathon": "Hackathon ansehen",
+      "description": "Beschreibung",
+      "technologies": "Technologien",
+      "links": "Links",
+      "comments": "Kommentare"
     }
   },
   "create": {
