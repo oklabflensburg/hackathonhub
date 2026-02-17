@@ -583,7 +583,7 @@ async def create_hackathon(
     """Create a new hackathon"""
     # Geocode the location if not already provided
     if hackathon.location and not (hackathon.latitude and hackathon.longitude):
-        from backend.geocoding import geocode_address
+        from geocoding import geocode_address
         coordinates = await geocode_address(hackathon.location)
         if coordinates:
             hackathon.latitude, hackathon.longitude = coordinates
