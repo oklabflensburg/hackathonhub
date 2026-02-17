@@ -95,8 +95,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from 'vue'
-
 interface Props {
   label: string
   value: string | number
@@ -133,3 +131,4 @@ defineProps<Props>()
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
+</style>
