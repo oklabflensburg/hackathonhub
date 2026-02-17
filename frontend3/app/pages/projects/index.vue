@@ -281,12 +281,25 @@ watch(() => route.query.q, (newQ) => {
   }
 })
 
-// Fetch projects from API
+// Watch for search query changes to refetch projects
+watch(searchQuery, () => {
+  fetchProjects()
+})
+
+// Fetch projects from API with optional search
 const fetchProjects = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch(`${apiUrl}/api/projects?skip=0&limit=24`)
+    // Build query parameters
+    const params = new URLSearchParams()
+    params.append('skip', '0')
+    params.append('limit', '24')
+    if (searchQuery.value) {
+      params.append('search', searchQuery.value)
+    }
+    
+    const response = await fetch(`${apiUrl}/api/projects?${params.toString()}`)
     if (!response.ok) {
       throw new Error(`Failed to fetch projects: ${response.status}`)
     }

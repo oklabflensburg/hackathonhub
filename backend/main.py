@@ -40,10 +40,11 @@ async def health_check():
 async def get_projects(
     skip: int = 0,
     limit: int = 100,
+    search: str = Query(None, description="Search query for full-text search"),
     db: Session = Depends(get_db)
 ):
-    """Get all hackathon projects"""
-    projects = crud.get_projects(db, skip=skip, limit=limit)
+    """Get all hackathon projects with optional full-text search"""
+    projects = crud.get_projects(db, skip=skip, limit=limit, search=search)
     return projects
 
 
@@ -557,10 +558,11 @@ async def get_user_stats(
 async def get_hackathons(
     skip: int = 0,
     limit: int = 100,
+    search: str = Query(None, description="Search query for full-text search"),
     db: Session = Depends(get_db)
 ):
-    """Get all hackathons"""
-    hackathons = crud.get_hackathons(db, skip=skip, limit=limit)
+    """Get all hackathons with optional full-text search"""
+    hackathons = crud.get_hackathons(db, skip=skip, limit=limit, search=search)
     return hackathons
 
 

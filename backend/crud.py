@@ -61,8 +61,26 @@ def get_project_with_details(db: Session, project_id: int):
     ).filter(models.Project.id == project_id).first()
 
 
-def get_projects(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Project).offset(skip).limit(limit).all()
+def get_projects(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    search: str = None
+):
+    query = db.query(models.Project)
+    
+    if search:
+        # Perform case-insensitive search across multiple fields
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Project.title.ilike(search_pattern),
+                models.Project.description.ilike(search_pattern),
+                models.Project.technologies.ilike(search_pattern)
+            )
+        )
+    
+    return query.offset(skip).limit(limit).all()
 
 
 def get_projects_by_user(db: Session, user_id: int, skip: int = 0, limit: int = 100):
@@ -191,7 +209,12 @@ def get_hackathon_with_details(db: Session, hackathon_id: int):
     return None
 
 
-def get_hackathons(db: Session, skip: int = 0, limit: int = 100):
+def get_hackathons(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    search: str = None
+):
     from sqlalchemy import func, select
 
     # Subquery to count projects per hackathon
@@ -205,14 +228,27 @@ def get_hackathons(db: Session, skip: int = 0, limit: int = 100):
     )
 
     # Query hackathons with left join to get project count
-    hackathons = db.query(
+    query = db.query(
         models.Hackathon,
         func.coalesce(project_count_subquery.c.project_count,
                       0).label('project_count')
     ).outerjoin(
         project_count_subquery,
         models.Hackathon.id == project_count_subquery.c.hackathon_id
-    ).offset(skip).limit(limit).all()
+    )
+    
+    # Apply search filter if provided
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Hackathon.name.ilike(search_pattern),
+                models.Hackathon.description.ilike(search_pattern),
+                models.Hackathon.location.ilike(search_pattern)
+            )
+        )
+    
+    hackathons = query.offset(skip).limit(limit).all()
 
     # Convert to list of Hackathon objects with project_count added
     result = []

@@ -288,7 +288,14 @@ watch(() => route.query.q, (newQ) => {
   }
 })
 
-// Fetch hackathons from backend API with pagination
+// Watch for search query changes to refetch hackathons
+watch(searchQuery, () => {
+  // Reset to first page when search changes
+  currentPage.value = 1
+  fetchHackathons(1)
+})
+
+// Fetch hackathons from backend API with pagination and search
 const fetchHackathons = async (page: number = 1) => {
   isLoading.value = true
   error.value = null
@@ -296,7 +303,15 @@ const fetchHackathons = async (page: number = 1) => {
     const skip = (page - 1) * pageSize.value
     const limit = pageSize.value
     
-    const response = await fetch(`${config.public.apiUrl}/api/hackathons?skip=${skip}&limit=${limit}`)
+    // Build query parameters
+    const params = new URLSearchParams()
+    params.append('skip', skip.toString())
+    params.append('limit', limit.toString())
+    if (searchQuery.value) {
+      params.append('search', searchQuery.value)
+    }
+    
+    const response = await fetch(`${config.public.apiUrl}/api/hackathons?${params.toString()}`)
     if (!response.ok) {
       throw new Error(`Failed to fetch hackathons: ${response.status}`)
     }
@@ -418,18 +433,10 @@ const getPageNumbers = () => {
 const filteredHackathons = computed(() => {
   let filtered = hackathons.value
 
-  // Apply search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(h =>
-      h.name.toLowerCase().includes(query) ||
-      h.organization.toLowerCase().includes(query) ||
-      h.description.toLowerCase().includes(query) ||
-      h.tags.some((tag: string) => tag.toLowerCase().includes(query))
-    )
-  }
+  // Note: Search filtering is now done server-side via the API
+  // The search query is passed to the backend in fetchHackathons()
 
-  // Apply status filter
+  // Apply status filter (client-side)
   if (activeFilter.value !== 'all') {
     if (activeFilter.value === 'active') {
       filtered = filtered.filter(h => h.status === 'Active')
