@@ -13,7 +13,7 @@
     </div>
 
     <!-- Content -->
-    <div class="container mx-auto px-4 py-12">
+    <div class="py-12">
       <div class="max-w-4xl mx-auto">
         <!-- Mission -->
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-8">

@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-    <div class="container mx-auto px-4">
       <!-- Back button -->
       <div class="mb-6">
         <NuxtLink 
@@ -192,7 +191,6 @@
           Submit Your Project
         </button>
       </div>
-    </div>
   </div>
 </template>
 
