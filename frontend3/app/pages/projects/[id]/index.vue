@@ -314,122 +314,123 @@
                            </button>
                          </div>
                         </div>
-                      </div>
-                      
-                      <!-- Replies Section -->
-                      <div v-if="comment.replies && comment.replies.length > 0" class="mt-4 ml-6 space-y-4 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
-                        <div 
-                          v-for="reply in comment.replies" 
-                          :key="reply.id"
-                          class="pt-4 first:pt-0"
-                        >
-                          <div class="flex items-start space-x-3">
-                            <!-- User Avatar -->
-                            <NuxtLink :to="'/profile'" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 overflow-hidden hover:opacity-90 transition-opacity">
-                              <img
-                                v-if="reply.user?.avatar_url"
-                                :src="reply.user.avatar_url"
-                                :alt="reply.user.name"
-                                class="w-full h-full object-cover"
-                              />
-                              <span v-else class="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                {{ reply.user?.name?.charAt(0)?.toUpperCase() || 'U' }}
-                              </span>
+                       </div>
+                       
+                       <!-- Edit Form (shown when editingCommentId === comment.id) -->
+                       <div v-else>
+                        <div class="flex items-center justify-between mb-2">
+                          <div>
+                            <NuxtLink 
+                              :to="'/profile'"
+                              class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                            >
+                              {{ comment.user?.name || 'Anonymous' }}
                             </NuxtLink>
-                            
-                            <!-- Reply Content -->
-                            <div class="flex-1">
-                               <div class="flex items-center justify-between mb-1">
-                                <div>
-                                  <NuxtLink 
-                                    :to="'/profile'"
-                                    class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                                  >
-                                    {{ reply.user?.name || 'Anonymous' }}
-                                  </NuxtLink>
-                                  <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">{{ formatDate(reply.created_at) }}</span>
-                                </div>
-                                <div v-if="authStore.user?.id === reply.user_id" class="flex items-center space-x-2">
-                                  <button
-                                    @click="editComment(reply)"
-                                    class="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    @click="deleteComment(reply.id)"
-                                    class="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                              <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ reply.content }}</p>
-                              
-                              <!-- Reply Actions -->
-                              <div class="flex items-center space-x-3 mt-2">
-                                <button
-                                  @click="voteComment(reply.id, 'upvote')"
-                                  class="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
-                                >
-                                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                  </svg>
-                                  <span>{{ reply.upvote_count || 0 }}</span>
-                                </button>
-                                <button
-                                  @click="voteComment(reply.id, 'downvote')"
-                                  class="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                                >
-                                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                  <span>{{ reply.downvote_count || 0 }}</span>
-                                </button>
-                                <button
-                                  @click="startReply(reply.id)"
-                                  class="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
-                                >
-                                  Reply
-                                </button>
-                              </div>
-                            </div>
+                            <span class="text-sm text-gray-500 dark:text-gray-400 ml-3">{{ formatDate(comment.created_at) }}</span>
+                          </div>
+                          <div class="flex items-center space-x-2">
+                            <button
+                              @click="saveComment(comment.id)"
+                              class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
+                            >
+                              Save
+                            </button>
+                            <button
+                              @click="cancelEdit"
+                              class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            >
+                              Cancel
+                            </button>
                           </div>
                         </div>
+                        <textarea
+                          v-model="editingContent"
+                          rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                        ></textarea>
                       </div>
-                      
-                      <div v-else>
-                       <div class="flex items-center justify-between mb-2">
-                         <div>
-                           <NuxtLink 
-                             :to="'/profile'"
-                             class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                           >
-                             {{ comment.user?.name || 'Anonymous' }}
-                           </NuxtLink>
-                           <span class="text-sm text-gray-500 dark:text-gray-400 ml-3">{{ formatDate(comment.created_at) }}</span>
-                         </div>
-                         <div class="flex items-center space-x-2">
-                           <button
-                             @click="saveComment(comment.id)"
-                             class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
-                           >
-                             Save
-                           </button>
-                           <button
-                             @click="cancelEdit"
-                             class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                           >
-                             Cancel
-                           </button>
+                       
+                       <!-- Replies Section (only shown when not editing) -->
+                       <div v-if="editingCommentId !== comment.id && comment.replies && comment.replies.length > 0" class="mt-4 ml-6 space-y-4 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
+                         <div 
+                           v-for="reply in comment.replies" 
+                           :key="reply.id"
+                           class="pt-4 first:pt-0"
+                         >
+                           <div class="flex items-start space-x-3">
+                             <!-- User Avatar -->
+                             <NuxtLink :to="'/profile'" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 overflow-hidden hover:opacity-90 transition-opacity">
+                               <img
+                                 v-if="reply.user?.avatar_url"
+                                 :src="reply.user.avatar_url"
+                                 :alt="reply.user.name"
+                                 class="w-full h-full object-cover"
+                               />
+                               <span v-else class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                 {{ reply.user?.name?.charAt(0)?.toUpperCase() || 'U' }}
+                               </span>
+                             </NuxtLink>
+                             
+                             <!-- Reply Content -->
+                             <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                 <div>
+                                   <NuxtLink 
+                                     :to="'/profile'"
+                                     class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                                   >
+                                     {{ reply.user?.name || 'Anonymous' }}
+                                   </NuxtLink>
+                                   <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">{{ formatDate(reply.created_at) }}</span>
+                                 </div>
+                                 <div v-if="authStore.user?.id === reply.user_id" class="flex items-center space-x-2">
+                                   <button
+                                     @click="editComment(reply)"
+                                     class="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+                                   >
+                                     Edit
+                                   </button>
+                                   <button
+                                     @click="deleteComment(reply.id)"
+                                     class="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                                   >
+                                     Delete
+                                   </button>
+                                 </div>
+                               </div>
+                               <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ reply.content }}</p>
+                               
+                               <!-- Reply Actions -->
+                               <div class="flex items-center space-x-3 mt-2">
+                                 <button
+                                   @click="voteComment(reply.id, 'upvote')"
+                                   class="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+                                 >
+                                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                   </svg>
+                                   <span>{{ reply.upvote_count || 0 }}</span>
+                                 </button>
+                                 <button
+                                   @click="voteComment(reply.id, 'downvote')"
+                                   class="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                                 >
+                                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                   </svg>
+                                   <span>{{ reply.downvote_count || 0 }}</span>
+                                 </button>
+                                 <button
+                                   @click="startReply(reply.id)"
+                                   class="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+                                 >
+                                   Reply
+                                 </button>
+                               </div>
+                             </div>
+                           </div>
                          </div>
                        </div>
-                       <textarea
-                         v-model="editingContent"
-                         rows="3"
-                         class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                       ></textarea>
-                     </div>
                    </div>
                  </div>
                </div>
