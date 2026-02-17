@@ -111,7 +111,21 @@
         </button>
       </div>
       <div class="text-sm text-gray-500 dark:text-gray-400 text-center">
-        Type and press Enter to search
+        Type and press Enter to search across projects
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <button
+          @click="searchProjects"
+          class="text-xs px-3 py-1.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-800/50 transition-colors"
+        >
+          Search Projects
+        </button>
+        <button
+          @click="searchHackathons"
+          class="text-xs px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors"
+        >
+          Search Hackathons
+        </button>
       </div>
     </div>
   </div>
@@ -119,7 +133,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from '#imports'
 
+const router = useRouter()
 const showSearch = ref(false)
 const searchQuery = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
@@ -140,8 +156,21 @@ const closeSearch = () => {
 
 const performSearch = () => {
   if (searchQuery.value.trim()) {
-    // In a real app, you would navigate to search results
-    // For now, just close the modal
+    // Default to searching projects
+    searchProjects()
+  }
+}
+
+const searchProjects = () => {
+  if (searchQuery.value.trim()) {
+    router.push(`/projects?q=${encodeURIComponent(searchQuery.value.trim())}`)
+    closeSearch()
+  }
+}
+
+const searchHackathons = () => {
+  if (searchQuery.value.trim()) {
+    router.push(`/hackathons?q=${encodeURIComponent(searchQuery.value.trim())}`)
     closeSearch()
   }
 }

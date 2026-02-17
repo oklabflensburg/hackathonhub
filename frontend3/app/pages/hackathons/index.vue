@@ -247,8 +247,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from '#imports'
 
+const route = useRoute()
 const config = useRuntimeConfig()
 const searchQuery = ref('')
 const activeFilter = ref('all')
@@ -270,6 +272,21 @@ const filters = [
   { label: 'Online', value: 'online' },
   { label: 'In-person', value: 'in-person' }
 ]
+
+// Initialize search query from URL parameter
+onMounted(() => {
+  if (route.query.q) {
+    searchQuery.value = route.query.q as string
+  }
+  fetchHackathons(1)
+})
+
+// Watch for URL changes to update search query
+watch(() => route.query.q, (newQ) => {
+  if (newQ !== undefined) {
+    searchQuery.value = newQ as string
+  }
+})
 
 // Fetch hackathons from backend API with pagination
 const fetchHackathons = async (page: number = 1) => {
@@ -435,8 +452,4 @@ const resetFilters = () => {
   activeFilter.value = 'all'
 }
 
-// Fetch hackathons on component mount
-onMounted(() => {
-  fetchHackathons(1)
-})
 </script>

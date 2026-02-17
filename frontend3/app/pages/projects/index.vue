@@ -251,8 +251,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from '#imports'
 
+const route = useRoute()
 const searchQuery = ref('')
 const selectedTags = ref<string[]>([])
 const sortBy = ref('popular')
@@ -263,6 +265,21 @@ const hasMore = ref(true)
 
 const config = useRuntimeConfig()
 const apiUrl = config.public.apiUrl
+
+// Initialize search query from URL parameter
+onMounted(() => {
+  if (route.query.q) {
+    searchQuery.value = route.query.q as string
+  }
+  fetchProjects()
+})
+
+// Watch for URL changes to update search query
+watch(() => route.query.q, (newQ) => {
+  if (newQ !== undefined) {
+    searchQuery.value = newQ as string
+  }
+})
 
 // Fetch projects from API
 const fetchProjects = async () => {
@@ -286,7 +303,7 @@ const fetchProjects = async () => {
       name: project.title,
       author: project.owner?.name || 'Unknown',
       hackathon: project.hackathon?.name || 'Unknown Hackathon',
-      status: project.status === 'active' ? 'Submitted' : 
+      status: project.status === 'active' ? 'Submitted' :
               project.status === 'winner' ? 'Winner' :
               project.status === 'finalist' ? 'Finalist' : 'Submitted',
       description: project.description || 'No description available',
@@ -310,10 +327,6 @@ const fetchProjects = async () => {
     loading.value = false
   }
 }
-
-onMounted(() => {
-  fetchProjects()
-})
 
 // Tag handling functions
 const toggleTag = (tag: string) => {
