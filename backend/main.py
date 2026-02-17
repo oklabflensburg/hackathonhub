@@ -16,8 +16,9 @@ import email_service
 # Load environment variables
 load_dotenv()
 
-# Create database tables
-models.Base.metadata.create_all(bind=engine)
+# Create database tables (commented out for Alembic migrations)
+# models.Base.metadata.create_all(bind=engine)
+# Note: Use Alembic for database migrations: alembic upgrade head
 
 app = FastAPI(
     title="Hackathon Dashboard API",
