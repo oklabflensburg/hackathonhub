@@ -81,7 +81,7 @@
                   <div
                     v-for="(prize, idx) in hackathon.prizes"
                     :key="idx"
-                    class="bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 p-6 rounded-xl border border-primary-100 dark:border-gray-700"
+                    class="bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 p-4 sm:p-5 lg:p-6 rounded-xl border border-primary-100 dark:border-gray-700"
                   >
                     <div class="flex items-center mb-3">
                       <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-3">
@@ -100,7 +100,7 @@
               <!-- Rules -->
               <div v-if="hackathon.rules">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Rules & Guidelines</h2>
-                <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
+                <div class="bg-gray-50 dark:bg-gray-700/50 p-4 sm:p-5 lg:p-6 rounded-xl">
                   <div class="prose dark:prose-invert max-w-none">
                     <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ hackathon.rules }}</p>
                   </div>
@@ -111,7 +111,7 @@
             <!-- Sidebar -->
             <div class="lg:col-span-1">
               <!-- Stats -->
-              <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 mb-6">
+              <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 sm:p-5 lg:p-6 mb-6">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Hackathon Stats</h3>
                 <div class="space-y-4">
                   <div class="flex justify-between items-center">
@@ -143,7 +143,7 @@
               </div>
 
               <!-- Location Map -->
-              <div v-if="hackathon.latitude && hackathon.longitude" class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 mb-6">
+              <div v-if="hackathon.latitude && hackathon.longitude" class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 sm:p-5 lg:p-6 mb-6">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Location</h3>
                 <div class="aspect-video rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
                   <iframe 
@@ -263,7 +263,7 @@
       <!-- Edit Form Modal -->
       <div v-if="editing" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div class="p-6">
+          <div class="p-4 sm:p-5 lg:p-6">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Hackathon</h2>
               <button 

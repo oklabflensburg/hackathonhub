@@ -78,84 +78,42 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <!-- Hackathons Created Card -->
-          <NuxtLink
-            to="/hackathons?filter=my"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 hover:-translate-y-1 cursor-pointer block focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          >
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Hackathons Created</p>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">{{ stats.hackathonsCreated || 0 }}</p>
-              </div>
-              <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </div>
-            </div>
-            <div class="mt-4 flex items-center text-sm text-blue-600 dark:text-blue-400">
-              <span>View your hackathons</span>
-              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </NuxtLink>
+          <ImprovedStatsCard
+            label="Hackathons Created"
+            :value="stats.hackathonsCreated || 0"
+            link="/hackathons?filter=my"
+            actionText="View your hackathons"
+            :icon="HackathonIcon"
+            iconBackground="gradient-blue"
+          />
 
           <!-- Projects Submitted Card -->
-          <NuxtLink
-            to="/my-projects"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 hover:-translate-y-1 cursor-pointer block focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          >
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Projects Submitted</p>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">{{ stats.projectsSubmitted || 0 }}</p>
-              </div>
-              <div class="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                <svg class="w-6 h-6 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div class="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
-              <span>View your projects</span>
-              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </NuxtLink>
+          <ImprovedStatsCard
+            label="Projects Submitted"
+            :value="stats.projectsSubmitted || 0"
+            link="/my-projects"
+            actionText="View your projects"
+            :icon="ProjectIcon"
+            iconBackground="gradient-green"
+          />
 
           <!-- Total Votes Card -->
-          <NuxtLink
-            to="/my-votes"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 hover:-translate-y-1 cursor-pointer block focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          >
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Total Votes</p>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white mt-2">{{ stats.totalVotes || 0 }}</p>
-              </div>
-              <div class="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                <svg class="w-6 h-6 text-purple-600 dark:text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                </svg>
-              </div>
-            </div>
-            <div class="mt-4 flex items-center text-sm text-purple-600 dark:text-purple-400">
-              <span>View your votes</span>
-              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </NuxtLink>
+          <ImprovedStatsCard
+            label="Total Votes"
+            :value="stats.totalVotes || 0"
+            link="/my-votes"
+            actionText="View your votes"
+            :icon="VoteIcon"
+            iconBackground="gradient-purple"
+          />
         </div>
       </div>
 
       <!-- Right Column: Actions -->
       <div class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-5 lg:p-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
           <div class="space-y-3">
             <NuxtLink 
@@ -225,9 +183,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, defineComponent } from 'vue'
 import { format } from 'date-fns'
 import { useAuthStore } from '~/stores/auth'
+import ImprovedStatsCard from '~/components/ImprovedStatsCard.vue'
+
+// Icon components for stats cards
+const HackathonIcon = defineComponent({
+  template: `
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+    </svg>
+  `
+})
+
+const ProjectIcon = defineComponent({
+  template: `
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  `
+})
+
+const VoteIcon = defineComponent({
+  template: `
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+    </svg>
+  `
+})
 
 const authStore = useAuthStore()
 const loading = ref(false)
