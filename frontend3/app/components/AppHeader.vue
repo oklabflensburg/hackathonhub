@@ -30,28 +30,28 @@
           <NuxtLink 
             to="/" 
             class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
-            :class="{ 'text-primary-600 dark:text-primary-400': $route.path === '/' }"
+            :class="{ 'text-primary-600 dark:text-primary-400': route.path === '/' }"
           >
             Dashboard
           </NuxtLink>
           <NuxtLink 
             to="/hackathons" 
             class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
-            :class="{ 'text-primary-600 dark:text-primary-400': $route.path === '/hackathons' }"
+            :class="{ 'text-primary-600 dark:text-primary-400': route.path === '/hackathons' }"
           >
             Hackathons
           </NuxtLink>
           <NuxtLink 
             to="/projects" 
             class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
-            :class="{ 'text-primary-600 dark:text-primary-400': $route.path === '/projects' }"
+            :class="{ 'text-primary-600 dark:text-primary-400': route.path === '/projects' }"
           >
             Projects
           </NuxtLink>
           <NuxtLink 
             to="/create" 
             class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
-            :class="{ 'text-primary-600 dark:text-primary-400': $route.path === '/create' }"
+            :class="{ 'text-primary-600 dark:text-primary-400': route.path === '/create' }"
           >
             Create
           </NuxtLink>
@@ -196,10 +196,12 @@ import { ref, computed } from 'vue'
 import { useThemeStore } from '~/stores/theme'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
+import { useRoute } from '#imports'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const route = useRoute()
 
 const userMenuOpen = ref(false)
 
