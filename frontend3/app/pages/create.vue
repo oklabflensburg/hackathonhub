@@ -730,7 +730,7 @@ const submitHackathon = async () => {
     }
     
     // Make real API call with authentication using fetchWithAuth for auto-refresh
-    const response = await authStore.fetchWithAuth('/api/hackathons/', {
+    const response = await authStore.fetchWithAuth('/api/hackathons', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
