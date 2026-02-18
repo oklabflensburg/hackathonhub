@@ -79,7 +79,7 @@
           <LanguageSwitcher />
 
           <!-- User Menu -->
-          <div v-if="isAuthenticated" class="relative">
+          <div v-if="isAuthenticated && mounted" class="relative">
             <button
               @click="toggleUserMenu"
               class="flex items-center space-x-1 sm:space-x-3 p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
@@ -268,7 +268,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useThemeStore } from '~/stores/theme'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
@@ -282,6 +282,7 @@ const { t } = useI18n()
 
 const userMenuOpen = ref(false)
 const loginDropdownOpen = ref(false)
+const mounted = ref(false)
 
 // Computed properties
 const isDark = computed(() => themeStore.isDark)
@@ -291,6 +292,11 @@ const userInitials = computed(() => authStore.userInitials)
 const username = computed(() => authStore.user?.username || '')
 const userEmail = computed(() => authStore.user?.email || '')
 const isLoading = computed(() => authStore.isLoading)
+
+// Set mounted to true when component is mounted
+onMounted(() => {
+  mounted.value = true
+})
 
 // Methods
 const toggleSidebar = () => {

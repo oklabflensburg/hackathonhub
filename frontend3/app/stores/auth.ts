@@ -305,7 +305,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function initializeAuth() {
-    if (typeof window === 'undefined') return
+    // On server, we can't access localStorage or window
+    // For SSR compatibility, we check for token in a cookie
+    if (typeof window === 'undefined') {
+      // Server-side: check for auth cookie if available
+      // Note: This would require setting auth token in cookies, not just localStorage
+      // For now, we'll just return early on server
+      return
+    }
 
     // Check for token in URL (from OAuth callback)
     const urlParams = new URLSearchParams(window.location.search)

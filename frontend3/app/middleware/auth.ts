@@ -1,19 +1,22 @@
 // Main middleware function
 const authMiddlewareFunction = defineNuxtRouteMiddleware((to, from) => {
-  // Skip middleware on server-side for auth checks (to avoid hydration mismatches)
-  // We'll handle authenticated → auth routes redirect in onMounted hooks
-  // But we still need to protect authenticated routes for unauthenticated users
-  if (process.server) {
-    return
-  }
-  
   const authStore = useAuthStore()
   
-  // Initialize auth store if not already initialized
+  // On server, we can't check localStorage, but we can check cookies
+  // For now, we'll initialize auth on both server and client
+  // The auth store will handle SSR appropriately
   authStore.initializeAuth()
   
   // Check if user is authenticated
   const isAuthenticated = authStore.isAuthenticated
+  
+  // Define routes that should be inaccessible when authenticated
+  const authRoutes = ['/login', '/register']
+  
+  // If user is authenticated and trying to access auth routes, redirect to home
+  if (isAuthenticated && authRoutes.includes(to.path)) {
+    return navigateTo('/')
+  }
   
   // Protect authenticated routes (redirect unauthenticated users to login)
   const protectedRoutes = ['/profile', '/my-projects', '/my-votes', '/create']
@@ -21,9 +24,6 @@ const authMiddlewareFunction = defineNuxtRouteMiddleware((to, from) => {
   if (!isAuthenticated && protectedRoutes.includes(to.path)) {
     return navigateTo('/login')
   }
-  
-  // Note: We're NOT redirecting authenticated users away from auth routes here
-  // to avoid hydration mismatches. This is handled in page components.
 })
 
 // Default export for named middleware (can be referenced as 'auth' in definePageMeta)
