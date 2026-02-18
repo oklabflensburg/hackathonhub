@@ -189,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useI18n } from 'vue-i18n'
 import { authMiddleware } from '~/middleware/auth'
@@ -207,6 +207,17 @@ const password = ref('')
 const confirmPassword = ref('')
 const acceptTerms = ref(false)
 const registrationSuccess = ref(false)
+
+// Redirect authenticated users away from register page
+onMounted(() => {
+  // Initialize auth to ensure we have latest state
+  authStore.initializeAuth()
+  
+  // If user is already authenticated, redirect to home
+  if (authStore.isAuthenticated) {
+    navigateTo('/')
+  }
+})
 
 const loginWithGitHub = () => {
   authStore.loginWithGitHub()

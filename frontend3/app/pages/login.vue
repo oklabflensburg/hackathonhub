@@ -145,7 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useI18n } from 'vue-i18n'
 import { authMiddleware } from '~/middleware/auth'
@@ -160,6 +160,17 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const rememberMe = ref(false)
+
+// Redirect authenticated users away from login page
+onMounted(() => {
+  // Initialize auth to ensure we have latest state
+  authStore.initializeAuth()
+  
+  // If user is already authenticated, redirect to home
+  if (authStore.isAuthenticated) {
+    navigateTo('/')
+  }
+})
 
 const loginWithGitHub = () => {
   authStore.loginWithGitHub()
