@@ -4,8 +4,8 @@
     <div class="mb-8">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">My Votes</h1>
-          <p class="text-gray-600 dark:text-gray-400">View all projects you've voted on</p>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ $t('myVotes.title') }}</h1>
+          <p class="text-gray-600 dark:text-gray-400">{{ $t('myVotes.subtitle') }}</p>
         </div>
       </div>
 
@@ -27,40 +27,40 @@
             v-model="voteTypeFilter"
             class="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="all">All Votes</option>
-            <option value="upvote">Upvotes Only</option>
-            <option value="downvote">Downvotes Only</option>
+            <option value="all">{{ $t('myVotes.filter.allVotes') }}</option>
+            <option value="upvote">{{ $t('myVotes.filter.upvotesOnly') }}</option>
+            <option value="downvote">{{ $t('myVotes.filter.downvotesOnly') }}</option>
           </select>
           <select
             v-model="sortBy"
             class="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="recent">Most Recent</option>
-            <option value="oldest">Oldest First</option>
-            <option value="project">Project Name A-Z</option>
+            <option value="recent">{{ $t('myVotes.sort.recent') }}</option>
+            <option value="oldest">{{ $t('myVotes.sort.oldest') }}</option>
+            <option value="project">{{ $t('myVotes.sort.project') }}</option>
           </select>
         </div>
       </div>
 
       <!-- Selected Tags Section -->
       <div v-if="selectedTags.length > 0" class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center">
-            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Filtering by tags:</span>
-          </div>
-          <button
-            @click="clearAllTags"
-            class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center"
-          >
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Clear all
-          </button>
-        </div>
+         <div class="flex items-center justify-between mb-3">
+           <div class="flex items-center">
+             <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+             </svg>
+             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('myVotes.filteringByTags') }}</span>
+           </div>
+           <button
+             @click="clearAllTags"
+             class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center"
+           >
+             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+             </svg>
+             {{ $t('myVotes.clearAll') }}
+           </button>
+         </div>
         <div class="flex flex-wrap gap-2">
           <span
             v-for="tag in selectedTags"
@@ -91,8 +91,8 @@
       <svg class="w-24 h-24 text-gray-400 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
       </svg>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No votes yet</h3>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">You haven't voted on any projects yet.</p>
+      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{{ $t('myVotes.emptyState.noVotes') }}</h3>
+      <p class="text-gray-600 dark:text-gray-400 mb-6">{{ $t('myVotes.emptyState.description') }}</p>
       <NuxtLink 
         to="/projects" 
         class="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -100,7 +100,7 @@
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
         </svg>
-        Browse Projects
+        {{ $t('myVotes.emptyState.browseProjects') }}
       </NuxtLink>
     </div>
 
@@ -147,7 +147,7 @@
                       clip-rule="evenodd"
                     />
                   </svg>
-                  {{ vote.vote_type === 'upvote' ? 'Upvoted' : 'Downvoted' }}
+                  {{ vote.vote_type === 'upvote' ? $t('myVotes.voteType.upvoted') : $t('myVotes.voteType.downvoted') }}
                 </span>
               </div>
             </div>
@@ -170,14 +170,14 @@
                             {{ vote.project_author?.charAt(0) || 'U' }}
                           </span>
                         </div>
-                        <span>By {{ vote.project_author || 'Unknown' }}</span>
+                         <span>{{ $t('myVotes.projectDetails.by') }} {{ vote.project_author || $t('myVotes.projectDetails.unknownAuthor') }}</span>
                       </div>
                       <span>•</span>
                       <div class="flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
-                        <span>{{ vote.hackathon_name || 'Hackathon' }}</span>
+                         <span>{{ vote.hackathon_name || $t('myVotes.projectDetails.hackathon') }}</span>
                       </div>
                       <span>•</span>
                       <div class="flex items-center">
@@ -191,9 +191,9 @@
                 </div>
 
                 <!-- Project Description -->
-                <p class="text-gray-700 dark:text-gray-300 mb-4 line-clamp-3">
-                  {{ vote.project_description || 'No description available' }}
-                </p>
+                 <p class="text-gray-700 dark:text-gray-300 mb-4 line-clamp-3">
+                   {{ vote.project_description || $t('myVotes.projectDetails.noDescription') }}
+                 </p>
               </div>
 
               <!-- Technology Tags -->
@@ -206,11 +206,11 @@
                   >
                     {{ tech }}
                   </span>
-                  <span
+                   <span
                     v-if="vote.project_technologies.length > 5"
                     class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs"
                   >
-                    +{{ vote.project_technologies.length - 5 }} more
+                    {{ $t('myVotes.projectDetails.moreTechnologies', { count: vote.project_technologies.length - 5 }) }}
                   </span>
                 </div>
               </div>
@@ -220,47 +220,47 @@
                 <div class="flex items-center justify-between">
                   <!-- Stats -->
                   <div class="flex items-center space-x-6">
-                    <div class="text-center">
-                      <div class="text-lg font-bold text-gray-900 dark:text-white">
-                        {{ vote.project_vote_count || 0 }}
-                      </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400">Total Votes</div>
-                    </div>
-                    <div class="text-center">
-                      <div class="text-lg font-bold text-gray-900 dark:text-white">
-                        {{ vote.project_comment_count || 0 }}
-                      </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400">Comments</div>
-                    </div>
-                    <div class="text-center">
-                      <div class="text-lg font-bold text-gray-900 dark:text-white">
-                        {{ vote.project_view_count || 0 }}
-                      </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400">Views</div>
-                    </div>
+                     <div class="text-center">
+                       <div class="text-lg font-bold text-gray-900 dark:text-white">
+                         {{ vote.project_vote_count || 0 }}
+                       </div>
+                       <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('myVotes.projectDetails.totalVotes') }}</div>
+                     </div>
+                     <div class="text-center">
+                       <div class="text-lg font-bold text-gray-900 dark:text-white">
+                         {{ vote.project_comment_count || 0 }}
+                       </div>
+                       <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('myVotes.projectDetails.comments') }}</div>
+                     </div>
+                     <div class="text-center">
+                       <div class="text-lg font-bold text-gray-900 dark:text-white">
+                         {{ vote.project_view_count || 0 }}
+                       </div>
+                       <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('myVotes.projectDetails.views') }}</div>
+                     </div>
                   </div>
 
                   <!-- Actions -->
                   <div class="flex items-center space-x-3">
-                    <NuxtLink
-                      :to="`/projects/${vote.project_id}`"
-                      class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-                    >
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      View Details
-                    </NuxtLink>
-                    <button
-                      @click="handleRemoveVote(vote)"
-                      class="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
-                    >
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Remove Vote
-                    </button>
+                     <NuxtLink
+                       :to="`/projects/${vote.project_id}`"
+                       class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                     >
+                       <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                       </svg>
+                       {{ $t('myVotes.projectDetails.viewDetails') }}
+                     </NuxtLink>
+                     <button
+                       @click="handleRemoveVote(vote)"
+                       class="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                     >
+                       <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                       </svg>
+                       {{ $t('myVotes.projectDetails.removeVote') }}
+                     </button>
                   </div>
                 </div>
               </div>
@@ -278,8 +278,10 @@
 import { ref, onMounted, computed } from 'vue'
 import { format } from 'date-fns'
 import { useAuthStore } from '~/stores/auth'
+import { useI18n } from 'vue-i18n'
 
 const authStore = useAuthStore()
+const { t } = useI18n()
 const loading = ref(true)
 const votes = ref<any[]>([])
 
@@ -290,7 +292,7 @@ const sortBy = ref('recent')
 const selectedTags = ref<string[]>([])
 
 const formatDate = (dateString: string) => {
-  if (!dateString) return 'N/A'
+  if (!dateString) return t('myVotes.notAvailable')
   try {
     return format(new Date(dateString), 'MMM dd, yyyy HH:mm')
   } catch {
