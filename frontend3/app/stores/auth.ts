@@ -305,47 +305,52 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function initializeAuth() {
-    // On server, we can't access localStorage or window
-    // For SSR compatibility, we check for token in a cookie
+    // Try to use cookies for SSR compatibility
+    let authToken: string | null = null
+    let refreshTokenValue: string | null = null
+    let userData: User | null = null
+    
     if (typeof window === 'undefined') {
-      // Server-side: check for auth cookie if available
-      // Note: This would require setting auth token in cookies, not just localStorage
-      // For now, we'll just return early on server
+      // Server-side: we can't check localStorage, but we could check cookies
+      // For now, we'll leave token as null on server
+      // This means isAuthenticated will be false on server, true on client for logged-in users
+      // This causes hydration mismatches but is the current limitation
       return
-    }
-
-    // Check for token in URL (from OAuth callback)
-    const urlParams = new URLSearchParams(window.location.search)
-    const urlToken = urlParams.get('token')
-    const source = urlParams.get('source')
-
-    if (urlToken && (source === 'github' || source === 'google')) {
-      // Store token from URL
-      token.value = urlToken
-      localStorage.setItem('auth_token', urlToken)
-
-      // Clear URL parameters
-      const newUrl = window.location.pathname
-      window.history.replaceState({}, '', newUrl)
-
-      // Fetch user info with the token
-      fetchUserWithToken(urlToken)
     } else {
-      // Check localStorage for existing tokens
-      const storedToken = localStorage.getItem('auth_token')
-      const storedRefreshToken = localStorage.getItem('refresh_token')
-      const storedUser = localStorage.getItem('user')
+      // Client-side: check for token in URL (from OAuth callback)
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlToken = urlParams.get('token')
+      const source = urlParams.get('source')
 
-      if (storedToken && storedUser) {
-        try {
-          token.value = storedToken
-          refreshToken.value = storedRefreshToken
-          user.value = JSON.parse(storedUser)
-        } catch (err) {
-          console.error('Failed to parse stored user:', err)
-          localStorage.removeItem('auth_token')
-          localStorage.removeItem('refresh_token')
-          localStorage.removeItem('user')
+      if (urlToken && (source === 'github' || source === 'google')) {
+        // Store token from URL
+        token.value = urlToken
+        localStorage.setItem('auth_token', urlToken)
+
+        // Clear URL parameters
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, '', newUrl)
+
+        // Fetch user info with the token
+        fetchUserWithToken(urlToken)
+        return
+      } else {
+        // Check localStorage for existing tokens
+        const storedToken = localStorage.getItem('auth_token')
+        const storedRefreshToken = localStorage.getItem('refresh_token')
+        const storedUser = localStorage.getItem('user')
+
+        if (storedToken && storedUser) {
+          try {
+            token.value = storedToken
+            refreshToken.value = storedRefreshToken
+            user.value = JSON.parse(storedUser)
+          } catch (err) {
+            console.error('Failed to parse stored user:', err)
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user')
+          }
         }
       }
     }
