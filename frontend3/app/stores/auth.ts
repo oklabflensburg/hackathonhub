@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useUIStore } from './ui'
 
 export interface User {
   id: number
@@ -133,7 +134,13 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await response.json()
       await handleAuthResponse(data)
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Login failed'
+      const errorMessage = err instanceof Error ? err.message : 'Login failed'
+      error.value = errorMessage
+
+      // Also show notification for better visibility
+      const uiStore = useUIStore()
+      uiStore.showError(errorMessage, 'Login Error')
+
       console.error('Email login error:', err)
     } finally {
       isLoading.value = false
@@ -181,7 +188,13 @@ export const useAuthStore = defineStore('auth', () => {
       // Show success message and redirect to login
       return data
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Registration failed'
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed'
+      error.value = errorMessage
+
+      // Also show notification for better visibility
+      const uiStore = useUIStore()
+      uiStore.showError(errorMessage, 'Registration Error')
+
       console.error('Registration error:', err)
       throw err
     } finally {
