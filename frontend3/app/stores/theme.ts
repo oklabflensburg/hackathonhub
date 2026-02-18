@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useThemeStore = defineStore('theme', () => {
+  // Initialize with false for SSR, will be updated on client
   const isDark = ref(false)
 
   const theme = computed(() => isDark.value ? 'dark' : 'light')
@@ -44,6 +45,11 @@ export const useThemeStore = defineStore('theme', () => {
     } else {
       document.documentElement.classList.remove('dark')
     }
+  }
+
+  // Initialize theme immediately if we're on client side
+  if (typeof window !== 'undefined') {
+    initializeTheme()
   }
 
   return {

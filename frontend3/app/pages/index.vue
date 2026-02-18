@@ -50,8 +50,8 @@
         </svg>
         <div>
           <h3 class="font-semibold text-red-800 dark:text-red-300">{{ t('errors.dashboardLoadFailed') }}</h3>
-          <p class="text-red-700 dark:text-red-400 text-sm mt-1">{{ error }}</p>
-          <button @click="fetchDashboardData" class="mt-3 text-sm text-red-600 dark:text-red-400 hover:underline">
+          <p class="text-red-700 dark:text-red-400 text-sm mt-1">{{ error?.message || t('errors.unknownError') }}</p>
+          <button @click="() => fetchDashboardData()" class="mt-3 text-sm text-red-600 dark:text-red-400 hover:underline">
             {{ t('common.tryAgain') }}
           </button>
         </div>
@@ -222,7 +222,7 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -236,129 +236,139 @@ const loginWithGitHub = () => {
   authStore.loginWithGitHub()
 }
 
-// Reactive state
-const featuredHackathons = ref<any[]>([])
-const topProjects = ref<any[]>([])
-const stats = ref({
+// Use Nuxt's useAsyncData for SSR-compatible data fetching
+const { data: dashboardData, pending: loading, error, refresh: fetchDashboardData } = useAsyncData(
+  'dashboard',
+  async () => {
+    try {
+      // Fetch hackathons
+      const hackathonsResponse = await fetch(`${apiUrl}/api/hackathons`)
+      if (!hackathonsResponse.ok) {
+        throw new Error(`${t('errors.fetchHackathonsFailed')}: ${hackathonsResponse.status}`)
+      }
+      const hackathonsData = await hackathonsResponse.json()
+      
+      // Fetch projects
+      const projectsResponse = await fetch(`${apiUrl}/api/projects`)
+      if (!projectsResponse.ok) {
+        throw new Error(`${t('errors.fetchProjectsFailed')}: ${projectsResponse.status}`)
+      }
+      const projectsData = await projectsResponse.json()
+      
+      // Transform hackathons data
+      const featuredHackathons = hackathonsData.slice(0, 3).map((hackathon: any) => {
+        // Handle hackathon image URL
+        let imageUrl = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80'
+        const imageSource = hackathon.image_url || hackathon.banner_path
+        if (imageSource) {
+          if (imageSource.startsWith('http')) {
+            // Already a full URL
+            imageUrl = imageSource
+          } else if (imageSource.startsWith('/')) {
+            // Relative path, prepend backend URL
+            imageUrl = `${apiUrl}${imageSource}`
+          } else {
+            // Assume it's a relative path without leading slash
+            imageUrl = `${apiUrl}/${imageSource}`
+          }
+        }
+        
+        return {
+          id: hackathon.id,
+          name: hackathon.name,
+          organization: hackathon.organization || t('common.unknown'),
+          status: hackathon.is_active ? t('common.active') : t('common.upcoming'),
+          description: hackathon.description || t('common.noDescription'),
+          duration: `${hackathon.duration_hours || 48} ${t('common.hours')}`,
+          participants: `${hackathon.participant_count || 0}+`,
+          prize: hackathon.prize ? `$${hackathon.prize.toLocaleString()}` : t('common.noPrize'),
+          imageUrl
+        }
+      })
+      
+      // Transform projects data and sort by vote score
+      const transformedProjects = projectsData.map((project: any) => {
+        // Handle project image URL
+        let imageUrl = 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&q=80'
+        if (project.image_path) {
+          if (project.image_path.startsWith('http')) {
+            // Already a full URL
+            imageUrl = project.image_path
+          } else if (project.image_path.startsWith('/')) {
+            // Relative path, prepend backend URL
+            imageUrl = `${apiUrl}${project.image_path}`
+          } else {
+            // Assume it's a relative path without leading slash
+            imageUrl = `${apiUrl}/${project.image_path}`
+          }
+        }
+        
+        return {
+          id: project.id,
+          name: project.title,
+          author: project.owner?.name || t('common.unknown'),
+          hackathon: project.hackathon?.name || t('common.unknownHackathon'),
+          description: project.description || t('common.noDescription'),
+          upvotes: project.upvote_count || 0,
+          downvotes: project.downvote_count || 0,
+          userVote: null, // Would need to check user's vote from separate endpoint
+          tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
+          imageUrl
+        }
+      })
+      
+      // Sort by vote score (upvotes - downvotes) and take top 3
+      const topProjects = transformedProjects
+        .sort((a: any, b: any) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes))
+        .slice(0, 3)
+      
+      // Calculate stats
+      const activeHackathonsCount = hackathonsData.filter((h: any) => h.is_active).length
+      const totalProjects = projectsData.length
+      const totalVotes = projectsData.reduce((sum: number, p: any) => sum + (p.upvote_count || 0) + (p.downvote_count || 0), 0)
+      const totalParticipants = hackathonsData.reduce((sum: number, h: any) => sum + (h.participant_count || 0), 0)
+      
+      const stats = {
+        activeHackathons: activeHackathonsCount,
+        projectsSubmitted: totalProjects,
+        totalVotes,
+        activeParticipants: totalParticipants
+      }
+      
+      return {
+        featuredHackathons,
+        topProjects,
+        stats
+      }
+    } catch (err: any) {
+      console.error('Error fetching dashboard data:', err)
+      throw err
+    }
+  },
+  {
+    server: true, // Fetch on server side for SSR
+    lazy: false, // Fetch immediately
+    default: () => ({
+      featuredHackathons: [],
+      topProjects: [],
+      stats: {
+        activeHackathons: 0,
+        projectsSubmitted: 0,
+        totalVotes: 0,
+        activeParticipants: 0
+      }
+    })
+  }
+)
+
+// Destructure the data for template use
+const featuredHackathons = computed(() => dashboardData.value?.featuredHackathons || [])
+const topProjects = computed(() => dashboardData.value?.topProjects || [])
+const stats = computed(() => dashboardData.value?.stats || {
   activeHackathons: 0,
   projectsSubmitted: 0,
   totalVotes: 0,
   activeParticipants: 0
-})
-const loading = ref(false)
-const error = ref<string | null>(null)
-
-// Fetch data from API
-const fetchDashboardData = async () => {
-  loading.value = true
-  error.value = null
-  
-  try {
-    // Fetch hackathons
-    const hackathonsResponse = await fetch(`${apiUrl}/api/hackathons`)
-    if (!hackathonsResponse.ok) {
-      throw new Error(`${t('errors.fetchHackathonsFailed')}: ${hackathonsResponse.status}`)
-    }
-    const hackathonsData = await hackathonsResponse.json()
-    
-    // Fetch projects
-    const projectsResponse = await fetch(`${apiUrl}/api/projects`)
-    if (!projectsResponse.ok) {
-      throw new Error(`${t('errors.fetchProjectsFailed')}: ${projectsResponse.status}`)
-    }
-    const projectsData = await projectsResponse.json()
-    
-    // Transform hackathons data
-    featuredHackathons.value = hackathonsData.slice(0, 3).map((hackathon: any) => {
-      // Handle hackathon image URL
-      let imageUrl = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80'
-      const imageSource = hackathon.image_url || hackathon.banner_path
-      if (imageSource) {
-        if (imageSource.startsWith('http')) {
-          // Already a full URL
-          imageUrl = imageSource
-        } else if (imageSource.startsWith('/')) {
-          // Relative path, prepend backend URL
-          imageUrl = `${apiUrl}${imageSource}`
-        } else {
-          // Assume it's a relative path without leading slash
-          imageUrl = `${apiUrl}/${imageSource}`
-        }
-      }
-      
-      return {
-        id: hackathon.id,
-        name: hackathon.name,
-        organization: hackathon.organization || t('common.unknown'),
-        status: hackathon.is_active ? t('common.active') : t('common.upcoming'),
-        description: hackathon.description || t('common.noDescription'),
-        duration: `${hackathon.duration_hours || 48} ${t('common.hours')}`,
-        participants: `${hackathon.participant_count || 0}+`,
-        prize: hackathon.prize ? `$${hackathon.prize.toLocaleString()}` : t('common.noPrize'),
-        imageUrl
-      }
-    })
-    
-    // Transform projects data and sort by vote score
-    const transformedProjects = projectsData.map((project: any) => {
-      // Handle project image URL
-      let imageUrl = 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&q=80'
-      if (project.image_path) {
-        if (project.image_path.startsWith('http')) {
-          // Already a full URL
-          imageUrl = project.image_path
-        } else if (project.image_path.startsWith('/')) {
-          // Relative path, prepend backend URL
-          imageUrl = `${apiUrl}${project.image_path}`
-        } else {
-          // Assume it's a relative path without leading slash
-          imageUrl = `${apiUrl}/${project.image_path}`
-        }
-      }
-      
-      return {
-        id: project.id,
-        name: project.title,
-        author: project.owner?.name || t('common.unknown'),
-        hackathon: project.hackathon?.name || t('common.unknownHackathon'),
-        description: project.description || t('common.noDescription'),
-        upvotes: project.upvote_count || 0,
-        downvotes: project.downvote_count || 0,
-        userVote: null, // Would need to check user's vote from separate endpoint
-        tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
-        imageUrl
-      }
-    })
-    
-    // Sort by vote score (upvotes - downvotes) and take top 3
-    topProjects.value = transformedProjects
-      .sort((a: any, b: any) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes))
-      .slice(0, 3)
-    
-    // Calculate stats
-    const activeHackathonsCount = hackathonsData.filter((h: any) => h.is_active).length
-    const totalProjects = projectsData.length
-    const totalVotes = projectsData.reduce((sum: number, p: any) => sum + (p.upvote_count || 0) + (p.downvote_count || 0), 0)
-    const totalParticipants = hackathonsData.reduce((sum: number, h: any) => sum + (h.participant_count || 0), 0)
-    
-    stats.value = {
-      activeHackathons: activeHackathonsCount,
-      projectsSubmitted: totalProjects,
-      totalVotes,
-      activeParticipants: totalParticipants
-    }
-    
-  } catch (err: any) {
-    error.value = err.message || t('errors.dashboardLoadFailed')
-    console.error('Error fetching dashboard data:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
-// Fetch data on component mount
-onMounted(() => {
-  fetchDashboardData()
 })
 </script>
 

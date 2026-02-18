@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlencode
+from datetime import datetime
 
 import crud
 import schemas
@@ -165,7 +166,7 @@ async def authenticate_with_google(code: str, db: Session):
             db,
             user_id=db_user.id,
             token_id=tokens["refresh_token_id"],
-            expires_at=tokens["refresh_token_expires"]
+            expires_at=datetime.utcnow() + tokens["refresh_token_expires"]
         )
     except Exception as e:
         # Log the error but don't fail the authentication
