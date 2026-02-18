@@ -42,28 +42,28 @@ export const useAuthStore = defineStore('auth', () => {
   async function loginWithGitHub(redirectUrl?: string) {
     isLoading.value = true
     error.value = null
-    
+
     try {
       // Use Nuxt runtime config
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      
+
       // Get current URL if not provided
       if (!redirectUrl && typeof window !== 'undefined') {
         redirectUrl = window.location.pathname + window.location.search
       }
-      
+
       // First, get the GitHub authorization URL from backend
       const url = new URL(`${backendUrl}/api/auth/github`)
       if (redirectUrl) {
         url.searchParams.append('redirect_url', redirectUrl)
       }
-      
+
       const response = await fetch(url.toString())
       if (!response.ok) {
         throw new Error('Failed to get GitHub authorization URL')
       }
-      
+
       const data = await response.json()
       window.location.href = data.authorization_url
     } catch (err) {
@@ -77,25 +77,25 @@ export const useAuthStore = defineStore('auth', () => {
   async function loginWithGoogle(redirectUrl?: string) {
     isLoading.value = true
     error.value = null
-    
+
     try {
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      
+
       if (!redirectUrl && typeof window !== 'undefined') {
         redirectUrl = window.location.pathname + window.location.search
       }
-      
+
       const url = new URL(`${backendUrl}/api/auth/google`)
       if (redirectUrl) {
         url.searchParams.append('redirect_url', redirectUrl)
       }
-      
+
       const response = await fetch(url.toString())
       if (!response.ok) {
         throw new Error('Failed to get Google authorization URL')
       }
-      
+
       const data = await response.json()
       window.location.href = data.authorization_url
     } catch (err) {
@@ -109,11 +109,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function loginWithEmail(credentials: LoginCredentials) {
     isLoading.value = true
     error.value = null
-    
+
     try {
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      
+
       const response = await fetch(`${backendUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -124,12 +124,12 @@ export const useAuthStore = defineStore('auth', () => {
           password: credentials.password
         })
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.detail || 'Login failed')
       }
-      
+
       const data = await response.json()
       await handleAuthResponse(data)
     } catch (err) {
@@ -143,11 +143,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function registerWithEmail(credentials: RegisterCredentials) {
     isLoading.value = true
     error.value = null
-    
+
     try {
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      
+
       const response = await fetch(`${backendUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
@@ -159,12 +159,23 @@ export const useAuthStore = defineStore('auth', () => {
           password: credentials.password
         })
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.detail || 'Registration failed')
+        const errorDetail = errorData.detail || 'Registration failed'
+
+        // Provide more user-friendly messages for common errors
+        if (errorDetail.includes('email already exists')) {
+          throw new Error(`An account with email ${credentials.email} already exists. Please try logging in or use a different email address.`)
+        } else if (errorDetail.includes('Username already taken')) {
+          throw new Error(`Username "${credentials.username}" is already taken. Please choose a different username.`)
+        } else if (errorDetail.includes('Invalid email address')) {
+          throw new Error('Please enter a valid email address.')
+        } else {
+          throw new Error(errorDetail)
+        }
       }
-      
+
       const data = await response.json()
       // Registration successful, but email needs verification
       // Show success message and redirect to login
@@ -181,23 +192,23 @@ export const useAuthStore = defineStore('auth', () => {
   async function handleAuthResponse(authData: any) {
     token.value = authData.access_token
     refreshToken.value = authData.refresh_token
-    
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('auth_token', authData.access_token)
       localStorage.setItem('refresh_token', authData.refresh_token)
     }
-    
+
     // Fetch user info
     await fetchUserWithToken(authData.access_token)
   }
 
   async function refreshAccessToken(): Promise<boolean> {
     if (!refreshToken.value) return false
-    
+
     try {
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      
+
       const response = await fetch(`${backendUrl}/api/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -207,12 +218,12 @@ export const useAuthStore = defineStore('auth', () => {
           refresh_token: refreshToken.value
         })
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         token.value = data.access_token
         refreshToken.value = data.refresh_token
-        
+
         // Save to localStorage
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('auth_token', data.access_token)
@@ -235,15 +246,15 @@ export const useAuthStore = defineStore('auth', () => {
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
     const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
-    
+
     // Add auth header if token exists
     const headers = {
       ...options.headers,
       ...(token.value ? { 'Authorization': `Bearer ${token.value}` } : {})
     }
-    
+
     let response = await fetch(fullUrl, { ...options, headers })
-    
+
     // If 401, try to refresh token and retry once
     if (response.status === 401 && token.value) {
       const refreshed = await refreshAccessToken()
@@ -256,7 +267,7 @@ export const useAuthStore = defineStore('auth', () => {
         response = await fetch(fullUrl, { ...options, headers: newHeaders })
       }
     }
-    
+
     return response
   }
 
@@ -265,7 +276,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     token.value = null
     refreshToken.value = null
-    
+
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('refresh_token')
@@ -275,21 +286,21 @@ export const useAuthStore = defineStore('auth', () => {
 
   function initializeAuth() {
     if (typeof window === 'undefined') return
-    
+
     // Check for token in URL (from OAuth callback)
     const urlParams = new URLSearchParams(window.location.search)
     const urlToken = urlParams.get('token')
     const source = urlParams.get('source')
-    
+
     if (urlToken && (source === 'github' || source === 'google')) {
       // Store token from URL
       token.value = urlToken
       localStorage.setItem('auth_token', urlToken)
-      
+
       // Clear URL parameters
       const newUrl = window.location.pathname
       window.history.replaceState({}, '', newUrl)
-      
+
       // Fetch user info with the token
       fetchUserWithToken(urlToken)
     } else {
@@ -297,7 +308,7 @@ export const useAuthStore = defineStore('auth', () => {
       const storedToken = localStorage.getItem('auth_token')
       const storedRefreshToken = localStorage.getItem('refresh_token')
       const storedUser = localStorage.getItem('user')
-      
+
       if (storedToken && storedUser) {
         try {
           token.value = storedToken
@@ -312,18 +323,18 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
   }
-  
+
   async function fetchUserWithToken(tokenValue: string) {
     try {
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      
+
       const response = await fetch(`${backendUrl}/api/me`, {
         headers: {
           'Authorization': `Bearer ${tokenValue}`
         }
       })
-      
+
       if (response.ok) {
         const userData = await response.json()
         user.value = userData
@@ -340,7 +351,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function refreshUser() {
     if (!token.value) return
-    
+
     try {
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
@@ -349,7 +360,7 @@ export const useAuthStore = defineStore('auth', () => {
           'Authorization': `Bearer ${token.value}`
         }
       })
-      
+
       if (response.ok) {
         user.value = await response.json()
         if (typeof window !== 'undefined') {
@@ -369,29 +380,29 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) {
       throw new Error('Not authenticated')
     }
-    
+
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
     const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
-    
+
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token.value}`,
       ...options.headers
     }
-    
+
     const response = await fetch(fullUrl, {
       ...options,
       headers
     })
-    
+
     // Check for token expiration - MUST check before returning response
     if (response.status === 401) {
       // Clear auth and throw specific error
       logout()
       throw new Error('Session expired. Please login again.')
     }
-    
+
     return response
   }
 
