@@ -178,6 +178,8 @@ export const useAuthStore = defineStore('auth', () => {
           throw new Error(`Username "${credentials.username}" is already taken. Please choose a different username.`)
         } else if (errorDetail.includes('Invalid email address')) {
           throw new Error('Please enter a valid email address.')
+        } else if (errorDetail.includes('password cannot be longer than 72 bytes')) {
+          throw new Error('Password is too long. Please use a password with 72 characters or less.')
         } else {
           throw new Error(errorDetail)
         }

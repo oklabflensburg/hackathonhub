@@ -15,12 +15,24 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str):
     """Verify a password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    # bcrypt has a 72-byte limit, handle longer passwords
+    # Convert to bytes and truncate to 72 bytes if necessary
+    password_bytes = plain_password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    truncated_password = password_bytes.decode('utf-8', errors='ignore')
+    return pwd_context.verify(truncated_password, hashed_password)
 
 
 def get_password_hash(password: str):
     """Hash a password"""
-    return pwd_context.hash(password)
+    # bcrypt has a 72-byte limit, handle longer passwords
+    # Convert to bytes and truncate to 72 bytes if necessary
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    truncated_password = password_bytes.decode('utf-8', errors='ignore')
+    return pwd_context.hash(truncated_password)
 
 
 def validate_email_address(email: str):
