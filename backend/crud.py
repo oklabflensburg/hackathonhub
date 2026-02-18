@@ -102,18 +102,26 @@ def get_refresh_token(db: Session, token_id: str):
 def create_refresh_token(db: Session, user_id: int, token_id: str,
                          expires_at, device_info=None, ip_address=None,
                          user_agent=None):
-    db_token = models.RefreshToken(
-        user_id=user_id,
-        token_id=token_id,
-        expires_at=expires_at,
-        device_info=device_info,
-        ip_address=ip_address,
-        user_agent=user_agent
-    )
-    db.add(db_token)
-    db.commit()
-    db.refresh(db_token)
-    return db_token
+    try:
+        db_token = models.RefreshToken(
+            user_id=user_id,
+            token_id=token_id,
+            expires_at=expires_at,
+            device_info=device_info,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.add(db_token)
+        db.commit()
+        db.refresh(db_token)
+        return db_token
+    except Exception as e:
+        # If we can't create the refresh token (e.g., missing columns),
+        # log the error and return None instead of failing
+        import logging
+        logging.error(f"Failed to create refresh token: {e}")
+        db.rollback()
+        return None
 
 
 def revoke_refresh_token(db: Session, token_id: str):

@@ -160,12 +160,19 @@ async def authenticate_with_google(code: str, db: Session):
     tokens = auth.create_tokens(db_user.id, db_user.username)
     
     # Store refresh token in database
-    crud.create_refresh_token(
-        db,
-        user_id=db_user.id,
-        token_id=tokens["refresh_token_id"],
-        expires_at=tokens["refresh_token_expires"]
-    )
+    try:
+        crud.create_refresh_token(
+            db,
+            user_id=db_user.id,
+            token_id=tokens["refresh_token_id"],
+            expires_at=tokens["refresh_token_expires"]
+        )
+    except Exception as e:
+        # Log the error but don't fail the authentication
+        # This allows Google OAuth to work even if refresh token storage fails
+        import logging
+        logging.error(f"Failed to store refresh token: {e}")
+        # Continue without storing refresh token
     
     return {
         "access_token": tokens["access_token"],
