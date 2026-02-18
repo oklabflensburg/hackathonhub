@@ -407,9 +407,11 @@
          "registrationFailed": "Registration failed",
          "loginToSaveChanges": "You need to login to save changes. Would you like to login now?",
          "loginToEdit": "Please log in to edit hackathons",
-        "hackathonUpdated": "Hackathon updated successfully!",
-        "failedToUpdate": "Failed to update hackathon"
-      },
+         "hackathonUpdated": "Hackathon updated successfully!",
+         "failedToUpdate": "Failed to update hackathon",
+         "registrationClosed": "Registration Closed",
+         "hackathonCompleted": "This hackathon has been completed. Registration is no longer available."
+       },
       "projects": {
         "backToHackathon": "Back to Hackathon",
         "title": "Projects for Hackathon {id}",

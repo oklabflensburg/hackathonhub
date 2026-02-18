@@ -407,9 +407,11 @@
          "registrationFailed": "Registrierung fehlgeschlagen",
          "loginToSaveChanges": "Du musst dich anmelden, um Änderungen zu speichern. Möchtest du dich jetzt anmelden?",
          "loginToEdit": "Bitte melde dich an, um Hackathons zu bearbeiten",
-        "hackathonUpdated": "Hackathon erfolgreich aktualisiert!",
-        "failedToUpdate": "Hackathon konnte nicht aktualisiert werden"
-      },
+         "hackathonUpdated": "Hackathon erfolgreich aktualisiert!",
+         "failedToUpdate": "Hackathon konnte nicht aktualisiert werden",
+         "registrationClosed": "Registrierung geschlossen",
+         "hackathonCompleted": "Dieser Hackathon wurde abgeschlossen. Eine Registrierung ist nicht mehr möglich."
+       },
       "projects": {
         "backToHackathon": "Zurück zum Hackathon",
         "title": "Projekte für Hackathon {id}",
