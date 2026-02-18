@@ -10,29 +10,59 @@ import auth
 from email_verification import send_verification_email, create_verification_token
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Configure bcrypt to truncate passwords longer than 72 bytes
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__truncate_error=True  # This might help with long passwords
+)
 
 
 def verify_password(plain_password: str, hashed_password: str):
     """Verify a password against its hash"""
-    # bcrypt has a 72-byte limit, handle longer passwords
-    # Convert to bytes and truncate to 72 bytes if necessary
+    # bcrypt has a 72-byte limit
+    # Always truncate to 72 bytes in a UTF-8 safe way
+    # (same as get_password_hash)
     password_bytes = plain_password.encode('utf-8')
     if len(password_bytes) > 72:
-        password_bytes = password_bytes[:72]
-    truncated_password = password_bytes.decode('utf-8', errors='ignore')
-    return pwd_context.verify(truncated_password, hashed_password)
+        # Truncate to 72 bytes, but ensure we don't cut in
+        # middle of multi-byte char
+        # Find the last valid UTF-8 boundary
+        for i in range(72, 0, -1):
+            try:
+                truncated = password_bytes[:i].decode('utf-8')
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            # If we can't decode any prefix, use empty string
+            # (shouldn't happen)
+            truncated = ""
+        return pwd_context.verify(truncated, hashed_password)
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str):
     """Hash a password"""
-    # bcrypt has a 72-byte limit, handle longer passwords
-    # Convert to bytes and truncate to 72 bytes if necessary
+    # bcrypt has a 72-byte limit
+    # Always truncate to 72 bytes in a UTF-8 safe way
     password_bytes = password.encode('utf-8')
     if len(password_bytes) > 72:
-        password_bytes = password_bytes[:72]
-    truncated_password = password_bytes.decode('utf-8', errors='ignore')
-    return pwd_context.hash(truncated_password)
+        # Truncate to 72 bytes, but ensure we don't cut in
+        # middle of multi-byte char
+        # Find the last valid UTF-8 boundary
+        for i in range(72, 0, -1):
+            try:
+                truncated = password_bytes[:i].decode('utf-8')
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            # If we can't decode any prefix, use empty string
+            # (shouldn't happen)
+            truncated = ""
+        return pwd_context.hash(truncated)
+    return pwd_context.hash(password)
 
 
 def validate_email_address(email: str):

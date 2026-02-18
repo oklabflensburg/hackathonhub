@@ -179,7 +179,12 @@ export const useAuthStore = defineStore('auth', () => {
         } else if (errorDetail.includes('Invalid email address')) {
           throw new Error('Please enter a valid email address.')
         } else if (errorDetail.includes('password cannot be longer than 72 bytes')) {
-          throw new Error('Password is too long. Please use a password with 72 characters or less.')
+          // This error might be caused by bcrypt library issues
+          // Provide a helpful message
+          throw new Error('Password validation failed. Please try a different password or contact support if the issue persists.')
+        } else if (errorDetail.includes('bcrypt') || errorDetail.includes('__about__')) {
+          // Handle bcrypt library errors
+          throw new Error('Authentication system error. Please try again later or contact support.')
         } else {
           throw new Error(errorDetail)
         }

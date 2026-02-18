@@ -1,6 +1,5 @@
 import httpx
 from sqlalchemy.orm import Session
-from datetime import timedelta
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlencode
@@ -21,8 +20,34 @@ GOOGLE_SCOPES = [
 ]
 
 
+def validate_google_config():
+    """Validate that Google OAuth credentials are configured"""
+    default_client_id = "your-google-client-id-here"
+    default_client_secret = "your-google-client-secret-here"
+    
+    if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == default_client_id:
+        raise ValueError(
+            "Google OAuth is not configured. Please set GOOGLE_CLIENT_ID "
+            "in .env file. See backend/.env for instructions."
+        )
+    if (not GOOGLE_CLIENT_SECRET or 
+            GOOGLE_CLIENT_SECRET == default_client_secret):
+        raise ValueError(
+            "Google OAuth is not configured. Please set GOOGLE_CLIENT_SECRET "
+            "in .env file. See backend/.env for instructions."
+        )
+    if not GOOGLE_CALLBACK_URL:
+        raise ValueError(
+            "Google OAuth callback URL is not configured. "
+            "Please set GOOGLE_CALLBACK_URL in .env file."
+        )
+
+
 def get_google_auth_url(redirect_url: str = None):
     """Generate Google OAuth authorization URL"""
+    # Validate configuration before generating URL
+    validate_google_config()
+    
     params = {
         "client_id": GOOGLE_CLIENT_ID,
         "redirect_uri": GOOGLE_CALLBACK_URL,
@@ -40,6 +65,9 @@ def get_google_auth_url(redirect_url: str = None):
 
 async def exchange_code_for_token(code: str):
     """Exchange Google OAuth code for access token"""
+    # Validate configuration before making API call
+    validate_google_config()
+    
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://oauth2.googleapis.com/token",

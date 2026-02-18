@@ -17,67 +17,115 @@ depends_on = None
 
 def upgrade() -> None:
     # Add columns to users table
-    op.add_column('users',
-        sa.Column('password_hash', sa.String(), nullable=True))
-    op.add_column('users',
-        sa.Column('google_id', sa.String(), nullable=True))
-    op.add_column('users',
-        sa.Column('email_verified', sa.Boolean(),
-                  server_default=sa.text('false'), nullable=True))
-    op.add_column('users',
-        sa.Column('auth_method', sa.String(),
-                  server_default=sa.text("'github'"), nullable=True))
-    op.add_column('users',
-        sa.Column('last_login', sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        'users',
+        sa.Column('password_hash', sa.String(), nullable=True)
+    )
+    op.add_column(
+        'users',
+        sa.Column('google_id', sa.String(), nullable=True)
+    )
+    op.add_column(
+        'users',
+        sa.Column(
+            'email_verified', sa.Boolean(),
+            server_default=sa.text('false'), nullable=True
+        )
+    )
+    op.add_column(
+        'users',
+        sa.Column(
+            'auth_method', sa.String(),
+            server_default=sa.text("'github'"), nullable=True
+        )
+    )
+    op.add_column(
+        'users',
+        sa.Column('last_login', sa.DateTime(timezone=True), nullable=True)
+    )
     
     # Create refresh_tokens table
-    op.create_table('refresh_tokens',
-        sa.Column('id', sa.String(), nullable=False),
+    op.create_table(
+        'refresh_tokens',
+        sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('token_id', sa.String(64), nullable=False),
+        sa.Column('device_info', sa.Text(), nullable=True),
+        sa.Column('ip_address', sa.String(), nullable=True),
+        sa.Column('user_agent', sa.Text(), nullable=True),
+        sa.Column(
+            'created_at', sa.DateTime(timezone=True),
+            server_default=sa.text('now()'), nullable=True
+        ),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True),
-                  server_default=sa.text('now()'), nullable=True),
+        sa.Column(
+            'revoked', sa.Boolean(),
+            server_default=sa.text('false'), nullable=True
+        ),
         sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('replaced_by_token_id', sa.String(), nullable=True),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id']),
-        sa.PrimaryKeyConstraint('id')
+        sa.Column('replaced_by_token_id', sa.String(64), nullable=True),
+        sa.ForeignKeyConstraint(
+            ['user_id'], ['users.id'], ondelete='CASCADE'
+        ),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('token_id')
     )
-    op.create_index('ix_refresh_tokens_user_id',
-                    'refresh_tokens', ['user_id'], unique=False)
+    op.create_index(
+        'ix_refresh_tokens_user_id',
+        'refresh_tokens', ['user_id'], unique=False
+    )
+    op.create_index(
+        'ix_refresh_tokens_token_id',
+        'refresh_tokens', ['token_id'], unique=True
+    )
     
     # Create email_verification_tokens table
-    op.create_table('email_verification_tokens',
+    op.create_table(
+        'email_verification_tokens',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
         sa.Column('token', sa.String(), nullable=False),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True),
-                  server_default=sa.text('now()'), nullable=True),
+        sa.Column(
+            'created_at', sa.DateTime(timezone=True),
+            server_default=sa.text('now()'), nullable=True
+        ),
         sa.Column('used_at', sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(['user_id'], ['users.id']),
         sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('ix_email_verification_tokens_token',
-                    'email_verification_tokens', ['token'], unique=True)
-    op.create_index('ix_email_verification_tokens_user_id',
-                    'email_verification_tokens', ['user_id'], unique=False)
+    op.create_index(
+        'ix_email_verification_tokens_token',
+        'email_verification_tokens', ['token'], unique=True
+    )
+    op.create_index(
+        'ix_email_verification_tokens_user_id',
+        'email_verification_tokens', ['user_id'], unique=False
+    )
     
     # Create password_reset_tokens table
-    op.create_table('password_reset_tokens',
+    op.create_table(
+        'password_reset_tokens',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
         sa.Column('token', sa.String(), nullable=False),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True),
-                  server_default=sa.text('now()'), nullable=True),
+        sa.Column(
+            'created_at', sa.DateTime(timezone=True),
+            server_default=sa.text('now()'), nullable=True
+        ),
         sa.Column('used_at', sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(['user_id'], ['users.id']),
         sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('ix_password_reset_tokens_token',
-                    'password_reset_tokens', ['token'], unique=True)
-    op.create_index('ix_password_reset_tokens_user_id',
-                    'password_reset_tokens', ['user_id'], unique=False)
+    op.create_index(
+        'ix_password_reset_tokens_token',
+        'password_reset_tokens', ['token'], unique=True
+    )
+    op.create_index(
+        'ix_password_reset_tokens_user_id',
+        'password_reset_tokens', ['user_id'], unique=False
+    )
     
     # Add unique constraint for google_id
     op.create_index('ix_users_google_id', 'users', ['google_id'], unique=True)
@@ -86,14 +134,23 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Drop indexes
     op.drop_index('ix_users_google_id', table_name='users')
-    op.drop_index('ix_password_reset_tokens_user_id',
-                  table_name='password_reset_tokens')
-    op.drop_index('ix_password_reset_tokens_token',
-                  table_name='password_reset_tokens')
-    op.drop_index('ix_email_verification_tokens_user_id',
-                  table_name='email_verification_tokens')
-    op.drop_index('ix_email_verification_tokens_token',
-                  table_name='email_verification_tokens')
+    op.drop_index(
+        'ix_password_reset_tokens_user_id',
+        table_name='password_reset_tokens'
+    )
+    op.drop_index(
+        'ix_password_reset_tokens_token',
+        table_name='password_reset_tokens'
+    )
+    op.drop_index(
+        'ix_email_verification_tokens_user_id',
+        table_name='email_verification_tokens'
+    )
+    op.drop_index(
+        'ix_email_verification_tokens_token',
+        table_name='email_verification_tokens'
+    )
+    op.drop_index('ix_refresh_tokens_token_id', table_name='refresh_tokens')
     op.drop_index('ix_refresh_tokens_user_id', table_name='refresh_tokens')
     
     # Drop tables
