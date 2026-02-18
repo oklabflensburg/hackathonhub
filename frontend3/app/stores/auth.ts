@@ -3,16 +3,33 @@ import { ref, computed } from 'vue'
 
 export interface User {
   id: number
-  github_id: string
+  github_id?: string
+  google_id?: string
   username: string
   avatar_url: string
   email?: string
+  email_verified?: boolean
+  auth_method?: 'github' | 'google' | 'email'
   created_at: string
+  last_login?: string
+}
+
+export interface LoginCredentials {
+  email: string
+  password: string
+}
+
+export interface RegisterCredentials {
+  email: string
+  username: string
+  password: string
+  confirmPassword: string
 }
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(null)
+  const refreshToken = ref<string | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -57,8 +74,125 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function refreshToken(): Promise<boolean> {
-    if (!token.value) return false
+  async function loginWithGoogle(redirectUrl?: string) {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      
+      if (!redirectUrl && typeof window !== 'undefined') {
+        redirectUrl = window.location.pathname + window.location.search
+      }
+      
+      const url = new URL(`${backendUrl}/api/auth/google`)
+      if (redirectUrl) {
+        url.searchParams.append('redirect_url', redirectUrl)
+      }
+      
+      const response = await fetch(url.toString())
+      if (!response.ok) {
+        throw new Error('Failed to get Google authorization URL')
+      }
+      
+      const data = await response.json()
+      window.location.href = data.authorization_url
+    } catch (err) {
+      error.value = 'Failed to initiate Google login'
+      console.error('Google login error:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function loginWithEmail(credentials: LoginCredentials) {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      
+      const response = await fetch(`${backendUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password
+        })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Login failed')
+      }
+      
+      const data = await response.json()
+      await handleAuthResponse(data)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Login failed'
+      console.error('Email login error:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function registerWithEmail(credentials: RegisterCredentials) {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      
+      const response = await fetch(`${backendUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          username: credentials.username,
+          password: credentials.password
+        })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Registration failed')
+      }
+      
+      const data = await response.json()
+      // Registration successful, but email needs verification
+      // Show success message and redirect to login
+      return data
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Registration failed'
+      console.error('Registration error:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function handleAuthResponse(authData: any) {
+    token.value = authData.access_token
+    refreshToken.value = authData.refresh_token
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', authData.access_token)
+      localStorage.setItem('refresh_token', authData.refresh_token)
+    }
+    
+    // Fetch user info
+    await fetchUserWithToken(authData.access_token)
+  }
+
+  async function refreshAccessToken(): Promise<boolean> {
+    if (!refreshToken.value) return false
     
     try {
       const config = useRuntimeConfig()
@@ -67,16 +201,22 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await fetch(`${backendUrl}/api/auth/refresh`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token.value}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken.value
+        })
       })
       
       if (response.ok) {
         const data = await response.json()
         token.value = data.access_token
+        refreshToken.value = data.refresh_token
+        
         // Save to localStorage
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('auth_token', data.access_token)
+          localStorage.setItem('refresh_token', data.refresh_token)
         }
         return true
       } else {
@@ -106,7 +246,7 @@ export const useAuthStore = defineStore('auth', () => {
     
     // If 401, try to refresh token and retry once
     if (response.status === 401 && token.value) {
-      const refreshed = await refreshToken()
+      const refreshed = await refreshAccessToken()
       if (refreshed) {
         // Retry with new token
         const newHeaders = {
@@ -124,9 +264,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     user.value = null
     token.value = null
+    refreshToken.value = null
     
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('refresh_token')
       localStorage.removeItem('user')
     }
   }
@@ -139,7 +281,7 @@ export const useAuthStore = defineStore('auth', () => {
     const urlToken = urlParams.get('token')
     const source = urlParams.get('source')
     
-    if (urlToken && source === 'github') {
+    if (urlToken && (source === 'github' || source === 'google')) {
       // Store token from URL
       token.value = urlToken
       localStorage.setItem('auth_token', urlToken)
@@ -151,17 +293,20 @@ export const useAuthStore = defineStore('auth', () => {
       // Fetch user info with the token
       fetchUserWithToken(urlToken)
     } else {
-      // Check localStorage for existing token
+      // Check localStorage for existing tokens
       const storedToken = localStorage.getItem('auth_token')
+      const storedRefreshToken = localStorage.getItem('refresh_token')
       const storedUser = localStorage.getItem('user')
       
       if (storedToken && storedUser) {
         try {
           token.value = storedToken
+          refreshToken.value = storedRefreshToken
           user.value = JSON.parse(storedUser)
         } catch (err) {
           console.error('Failed to parse stored user:', err)
           localStorage.removeItem('auth_token')
+          localStorage.removeItem('refresh_token')
           localStorage.removeItem('user')
         }
       }
@@ -253,16 +398,21 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     token,
+    refreshToken,
     isLoading,
     error,
     isAuthenticated,
     userInitials,
     loginWithGitHub,
+    loginWithGoogle,
+    loginWithEmail,
+    registerWithEmail,
     logout,
     initializeAuth,
     refreshUser,
     authenticatedFetch,
-    refreshToken,
-    fetchWithAuth
+    refreshAccessToken,
+    fetchWithAuth,
+    handleAuthResponse
   }
 })
