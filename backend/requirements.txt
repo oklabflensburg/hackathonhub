@@ -10,5 +10,5 @@ python-dotenv==1.0.0
 httpx==0.25.2
 pydantic==2.5.0
 pydantic-settings==2.1.0
-email-validator==2.1.0
+email-validator>=2.1.1
 uuid==1.30
