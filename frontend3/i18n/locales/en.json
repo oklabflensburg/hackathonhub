@@ -92,7 +92,9 @@
      "unknownHackathon": "Unknown Hackathon",
        "alreadyRegistered": "Already Registered",
        "authenticationRequired": "Authentication Required",
+       "authenticationError": "Authentication Error",
        "updateError": "Update Error",
+       "updateFailed": "Update Failed",
        "registrationError": "Registration Error",
        "unknownError": "Unknown error",
        "description": "Description"
@@ -110,7 +112,8 @@
     "connected": "Connected",
     "notConnected": "Not connected",
     "pleaseLogin": "Please log in to view your profile",
-    "goToLogin": "Go to Login"
+    "goToLogin": "Go to Login",
+    "sessionExpired": "Your session has expired. Please log in again."
   },
   "errors": {
     "failedToLoad": "Failed to load data",
@@ -161,6 +164,10 @@
     "quickLinks": "Quick Links",
     "resources": "Resources",
     "contactUs": "Contact Us",
+    "email": "hello[at]hackathonhub.example",
+    "location": "Flensburg, Germany",
+    "newsletter": "Newsletter",
+    "emailPlaceholder": "Enter your email address",
     "documentation": "Documentation",
     "apiReference": "API Reference",
     "tutorials": "Tutorials",
@@ -349,6 +356,31 @@
          "loginToEdit": "Please log in to edit hackathons",
         "hackathonUpdated": "Hackathon updated successfully!",
         "failedToUpdate": "Failed to update hackathon"
+      },
+      "projects": {
+        "backToHackathon": "Back to Hackathon",
+        "title": "Projects for Hackathon {id}",
+        "subtitle": "Browse all projects submitted to this hackathon",
+        "submitProject": "Submit Project",
+        "votes": "Votes",
+        "comments": "Comments",
+        "views": "Views",
+        "viewDetails": "View Details",
+        "edit": "Edit",
+        "voted": "Voted",
+        "vote": "Vote",
+        "noProjectsFound": "No projects found",
+        "emptyState": {
+          "tryAdjustingSearch": "Try adjusting your search or filters to find what you're looking for.",
+          "beFirstToSubmit": "Be the first to submit a project for this hackathon!"
+        },
+        "errors": {
+          "loginToEdit": "Please log in to edit projects.",
+          "editProjectPrompt": "Would you like to edit this project?",
+          "updateSuccess": "Project updated successfully!",
+          "updateFailed": "Failed to update project",
+          "updateError": "An error occurred while updating the project"
+        }
       }
   },
   "projects": {
@@ -415,6 +447,44 @@
       "links": "Links",
       "comments": "Comments"
     }
+  },
+  "myVotes": {
+    "title": "My Votes",
+    "subtitle": "View all projects you've voted on",
+    "filter": {
+      "allVotes": "All Votes",
+      "upvotesOnly": "Upvotes Only",
+      "downvotesOnly": "Downvotes Only"
+    },
+    "sort": {
+      "recent": "Most Recent",
+      "oldest": "Oldest First",
+      "project": "Project Name A-Z"
+    },
+    "filteringByTags": "Filtering by tags:",
+    "clearAll": "Clear all",
+    "emptyState": {
+      "noVotes": "No votes yet",
+      "description": "You haven't voted on any projects yet.",
+      "browseProjects": "Browse Projects"
+    },
+    "voteType": {
+      "upvoted": "Upvoted",
+      "downvoted": "Downvoted"
+    },
+    "projectDetails": {
+      "by": "By",
+      "unknownAuthor": "Unknown",
+      "hackathon": "Hackathon",
+      "noDescription": "No description available",
+      "moreTechnologies": "+{count} more",
+      "totalVotes": "Total Votes",
+      "comments": "Comments",
+      "views": "Views",
+      "viewDetails": "View Details",
+      "removeVote": "Remove Vote"
+    },
+    "notAvailable": "N/A"
   },
   "create": {
     "title": "Create",

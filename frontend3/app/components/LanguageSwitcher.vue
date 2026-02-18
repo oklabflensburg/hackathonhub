@@ -73,7 +73,7 @@ const toggleLanguageMenu = () => {
   languageMenuOpen.value = !languageMenuOpen.value
 }
 
-const switchLanguage = async (lang: string) => {
+const switchLanguage = async (lang: 'de' | 'en') => {
   if (lang === locale.value) {
     languageMenuOpen.value = false
     return

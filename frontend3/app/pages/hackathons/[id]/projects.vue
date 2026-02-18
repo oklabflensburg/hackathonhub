@@ -9,19 +9,19 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Hackathon
-        </NuxtLink>
+           {{ $t('hackathons.projects.backToHackathon') }}
+         </NuxtLink>
       </div>
 
       <!-- Header -->
       <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Projects for Hackathon {{ id }}</h1>
-            <p class="text-gray-600 dark:text-gray-400">
-              Browse all projects submitted to this hackathon
-            </p>
-          </div>
+           <div>
+             <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ $t('hackathons.projects.title', { id }) }}</h1>
+             <p class="text-gray-600 dark:text-gray-400">
+               {{ $t('hackathons.projects.subtitle') }}
+             </p>
+           </div>
           <div class="flex items-center space-x-4">
             <div class="relative">
               <input
@@ -38,8 +38,8 @@
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Submit Project
-            </button>
+               {{ $t('projects.submitProject') }}
+             </button>
           </div>
         </div>
       </div>
@@ -124,18 +124,18 @@
 
             <!-- Stats -->
             <div class="grid grid-cols-3 gap-4 py-4 border-t border-gray-100 dark:border-gray-800">
-              <div class="text-center">
-                <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.votes }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">Votes</div>
-              </div>
-              <div class="text-center">
-                <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.comments }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">Comments</div>
-              </div>
-              <div class="text-center">
-                <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.views }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">Views</div>
-              </div>
+               <div class="text-center">
+                 <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.votes }}</div>
+                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.votes') }}</div>
+               </div>
+               <div class="text-center">
+                 <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.comments }}</div>
+                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.comments') }}</div>
+               </div>
+               <div class="text-center">
+                 <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.views }}</div>
+                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.views') }}</div>
+               </div>
             </div>
 
             <!-- Actions -->
@@ -145,8 +145,8 @@
                   @click="viewProject(project.id)"
                   class="btn btn-primary px-4 py-2 text-sm"
                 >
-                  View Details
-                </button>
+                   {{ $t('projects.viewDetails') }}
+                 </button>
                 <!-- Edit button for project owner or team members -->
                 <button
                   v-if="canEditProject(project)"
@@ -156,8 +156,8 @@
                   <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Edit
-                </button>
+                   {{ $t('common.edit') }}
+                 </button>
               </div>
               <button
                 @click="voteForProject(project.id)"
@@ -167,8 +167,8 @@
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                 </svg>
-                {{ project.hasVoted ? 'Voted' : 'Vote' }}
-              </button>
+                 {{ project.hasVoted ? $t('projects.voted') : $t('projects.vote') }}
+               </button>
             </div>
           </div>
         </div>
@@ -181,15 +181,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
         </div>
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          No projects found
-        </h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">
-          {{ searchQuery ? 'Try adjusting your search' : 'Be the first to submit a project!' }}
-        </p>
-        <button class="btn btn-primary">
-          Submit Your Project
-        </button>
+         <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+           {{ $t('projects.emptyState.noProjectsFound') }}
+         </h3>
+         <p class="text-gray-600 dark:text-gray-400 mb-6">
+           {{ searchQuery ? $t('projects.emptyState.tryAdjustingSearch') : $t('projects.emptyState.beFirstToSubmit') }}
+         </p>
+         <button class="btn btn-primary">
+           {{ $t('projects.submitYourProject') }}
+         </button>
       </div>
   </div>
 </template>
@@ -198,11 +198,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const { t } = useI18n()
 const id = route.params.id as string
 const searchQuery = ref('')
 const loading = ref(true)
@@ -343,12 +345,12 @@ const viewProject = (projectId: number) => {
 const editProject = (project: any) => {
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
-    uiStore.showWarning('Please log in to edit projects.', 'Authentication Required')
+    uiStore.showWarning(t('projects.errors.loginToEdit'), t('common.authenticationRequired'))
     return
   }
   
   // Show edit dialog or navigate to edit form
-  const newName = prompt(`Edit project name:`, project.name)
+  const newName = prompt(t('projects.editProjectPrompt'), project.name)
   if (newName && newName !== project.name) {
     // Call API to update project
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
@@ -364,24 +366,24 @@ const editProject = (project: any) => {
         // Add other fields as needed
       })
     })
-    .then(response => {
-      if (response.ok) {
-        uiStore.showSuccess('Project updated successfully!')
-        // Refresh projects
-        fetchProjects()
-      } else {
-        if (response.status === 401) {
-          authStore.logout()
-          uiStore.showError('Session expired. Please log in again.', 'Authentication Error')
-        } else {
-          uiStore.showError('Failed to update project', 'Update Failed')
-        }
-      }
-    })
-    .catch(error => {
-      console.error('Error updating project:', error)
-      uiStore.showError('Error updating project', 'Update Error')
-    })
+     .then(response => {
+       if (response.ok) {
+         uiStore.showSuccess(t('projects.updateSuccess'))
+         // Refresh projects
+         fetchProjects()
+       } else {
+         if (response.status === 401) {
+           authStore.logout()
+           uiStore.showError(t('auth.sessionExpired'), t('common.authenticationError'))
+         } else {
+           uiStore.showError(t('projects.updateFailed'), t('common.updateFailed'))
+         }
+       }
+     })
+     .catch(error => {
+       console.error('Error updating project:', error)
+       uiStore.showError(t('projects.updateError'), t('common.updateError'))
+     })
   }
 }
 

@@ -11,15 +11,7 @@ export default defineNuxtConfig({
     strict: true,
     typeCheck: false
   },
-  vite: {
-    css: {
-      preprocessorOptions: {
-        scss: {
-          additionalData: '@use "~/assets/scss/variables" as *;'
-        }
-      }
-    }
-  },
+  vite: {},
   runtimeConfig: {
     public: {
       apiUrl: process.env.NUXT_PUBLIC_API_URL || 'http://localhost:8000',
