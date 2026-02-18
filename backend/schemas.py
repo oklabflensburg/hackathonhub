@@ -15,13 +15,21 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    github_id: int
-    access_token: str
+    github_id: Optional[int] = None
+    google_id: Optional[str] = None
+    password_hash: Optional[str] = None
+    auth_method: str = "github"
+    email_verified: bool = False
+    access_token: Optional[str] = None
 
 
 class User(UserBase):
     id: int
-    github_id: int
+    github_id: Optional[int] = None
+    google_id: Optional[str] = None
+    email_verified: bool = False
+    auth_method: str = "github"
+    last_login: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -368,8 +376,41 @@ class Token(BaseModel):
     token_type: str
 
 
+class TokenWithRefresh(Token):
+    refresh_token: str
+    user: Optional["User"] = None
+
+
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+
+# Email/Password authentication schemas
+
+class UserRegister(BaseModel):
+    username: str
+    email: str
+    password: str
+    name: Optional[str] = None
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: str
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+
+class EmailVerificationRequest(BaseModel):
+    token: str
+
 
 # Participant schemas
 

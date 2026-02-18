@@ -2,6 +2,7 @@ from sqlalchemy import (
     Column, Integer, String, Text, DateTime,
     ForeignKey, Boolean, UniqueConstraint, Float
 )
+from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -21,10 +22,16 @@ class User(Base):
     company = Column(String)
     blog = Column(String)
     twitter_username = Column(String)
+    password_hash = Column(String, nullable=True)
+    google_id = Column(String, unique=True, index=True, nullable=True)
+    email_verified = Column(Boolean, default=False)
+    auth_method = Column(String, default="github")
+    last_login = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     projects = relationship("Project", back_populates="owner")
+    refresh_tokens = relationship("RefreshToken", back_populates="user")
     votes = relationship("Vote", back_populates="user")
     comment_votes = relationship("CommentVote", back_populates="user")
     comments = relationship("Comment", back_populates="user")
@@ -262,7 +269,8 @@ class CommentVote(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    comment_id = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=False)
+    comment_id = Column(
+        Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=False)
     vote_type = Column(String(10), nullable=False)  # 'upvote' or 'downvote'
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -341,3 +349,50 @@ class NewsletterSubscription(Base):
     unsubscribed_at = Column(DateTime(timezone=True), nullable=True)
     # website_footer, signup_page, etc.
     source = Column(String, default="website_footer")
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token_id = Column(String(64), unique=True, nullable=False)  # jti from JWT
+    device_info = Column(Text, nullable=True)
+    ip_address = Column(INET, nullable=True)
+    user_agent = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    revoked = Column(Boolean, default=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    replaced_by_token_id = Column(String(64), nullable=True)
+
+    user = relationship("User", back_populates="refresh_tokens")
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token = Column(String(64), unique=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+
+
+class EmailVerificationToken(Base):
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token = Column(String(64), unique=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")

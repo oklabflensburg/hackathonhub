@@ -30,18 +30,147 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 def create_user(db: Session, user: schemas.UserCreate):
     db_user = models.User(
         github_id=user.github_id,
+        google_id=user.google_id,
         username=user.username,
         email=user.email,
         name=user.name,
         avatar_url=user.avatar_url,
         bio=user.bio,
         location=user.location,
-        company=user.company
+        company=user.company,
+        password_hash=user.password_hash,
+        auth_method=user.auth_method,
+        email_verified=user.email_verified
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def get_user_by_google_id(db: Session, google_id: str):
+    return db.query(models.User).filter(
+        models.User.google_id == google_id).first()
+
+
+def update_user_google_id(db: Session, user_id: int, google_id: str):
+    user = get_user(db, user_id)
+    if user:
+        user.google_id = google_id
+        user.auth_method = "google"
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+def update_user_last_login(db: Session, user_id: int):
+    from datetime import datetime
+    user = get_user(db, user_id)
+    if user:
+        user.last_login = datetime.utcnow()
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+def update_user_password(db: Session, user_id: int, password_hash: str):
+    user = get_user(db, user_id)
+    if user:
+        user.password_hash = password_hash
+        user.auth_method = "email"
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+def verify_user_email(db: Session, user_id: int):
+    user = get_user(db, user_id)
+    if user:
+        user.email_verified = True
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+# Refresh Token CRUD operations
+
+def get_refresh_token(db: Session, token_id: str):
+    return db.query(models.RefreshToken).filter(
+        models.RefreshToken.token_id == token_id).first()
+
+
+def create_refresh_token(db: Session, user_id: int, token_id: str,
+                         expires_at, device_info=None, ip_address=None,
+                         user_agent=None):
+    db_token = models.RefreshToken(
+        user_id=user_id,
+        token_id=token_id,
+        expires_at=expires_at,
+        device_info=device_info,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    db.add(db_token)
+    db.commit()
+    db.refresh(db_token)
+    return db_token
+
+
+def revoke_refresh_token(db: Session, token_id: str):
+    from datetime import datetime
+    token = get_refresh_token(db, token_id)
+    if token:
+        token.revoked = True
+        token.revoked_at = datetime.utcnow()
+        db.commit()
+        db.refresh(token)
+    return token
+
+
+def revoke_all_user_refresh_tokens(db: Session, user_id: int):
+    from datetime import datetime
+    tokens = db.query(models.RefreshToken).filter(
+        models.RefreshToken.user_id == user_id,
+        models.RefreshToken.revoked.is_(False)
+    ).all()
+    
+    for token in tokens:
+        token.revoked = True
+        token.revoked_at = datetime.utcnow()
+    
+    db.commit()
+    return len(tokens)
+
+
+# Password Reset Token CRUD operations
+
+def create_password_reset_token(db: Session, user_id: int, token: str,
+                                expires_at):
+    db_token = models.PasswordResetToken(
+        user_id=user_id,
+        token=token,
+        expires_at=expires_at
+    )
+    db.add(db_token)
+    db.commit()
+    db.refresh(db_token)
+    return db_token
+
+
+def get_password_reset_token(db: Session, token: str):
+    return db.query(models.PasswordResetToken).filter(
+        models.PasswordResetToken.token == token).first()
+
+
+def mark_password_reset_token_used(db: Session, token_id: int):
+    token = db.query(models.PasswordResetToken).filter(
+        models.PasswordResetToken.id == token_id).first()
+    if token:
+        token.used = True
+        db.commit()
+        db.refresh(token)
+    return token
+
 
 # Project CRUD operations
 
