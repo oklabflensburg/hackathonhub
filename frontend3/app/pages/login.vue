@@ -148,6 +148,11 @@
 import { ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useI18n } from 'vue-i18n'
+import { authMiddleware } from '~/middleware/auth'
+
+definePageMeta({
+  middleware: authMiddleware
+})
 
 const { t } = useI18n()
 const authStore = useAuthStore()
