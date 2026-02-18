@@ -112,15 +112,21 @@ async def authenticate_with_github(code: str, db: Session):
         # (In a real app, you might want to update some fields)
         pass
 
-    # Create JWT token for our app
-    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
-    jwt_token = auth.create_access_token(
-        data={"sub": db_user.username},  # Store username instead of email
-        expires_delta=access_token_expires
+    # Create tokens using the new JWT system with refresh tokens
+    tokens = auth.create_tokens(db_user.id, db_user.username)
+
+    # Store refresh token in database
+    from datetime import datetime
+    crud.create_refresh_token(
+        db,
+        user_id=db_user.id,
+        token_id=tokens["refresh_token_id"],
+        expires_at=datetime.utcnow() + tokens["refresh_token_expires"]
     )
 
     return {
-        "access_token": jwt_token,
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens["refresh_token"],
         "token_type": "bearer",
         "user": schemas.User.from_orm(db_user)
     }

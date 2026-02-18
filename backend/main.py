@@ -1,16 +1,18 @@
-from fastapi import FastAPI, Depends, HTTPException, Header, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, Header, Query, Request, Body
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import timedelta
 import os
 from dotenv import load_dotenv
 
-from database import engine, get_db
+from database import get_db
 import models
 import schemas
 import crud
 import auth
 import email_service
+import email_auth
+import google_oauth
+
 from i18n.middleware import LocaleMiddleware
 from i18n.translations import get_translation
 
@@ -834,6 +836,145 @@ async def github_callback(
                 )
         else:
             redirect_url = f"{frontend_url}/?error={error_msg}&source=github"
+
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=redirect_url)
+
+
+@app.post("/api/auth/register")
+async def register_user(
+    user_data: schemas.UserRegister,
+    db: Session = Depends(get_db)
+):
+    """Register a new user with email/password"""
+    try:
+        # Register user
+        result = email_auth.register_user(db, user_data)
+
+        # Send verification email
+        email_auth.send_verification_email(
+            db, result["user"].id, result["user"].email
+        )
+
+        return {
+            "message": "User registered successfully. "
+                       "Please check your email for verification.",
+            "user": result["user"],
+            "requires_verification": True
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Registration failed: {str(e)}"
+        )
+
+
+@app.post("/api/auth/login")
+async def login_user(
+    credentials: schemas.UserLogin,
+    db: Session = Depends(get_db)
+):
+    """Login with email/password"""
+    try:
+        result = email_auth.authenticate_user(
+            db, credentials.email, credentials.password
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Login failed: {str(e)}"
+        )
+
+
+@app.post("/api/auth/verify-email")
+async def verify_email(
+    token: str = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """Verify email address using verification token"""
+    try:
+        from email_verification import verify_email_token
+        user = verify_email_token(db, token)
+        return {
+            "message": "Email verified successfully",
+            "user": schemas.User.from_orm(user)
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Email verification failed: {str(e)}"
+        )
+
+
+@app.get("/api/auth/google")
+async def google_auth(redirect_url: str = Query(None)):
+    """Initiate Google OAuth flow"""
+    try:
+        auth_url = google_oauth.get_google_auth_url(redirect_url)
+        return {"authorization_url": auth_url}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate Google OAuth URL: {str(e)}"
+        )
+
+
+@app.get("/api/auth/google/callback")
+async def google_callback(
+    code: str,
+    state: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Handle Google OAuth callback and redirect to frontend"""
+    try:
+        result = await google_oauth.authenticate_with_google(code, db)
+
+        # Redirect to frontend with token in query parameter
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")
+        import urllib.parse
+        token = urllib.parse.quote(result["access_token"])
+
+        # Use state (redirect URL) if provided, otherwise redirect to home
+        if state:
+            decoded_state = urllib.parse.unquote(state)
+            if decoded_state.startswith('/'):
+                redirect_url = (
+                    f"{frontend_url}{decoded_state}"
+                    f"?token={token}&source=google"
+                )
+            else:
+                redirect_url = f"{frontend_url}/?token={token}&source=google"
+        else:
+            redirect_url = f"{frontend_url}/?token={token}&source=google"
+
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=redirect_url)
+    except Exception as e:
+        # On error, redirect to frontend with error
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")
+        import urllib.parse
+        error_msg = urllib.parse.quote(str(e))
+
+        if state:
+            decoded_state = urllib.parse.unquote(state)
+            if decoded_state.startswith('/'):
+                redirect_url = (
+                    f"{frontend_url}{decoded_state}"
+                    f"?error={error_msg}&source=google"
+                )
+            else:
+                redirect_url = (
+                    f"{frontend_url}/?error={error_msg}&source=google"
+                )
+        else:
+            redirect_url = f"{frontend_url}/?error={error_msg}&source=google"
 
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url=redirect_url)
