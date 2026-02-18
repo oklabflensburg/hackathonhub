@@ -607,7 +607,12 @@
         "tags": "Tags",
         "tagsPlaceholder": "Add tags separated by commas (e.g., AI, Web3, Mobile)",
         "rules": "Rules & Guidelines",
-        "rulesPlaceholder": "List any rules, guidelines, or requirements for participants"
+        "rulesPlaceholder": "List any rules, guidelines, or requirements for participants",
+        "hackathonImage": "Hackathon Image",
+        "clickToUpload": "Click to upload hackathon image",
+        "imageRequirements": "PNG, JPG, GIF up to 5MB",
+        "imageUploaded": "Image uploaded successfully",
+        "removeImage": "Remove image"
       },
        "buttons": {
         "reset": "Reset",

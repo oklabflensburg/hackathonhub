@@ -404,6 +404,50 @@
             ></textarea>
           </div>
 
+          <!-- Image Upload -->
+          <div>
+            <label class="label">{{ $t('create.hackathonForm.fields.hackathonImage') }}</label>
+            <div
+              @click="triggerHackathonImageUpload"
+              class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
+              :class="{ 'border-primary-500 dark:border-primary-400': hackathonForm.image_url }"
+            >
+              <div v-if="!hackathonForm.image_url">
+                <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  {{ $t('create.hackathonForm.fields.clickToUpload') }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {{ $t('create.hackathonForm.fields.imageRequirements') }}
+                </p>
+              </div>
+              <div v-else class="space-y-2">
+                <div class="w-32 h-32 mx-auto rounded-lg overflow-hidden">
+                  <img :src="hackathonForm.image_url" alt="Hackathon preview" class="w-full h-full object-cover" />
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  {{ $t('create.hackathonForm.fields.imageUploaded') }}
+                </p>
+                <button
+                  type="button"
+                  @click.stop="removeHackathonImage"
+                  class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                >
+                  {{ $t('create.hackathonForm.fields.removeImage') }}
+                </button>
+              </div>
+              <input
+                ref="hackathonImageInput"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="handleHackathonImageUpload"
+              />
+            </div>
+          </div>
+
           <!-- Contact Information -->
           <div>
             <label class="label">{{ $t('create.hackathonForm.fields.contactEmail') }}</label>
@@ -462,6 +506,7 @@ const submitting = ref(false)
 const newTech = ref('')
 const newTag = ref('')
 const imageInput = ref<HTMLInputElement>()
+const hackathonImageInput = ref<HTMLInputElement>()
 
 // Import auth store
 const authStore = useAuthStore()
@@ -492,7 +537,8 @@ const hackathonForm = ref({
   prizePool: '',
   tags: ['Technology', 'Innovation'],
   rules: '',
-  contactEmail: ''
+  contactEmail: '',
+  image_url: ''
 })
 
 // Real hackathons from API
@@ -593,6 +639,28 @@ const removeImage = () => {
   projectForm.value.image = ''
   if (imageInput.value) {
     imageInput.value.value = ''
+  }
+}
+
+const triggerHackathonImageUpload = () => {
+  hackathonImageInput.value?.click()
+}
+
+const handleHackathonImageUpload = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      hackathonForm.value.image_url = e.target?.result as string
+    }
+    reader.readAsDataURL(input.files[0])
+  }
+}
+
+const removeHackathonImage = () => {
+  hackathonForm.value.image_url = ''
+  if (hackathonImageInput.value) {
+    hackathonImageInput.value.value = ''
   }
 }
 
@@ -727,6 +795,7 @@ const submitHackathon = async () => {
       tags: hackathonForm.value.tags.join(','),
       rules: hackathonForm.value.rules,
       contact_email: hackathonForm.value.contactEmail,
+      image_url: hackathonForm.value.image_url || null,
       // owner_id will be set by backend based on current user
     }
     
@@ -809,7 +878,8 @@ const resetHackathonForm = () => {
     prizePool: '',
     tags: ['Technology', 'Innovation'],
     rules: '',
-    contactEmail: ''
+    contactEmail: '',
+    image_url: ''
   }
   newTag.value = ''
 }

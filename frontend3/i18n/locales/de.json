@@ -607,7 +607,12 @@
         "tags": "Tags",
         "tagsPlaceholder": "Tags durch Kommas getrennt hinzufügen (z.B. KI, Web3, Mobile)",
         "rules": "Regeln & Richtlinien",
-        "rulesPlaceholder": "Liste alle Regeln, Richtlinien oder Anforderungen für Teilnehmer auf"
+        "rulesPlaceholder": "Liste alle Regeln, Richtlinien oder Anforderungen für Teilnehmer auf",
+        "hackathonImage": "Hackathon-Bild",
+        "clickToUpload": "Klicken, um Hackathon-Bild hochzuladen",
+        "imageRequirements": "PNG, JPG, GIF bis zu 5MB",
+        "imageUploaded": "Bild erfolgreich hochgeladen",
+        "removeImage": "Bild entfernen"
       },
        "buttons": {
         "reset": "Zurücksetzen",
