@@ -16,6 +16,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Create uploads directory and set permissions
+RUN mkdir -p /app/uploads && \
+    mkdir -p /app/uploads/projects && \
+    mkdir -p /app/uploads/hackathons && \
+    mkdir -p /app/uploads/avatars && \
+    chmod -R 755 /app/uploads
+
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser

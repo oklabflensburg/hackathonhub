@@ -17,6 +17,12 @@ class FileUploadService:
             "image/gif",
             "image/webp"
         }
+        # Map API type to directory name
+        self.type_to_dir = {
+            "project": "projects",
+            "hackathon": "hackathons",
+            "avatar": "avatars"
+        }
         
     async def save_upload_file(
         self, 
@@ -46,23 +52,40 @@ class FileUploadService:
         unique_filename = f"{uuid.uuid4()}{file_ext}"
         
         # Create directory structure
-        if entity_id:
-            save_dir = self.upload_dir / subdirectory / str(entity_id)
-        else:
-            save_dir = self.upload_dir / subdirectory / "temp"
+        # Map API type to directory name (e.g., "hackathon" -> "hackathons")
+        dir_name = self.type_to_dir.get(subdirectory, subdirectory)
         
-        save_dir.mkdir(parents=True, exist_ok=True)
+        if entity_id:
+            save_dir = self.upload_dir / dir_name / str(entity_id)
+        else:
+            save_dir = self.upload_dir / dir_name / "temp"
+        
+        try:
+            save_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Cannot create directory {save_dir}: {str(e)}. "
+                       "Please check permissions or set UPLOAD_DIR env var."
+            )
         
         # Save file
         file_path = save_dir / unique_filename
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(upload_file.file, buffer)
+        try:
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(upload_file.file, buffer)
+        except OSError as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Cannot write file {file_path}: {str(e)}. "
+                       f"Please check disk space and permissions."
+            )
         
         # Return relative path for database storage
         if entity_id:
-            return f"/uploads/{subdirectory}/{entity_id}/{unique_filename}"
+            return f"/uploads/{dir_name}/{entity_id}/{unique_filename}"
         else:
-            return f"/uploads/{subdirectory}/temp/{unique_filename}"
+            return f"/uploads/{dir_name}/temp/{unique_filename}"
     
     async def _validate_file(self, upload_file: UploadFile):
         """Validate file size, type, and content"""
