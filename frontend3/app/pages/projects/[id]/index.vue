@@ -592,7 +592,7 @@ const fetchProject = async () => {
     
     // First, increment the view count
     try {
-      await fetch(`${backendUrl}/api/projects/${projectId}/view`, {
+      await authStore.fetchWithAuth(`${backendUrl}/api/projects/${projectId}/view`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -604,7 +604,7 @@ const fetchProject = async () => {
     }
     
     // Then fetch the project details
-    const response = await fetch(`${backendUrl}/api/projects/${projectId}`)
+    const response = await authStore.fetchWithAuth(`${backendUrl}/api/projects/${projectId}`)
     
     if (!response.ok) {
       if (response.status === 404) {
@@ -635,7 +635,7 @@ const fetchComments = async () => {
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
     
-    const response = await fetch(`${backendUrl}/api/projects/${projectId}/comments`)
+    const response = await authStore.fetchWithAuth(`${backendUrl}/api/projects/${projectId}/comments`)
     
     if (response.ok) {
       comments.value = await response.json()

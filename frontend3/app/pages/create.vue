@@ -557,7 +557,7 @@ const fetchHackathons = async () => {
   hackathonsLoading.value = true
   hackathonsError.value = null
   try {
-    const response = await fetch(`${config.public.apiUrl}/api/hackathons`)
+    const response = await authStore.fetchWithAuth(`${config.public.apiUrl}/api/hackathons`)
     if (!response.ok) {
       throw new Error(`Failed to fetch hackathons: ${response.status}`)
     }

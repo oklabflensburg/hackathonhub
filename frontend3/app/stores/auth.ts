@@ -232,11 +232,9 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await fetch(`${backendUrl}/api/auth/refresh`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${refreshToken.value}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          refresh_token: refreshToken.value
-        })
+        }
       })
 
       if (response.ok) {
@@ -248,10 +246,17 @@ export const useAuthStore = defineStore('auth', () => {
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('auth_token', data.access_token)
           localStorage.setItem('refresh_token', data.refresh_token)
+
+          // Also update user data if returned
+          if (data.user) {
+            user.value = data.user
+            localStorage.setItem('user', JSON.stringify(data.user))
+          }
         }
         return true
       } else {
         // Refresh failed, logout
+        console.error('Token refresh failed with status:', response.status)
         logout()
         return false
       }
@@ -309,7 +314,7 @@ export const useAuthStore = defineStore('auth', () => {
     let authToken: string | null = null
     let refreshTokenValue: string | null = null
     let userData: User | null = null
-    
+
     if (typeof window === 'undefined') {
       // Server-side: we can't check localStorage, but we could check cookies
       // For now, we'll leave token as null on server
@@ -423,16 +428,36 @@ export const useAuthStore = defineStore('auth', () => {
       ...options.headers
     }
 
-    const response = await fetch(fullUrl, {
+    let response = await fetch(fullUrl, {
       ...options,
       headers
     })
 
-    // Check for token expiration - MUST check before returning response
-    if (response.status === 401) {
-      // Clear auth and throw specific error
-      logout()
-      throw new Error('Session expired. Please login again.')
+    // Check for token expiration and try to refresh
+    if (response.status === 401 && token.value) {
+      const refreshed = await refreshAccessToken()
+      if (refreshed) {
+        // Retry with new token
+        const newHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.value}`,
+          ...options.headers
+        }
+        response = await fetch(fullUrl, {
+          ...options,
+          headers: newHeaders
+        })
+
+        // If still 401 after refresh, token is invalid
+        if (response.status === 401) {
+          logout()
+          throw new Error('Session expired. Please login again.')
+        }
+      } else {
+        // Refresh failed, logout
+        logout()
+        throw new Error('Session expired. Please login again.')
+      }
     }
 
     return response

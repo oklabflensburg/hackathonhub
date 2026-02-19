@@ -241,15 +241,15 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
   'dashboard',
   async () => {
     try {
-      // Fetch hackathons
-      const hackathonsResponse = await fetch(`${apiUrl}/api/hackathons`)
+      // Fetch hackathons using fetchWithAuth for automatic token refresh
+      const hackathonsResponse = await authStore.fetchWithAuth(`${apiUrl}/api/hackathons`)
       if (!hackathonsResponse.ok) {
         throw new Error(`${t('errors.fetchHackathonsFailed')}: ${hackathonsResponse.status}`)
       }
       const hackathonsData = await hackathonsResponse.json()
       
-      // Fetch projects
-      const projectsResponse = await fetch(`${apiUrl}/api/projects`)
+      // Fetch projects using fetchWithAuth for automatic token refresh
+      const projectsResponse = await authStore.fetchWithAuth(`${apiUrl}/api/projects`)
       if (!projectsResponse.ok) {
         throw new Error(`${t('errors.fetchProjectsFailed')}: ${projectsResponse.status}`)
       }
