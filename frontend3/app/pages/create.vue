@@ -624,14 +624,50 @@ const triggerImageUpload = () => {
   imageInput.value?.click()
 }
 
-const handleImageUpload = (event: Event) => {
+// Import file upload utilities
+import { uploadFile, createPreviewUrl, validateFile } from '~/utils/fileUpload'
+
+const projectUploading = ref(false)
+const projectUploadError = ref<string | null>(null)
+const hackathonUploading = ref(false)
+const hackathonUploadError = ref<string | null>(null)
+
+const handleImageUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      projectForm.value.image = e.target?.result as string
-    }
-    reader.readAsDataURL(input.files[0])
+  if (!input.files || !input.files[0]) {
+    return
+  }
+  
+  const file = input.files[0]
+  
+  // Validate file
+  const validationError = validateFile(file)
+  if (validationError) {
+    projectUploadError.value = validationError
+    return
+  }
+  
+  projectUploading.value = true
+  projectUploadError.value = null
+  
+  try {
+    // Create preview for immediate display
+    const previewUrl = await createPreviewUrl(file)
+    projectForm.value.image = previewUrl
+    
+    // Upload file to backend
+    const response = await uploadFile(file, {
+      type: 'project'
+    })
+    
+    // Update with actual file path from backend
+    projectForm.value.image = response.url
+    
+  } catch (error) {
+    projectUploadError.value = error instanceof Error ? error.message : 'Upload failed'
+    console.error('Project image upload failed:', error)
+  } finally {
+    projectUploading.value = false
   }
 }
 
@@ -640,20 +676,49 @@ const removeImage = () => {
   if (imageInput.value) {
     imageInput.value.value = ''
   }
+  projectUploadError.value = null
 }
 
 const triggerHackathonImageUpload = () => {
   hackathonImageInput.value?.click()
 }
 
-const handleHackathonImageUpload = (event: Event) => {
+const handleHackathonImageUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      hackathonForm.value.image_url = e.target?.result as string
-    }
-    reader.readAsDataURL(input.files[0])
+  if (!input.files || !input.files[0]) {
+    return
+  }
+  
+  const file = input.files[0]
+  
+  // Validate file
+  const validationError = validateFile(file)
+  if (validationError) {
+    hackathonUploadError.value = validationError
+    return
+  }
+  
+  hackathonUploading.value = true
+  hackathonUploadError.value = null
+  
+  try {
+    // Create preview for immediate display
+    const previewUrl = await createPreviewUrl(file)
+    hackathonForm.value.image_url = previewUrl
+    
+    // Upload file to backend
+    const response = await uploadFile(file, {
+      type: 'hackathon'
+    })
+    
+    // Update with actual file path from backend
+    hackathonForm.value.image_url = response.url
+    
+  } catch (error) {
+    hackathonUploadError.value = error instanceof Error ? error.message : 'Upload failed'
+    console.error('Hackathon image upload failed:', error)
+  } finally {
+    hackathonUploading.value = false
   }
 }
 
@@ -662,6 +727,7 @@ const removeHackathonImage = () => {
   if (hackathonImageInput.value) {
     hackathonImageInput.value.value = ''
   }
+  hackathonUploadError.value = null
 }
 
 // Methods for hackathon form

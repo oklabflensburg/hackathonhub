@@ -74,29 +74,43 @@
                   {{ $t('create.hackathonForm.fields.imageRequirements') }}
                 </p>
               </div>
-              <div v-else class="space-y-2">
-                <div class="w-32 h-32 mx-auto rounded-lg overflow-hidden">
-                  <img :src="localFormData.image_url" alt="Hackathon preview" class="w-full h-full object-cover" />
-                </div>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                  {{ $t('create.hackathonForm.fields.imageUploaded') }}
-                </p>
-                <button
-                  type="button"
-                  @click.stop="removeImage"
-                  class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-                >
-                  {{ $t('create.hackathonForm.fields.removeImage') }}
-                </button>
-              </div>
-              <input
-                ref="imageInput"
-                type="file"
-                accept="image/*"
-                class="hidden"
-                @change="handleImageUpload"
-              />
-            </div>
+               <div v-else class="space-y-2">
+                 <div class="w-32 h-32 mx-auto rounded-lg overflow-hidden relative">
+                   <img :src="localFormData.image_url" alt="Hackathon preview" class="w-full h-full object-cover" />
+                   <div v-if="uploading" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                     <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                   </div>
+                 </div>
+                 <p class="text-sm text-gray-600 dark:text-gray-400">
+                   {{ uploading ? $t('create.hackathonForm.fields.uploading') : $t('create.hackathonForm.fields.imageUploaded') }}
+                 </p>
+                 <button
+                   type="button"
+                   @click.stop="removeImage"
+                   class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                   :disabled="uploading"
+                 >
+                   {{ $t('create.hackathonForm.fields.removeImage') }}
+                 </button>
+               </div>
+               <input
+                 ref="imageInput"
+                 type="file"
+                 accept="image/*"
+                 class="hidden"
+                 @change="handleImageUpload"
+               />
+             </div>
+             
+             <!-- Upload error message -->
+             <div v-if="uploadError" class="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-600 dark:text-red-400">
+               {{ uploadError }}
+             </div>
+             
+             <!-- Upload status -->
+             <div v-if="uploading" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+               {{ $t('create.hackathonForm.fields.uploadingProgress') }}
+             </div>
 
           </div>
 
@@ -272,19 +286,51 @@ const handleSave = () => {
 
 // Image upload functionality
 const imageInput = ref<HTMLInputElement>()
+const uploading = ref(false)
+const uploadError = ref<string | null>(null)
 
 const triggerImageUpload = () => {
   imageInput.value?.click()
 }
 
-const handleImageUpload = (event: Event) => {
+const handleImageUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      localFormData.value.image_url = e.target?.result as string
-    }
-    reader.readAsDataURL(input.files[0])
+  if (!input.files || !input.files[0]) {
+    return
+  }
+  
+  const file = input.files[0]
+  
+  // Validate file
+  const validationError = validateFile(file)
+  if (validationError) {
+    uploadError.value = validationError
+    return
+  }
+  
+  uploading.value = true
+  uploadError.value = null
+  
+  try {
+    // Create preview for immediate display
+    const previewUrl = await createPreviewUrl(file)
+    localFormData.value.image_url = previewUrl
+    
+    // Upload file to backend
+    const response = await uploadFile(file, {
+      type: 'hackathon',
+      entityId: props.formData.id
+    })
+    
+    // Update with actual file path from backend
+    localFormData.value.image_url = response.url
+    
+  } catch (error) {
+    uploadError.value = error instanceof Error ? error.message : 'Upload failed'
+    // Keep preview but mark as needing upload
+    console.error('Image upload failed:', error)
+  } finally {
+    uploading.value = false
   }
 }
 
@@ -293,5 +339,9 @@ const removeImage = () => {
   if (imageInput.value) {
     imageInput.value.value = ''
   }
+  uploadError.value = null
 }
+
+// Import file upload utilities
+import { uploadFile, createPreviewUrl, validateFile } from '~/utils/fileUpload'
 </script>

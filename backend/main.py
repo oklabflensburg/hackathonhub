@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, Header, Query, Request, Body
+from fastapi import File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List
 import os
 from dotenv import load_dotenv
+from fastapi.staticfiles import StaticFiles
 
 from database import get_db
 import models
@@ -12,6 +14,7 @@ import auth
 import email_service
 import email_auth
 import google_oauth
+import file_upload
 
 from i18n.middleware import LocaleMiddleware
 from i18n.translations import get_translation
@@ -32,6 +35,9 @@ app = FastAPI(
 # Add i18n middleware
 app.add_middleware(LocaleMiddleware)
 
+# Serve static files (uploaded images)
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
+
 
 @app.get("/")
 async def root():
@@ -41,6 +47,34 @@ async def root():
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "service": "hackathon-dashboard-api"}
+
+
+@app.post("/api/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    type: str = Query("project", enum=["project", "hackathon", "avatar"]),
+    entity_id: int = Query(None, description="ID for file organization"),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Upload a file and return its path"""
+    try:
+        file_path = await file_upload.file_upload_service.save_upload_file(
+            file, type, entity_id
+        )
+        file_url = file_upload.file_upload_service.get_file_url(file_path)
+        return {
+            "file_path": file_path,
+            "url": file_url,
+            "filename": file.filename,
+            "message": "File uploaded successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"File upload failed: {str(e)}"
+        )
 
 
 @app.get("/api/projects", response_model=List[schemas.Project])
