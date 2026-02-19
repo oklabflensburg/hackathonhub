@@ -223,12 +223,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function refreshAccessToken(): Promise<boolean> {
-    if (!refreshToken.value) return false
+    console.log('[Auth] Attempting token refresh')
+    if (!refreshToken.value) {
+      console.log('[Auth] No refresh token available')
+      return false
+    }
 
     try {
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
 
+      console.log('[Auth] Sending refresh request to:', `${backendUrl}/api/auth/refresh`)
       const response = await fetch(`${backendUrl}/api/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -238,6 +243,7 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (response.ok) {
+        console.log('[Auth] Token refresh successful')
         const data = await response.json()
         token.value = data.access_token
         refreshToken.value = data.refresh_token
@@ -256,12 +262,12 @@ export const useAuthStore = defineStore('auth', () => {
         return true
       } else {
         // Refresh failed, logout
-        console.error('Token refresh failed with status:', response.status)
+        console.error('[Auth] Token refresh failed with status:', response.status)
         logout()
         return false
       }
     } catch (err) {
-      console.error('Token refresh error:', err)
+      console.error('[Auth] Token refresh error:', err)
       logout()
       return false
     }
@@ -296,8 +302,8 @@ export const useAuthStore = defineStore('auth', () => {
     return response
   }
 
-
-  async function logout() {
+  function logout() {
+    console.log('[Auth] Logging out user')
     user.value = null
     token.value = null
     refreshToken.value = null
@@ -306,7 +312,9 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user')
+      console.log('[Auth] LocalStorage cleared')
     }
+    console.log('[Auth] Logout complete')
   }
 
   function initializeAuth() {
