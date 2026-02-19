@@ -37,9 +37,14 @@ export default defineNuxtPlugin((nuxtApp) => {
         headers.set('Authorization', `Bearer ${authStore.token}`)
       }
       
-      // Add content type if not present
+      // Add content type if not present and not FormData
+      // Don't set Content-Type for FormData - browser will set it with boundary
       if (!headers.has('Content-Type') && init?.method && ['POST', 'PUT', 'PATCH'].includes(init.method)) {
-        headers.set('Content-Type', 'application/json')
+        // Check if body is FormData
+        const isFormData = init.body instanceof FormData
+        if (!isFormData) {
+          headers.set('Content-Type', 'application/json')
+        }
       }
       
       // Make the request
