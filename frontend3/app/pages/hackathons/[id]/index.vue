@@ -356,6 +356,35 @@ const formatDateTime = (dateString: string) => {
   }
 }
 
+const formatDateForInput = (dateString: string) => {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    // Convert to local time and format as YYYY-MM-DDTHH:mm
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  } catch {
+    return dateString
+  }
+}
+
+const parseDateFromInput = (dateTimeString: string) => {
+  if (!dateTimeString) return ''
+  try {
+    // dateTimeString is in format YYYY-MM-DDTHH:mm (local time)
+    // Create a Date object in local timezone
+    const date = new Date(dateTimeString)
+    // Convert to ISO string with timezone offset
+    return date.toISOString()
+  } catch {
+    return dateTimeString
+  }
+}
+
 const fetchHackathon = async () => {
   try {
     loading.value = true
@@ -594,8 +623,8 @@ const editHackathon = async () => {
     editForm.value = {
       name: apiData.name,
       description: apiData.description || '',
-      start_date: apiData.start_date,
-      end_date: apiData.end_date,
+      start_date: formatDateForInput(apiData.start_date),
+      end_date: formatDateForInput(apiData.end_date),
       location: apiData.location || '',
       image_url: apiData.image_url || '',
       prizes: prizes || [],
@@ -611,8 +640,8 @@ const editHackathon = async () => {
     editForm.value = {
       name: hackathon.value.name,
       description: hackathon.value.description,
-      start_date: hackathon.value.start_date,
-      end_date: hackathon.value.end_date,
+      start_date: formatDateForInput(hackathon.value.start_date),
+      end_date: formatDateForInput(hackathon.value.end_date),
       location: hackathon.value.location,
       image_url: hackathon.value.image_url || '',
       prizes: hackathon.value.prizes || [],
@@ -657,8 +686,8 @@ const saveEdit = async (formData: any) => {
     const updateData: any = {
       name: formData.name,
       description: formData.description,
-      start_date: formData.start_date,
-      end_date: formData.end_date,
+      start_date: parseDateFromInput(formData.start_date),
+      end_date: parseDateFromInput(formData.end_date),
       location: formData.location,
       image_url: formData.image_url || null,
       rules: formData.rules,
