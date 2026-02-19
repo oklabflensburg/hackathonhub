@@ -316,6 +316,11 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('[Auth] LocalStorage cleared')
     }
     console.log('[Auth] Logout complete')
+    
+    // Also reset any UI state that might be showing user info
+    // This helps ensure UI updates properly after logout
+    const uiStore = useUIStore()
+    // You could add a method to reset UI state if needed
   }
 
   function initializeAuth() {

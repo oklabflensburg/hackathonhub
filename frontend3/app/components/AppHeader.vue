@@ -1,6 +1,7 @@
 <template>
   <ClientOnly>
     <header
+      :key="`header-${isAuthenticated ? 'auth' : 'unauth'}`"
       class="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-800/50 shadow-soft">
       <div class="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
         <div class="flex items-center justify-between">
