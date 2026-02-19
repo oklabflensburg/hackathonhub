@@ -6,10 +6,10 @@
       <p class="text-gray-600 dark:text-gray-400">{{ $t('profile.subtitle') }}</p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
       <!-- Left Column: Profile Info -->
       <div class="lg:col-span-2">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 mb-6">
            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">{{ $t('profile.profileInformation') }}</h2>
           
           <!-- Loading State -->
@@ -42,7 +42,7 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                <div>
                  <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{{ $t('profile.githubAccount') }}</h4>
                 <div class="flex items-center justify-start space-x-3">
@@ -78,7 +78,7 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           <!-- Hackathons Created Card -->
           <ImprovedStatsCard
             :label="$t('profile.hackathonsCreated')"
@@ -163,7 +163,7 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ $t('profile.accountSettings') }}</h3>
           <div class="space-y-4">
             <button 
