@@ -29,13 +29,13 @@ export async function uploadFile(
   options: UploadOptions = {}
 ): Promise<UploadResponse> {
   const { type = 'project', entityId, maxSizeMB = 10 } = options
-  
+
   // Validate file size
   const maxSizeBytes = maxSizeMB * 1024 * 1024
   if (file.size > maxSizeBytes) {
     throw new Error(`File too large. Maximum size is ${maxSizeMB}MB.`)
   }
-  
+
   // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
   if (!allowedTypes.includes(file.type)) {
@@ -43,38 +43,52 @@ export async function uploadFile(
       'Invalid file type. Allowed types: JPEG, PNG, GIF, WebP'
     )
   }
-  
+
   // Create FormData
   const formData = new FormData()
   formData.append('file', file)
-  
+
   // Build query parameters
   const params = new URLSearchParams()
   params.append('type', type)
   if (entityId) {
     params.append('entity_id', entityId.toString())
   }
-  
+
   // Get auth store for authenticated requests
   const authStore = useAuthStore()
-  
+  const token = authStore.token
+
   try {
-    const response = await authStore.fetchWithAuth(
-      `/api/upload?${params.toString()}`,
-      {
-        method: 'POST',
-        body: formData,
-        // Note: Don't set Content-Type header, browser will set it with boundary
-      }
-    )
-    
+    // For file uploads, we need to handle the request specially
+    // Use direct fetch instead of fetchWithAuth to avoid header issues
+
+    // Use runtime config for API URL
+    const config = useRuntimeConfig()
+    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+
+    const fullUrl = `/api/upload?${params.toString()}`
+    const absoluteUrl = fullUrl.startsWith('http') ? fullUrl : `${backendUrl}${fullUrl}`
+
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    // Note: Don't set Content-Type - browser will set it with boundary for FormData
+
+    const response = await fetch(absoluteUrl, {
+      method: 'POST',
+      body: formData,
+      headers
+    })
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(
         errorData.detail || `Upload failed with status ${response.status}`
       )
     }
-    
+
     return await response.json()
   } catch (error) {
     if (error instanceof Error) {
@@ -100,7 +114,7 @@ export function getFileExtension(filename: string, mimeType?: string): string {
   if (lastDotIndex !== -1) {
     return filename.substring(lastDotIndex).toLowerCase()
   }
-  
+
   // Fallback to MIME type mapping
   if (mimeType) {
     const mimeToExt: Record<string, string> = {
@@ -111,7 +125,7 @@ export function getFileExtension(filename: string, mimeType?: string): string {
     }
     return mimeToExt[mimeType] || '.jpg'
   }
-  
+
   return '.jpg'
 }
 
@@ -140,12 +154,12 @@ export function validateFile(file: File, maxSizeMB: number = 10): string | null 
   if (file.size > maxSizeBytes) {
     return `File too large. Maximum size is ${maxSizeMB}MB.`
   }
-  
+
   // Check file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
   if (!allowedTypes.includes(file.type)) {
     return 'Invalid file type. Allowed types: JPEG, PNG, GIF, WebP'
   }
-  
+
   return null
 }
