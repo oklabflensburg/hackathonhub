@@ -225,7 +225,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshAccessToken(): Promise<boolean> {
     console.log('[Auth] Attempting token refresh')
     if (!refreshToken.value) {
-      console.log('[Auth] No refresh token available')
+      console.log('[Auth] No refresh token available - logging out')
+      logout()
       return false
     }
 

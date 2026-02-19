@@ -10,6 +10,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   if (process.client) {
     // Store the original fetch function
     const originalFetch = globalThis.fetch
+    const authStore = useAuthStore()
     
     // Create a wrapper function that handles token refresh
     const authFetch = async function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -68,6 +69,14 @@ export default defineNuxtPlugin((nuxtApp) => {
         } else {
           // Refresh failed - the user will be logged out by refreshAccessToken
           console.warn('Token refresh failed, user logged out')
+          
+          // Log current auth state for debugging
+          console.log('[AuthFetch] Current auth state after refresh failure:', {
+            user: authStore.user,
+            token: authStore.token ? 'present' : 'null',
+            refreshToken: authStore.refreshToken ? 'present' : 'null',
+            isAuthenticated: authStore.isAuthenticated
+          })
         }
       }
       

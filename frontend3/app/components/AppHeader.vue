@@ -71,6 +71,10 @@
 
             <!-- User Menu -->
             <div v-if="isAuthenticated" class="relative">
+              <!-- Debug info -->
+              <div class="hidden">
+                isAuthenticated: {{ isAuthenticated }}, user: {{ authStore.user?.username }}, token: {{ authStore.token ? 'present' : 'null' }}
+              </div>
               <button @click="toggleUserMenu"
                 class="flex items-center space-x-1 sm:space-x-3 p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 :aria-label="$t('appHeader.userMenu')">
@@ -238,7 +242,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useThemeStore } from '~/stores/theme'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
@@ -278,6 +282,22 @@ const toggleUserMenu = () => {
 const toggleLoginDropdown = () => {
   loginDropdownOpen.value = !loginDropdownOpen.value
 }
+
+// Debug: Watch authentication state changes
+watch(isAuthenticated, (newVal, oldVal) => {
+  console.log('[AppHeader] Authentication state changed:', { old: oldVal, new: newVal })
+  console.log('[AppHeader] User:', authStore.user)
+  console.log('[AppHeader] Token:', authStore.token ? 'present' : 'null')
+})
+
+// Also watch user and token directly
+watch(() => authStore.user, (newVal, oldVal) => {
+  console.log('[AppHeader] User changed:', { old: oldVal?.username, new: newVal?.username })
+}, { deep: true })
+
+watch(() => authStore.token, (newVal, oldVal) => {
+  console.log('[AppHeader] Token changed:', { old: oldVal ? 'present' : 'null', new: newVal ? 'present' : 'null' })
+})
 
 const closeUserMenu = (event?: Event) => {
   userMenuOpen.value = false
