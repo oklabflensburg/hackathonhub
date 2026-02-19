@@ -154,8 +154,12 @@ async def authenticate_with_google(code: str, db: Session):
             )
             db_user = crud.create_user(db, user_create)
     else:
-        # Update existing user with latest info
+        # Update existing user with latest info including avatar
         db_user = crud.update_user_last_login(db, db_user.id)
+        # Also update avatar URL in case it changed on Google
+        avatar_url = google_user["avatar_url"]
+        if avatar_url and avatar_url != db_user.avatar_url:
+            db_user = crud.update_user_avatar(db, db_user.id, avatar_url)
     
     # Create JWT tokens
     tokens = auth.create_tokens(db_user.id, db_user.username)

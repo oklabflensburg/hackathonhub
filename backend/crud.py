@@ -83,6 +83,15 @@ def update_user_password(db: Session, user_id: int, password_hash: str):
     return user
 
 
+def update_user_avatar(db: Session, user_id: int, avatar_url: str):
+    user = get_user(db, user_id)
+    if user:
+        user.avatar_url = avatar_url
+        db.commit()
+        db.refresh(user)
+    return user
+
+
 def verify_user_email(db: Session, user_id: int):
     user = get_user(db, user_id)
     if user:

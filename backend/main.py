@@ -982,9 +982,10 @@ async def google_callback(
 
 @app.post("/api/auth/refresh")
 async def refresh_token(
-    authorization: str = Header(None, alias="Authorization")
+    authorization: str = Header(None, alias="Authorization"),
+    db: Session = Depends(get_db)
 ):
-    """Refresh access token"""
+    """Refresh access token using refresh token"""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=401,
@@ -994,9 +995,9 @@ async def refresh_token(
     token = authorization.replace("Bearer ", "")
 
     try:
-        # Use refresh_access_token which handles expired tokens
-        new_token = auth.refresh_access_token(token)
-        return {"access_token": new_token, "token_type": "bearer"}
+        # Use refresh_tokens which handles token rotation
+        result = auth.refresh_tokens(token, db)
+        return result
     except HTTPException as e:
         raise e
     except Exception as e:
