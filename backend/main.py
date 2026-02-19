@@ -3,6 +3,7 @@ from fastapi import File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
 
@@ -36,7 +37,14 @@ app = FastAPI(
 app.add_middleware(LocaleMiddleware)
 
 # Serve static files (uploaded images)
-app.mount("/static", StaticFiles(directory="uploads"), name="static")
+# Use UPLOAD_DIR from environment or default to "uploads"
+upload_dir = os.getenv("UPLOAD_DIR", "uploads")
+upload_path = Path(upload_dir)
+
+# Create directory if it doesn't exist
+upload_path.mkdir(parents=True, exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=str(upload_path)), name="static")
 
 
 @app.get("/")

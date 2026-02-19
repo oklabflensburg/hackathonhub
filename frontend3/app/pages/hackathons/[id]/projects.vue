@@ -126,15 +126,15 @@
             <div class="grid grid-cols-3 gap-4 py-4 border-t border-gray-100 dark:border-gray-800">
                <div class="text-center">
                  <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.votes }}</div>
-                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.votes') }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projects.votes') }}</div>
                </div>
                <div class="text-center">
                  <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.comments }}</div>
-                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.comments') }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projects.comments') }}</div>
                </div>
                <div class="text-center">
                  <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.views }}</div>
-                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.views') }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projects.views') }}</div>
                </div>
             </div>
 
@@ -145,7 +145,7 @@
                   @click="viewProject(project.id)"
                   class="btn btn-primary px-4 py-2 text-sm"
                 >
-                   {{ $t('projects.viewDetails') }}
+                    {{ $t('hackathons.projects.viewDetails') }}
                  </button>
                 <!-- Edit button for project owner or team members -->
                 <button
@@ -167,7 +167,7 @@
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                 </svg>
-                 {{ project.hasVoted ? $t('projects.voted') : $t('projects.vote') }}
+                  {{ project.hasVoted ? $t('hackathons.projects.voted') : $t('hackathons.projects.vote') }}
                </button>
             </div>
           </div>
@@ -270,23 +270,73 @@ const transformProject = (apiProject: any) => {
     apiProject.technologies.split(',').map((t: string) => t.trim()) : 
     ['Python', 'JavaScript', 'React', 'Node.js']
   
-  // Use default image if none provided
-  const defaultImages = [
-    'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80'
-  ]
+  // Generate a beautiful SVG placeholder if no image provided
+  const generatePlaceholderImage = (projectId: number, projectName: string) => {
+    // Color palettes for beautiful gradients
+    const colorPalettes = [
+      ['#667eea', '#764ba2'], // Purple gradient
+      ['#f093fb', '#f5576c'], // Pink gradient
+      ['#4facfe', '#00f2fe'], // Blue gradient
+      ['#43e97b', '#38f9d7'], // Green gradient
+      ['#fa709a', '#fee140'], // Orange gradient
+      ['#a8edea', '#fed6e3'], // Pastel gradient
+    ]
+    
+    const paletteIndex = projectId ? (projectId % colorPalettes.length) : 0
+    const palette = colorPalettes[paletteIndex] as [string, string]
+    const [color1, color2] = palette
+    
+    // Get first letter of project name for the placeholder
+    const firstLetter = projectName.charAt(0).toUpperCase() || 'P'
+    
+    // Create SVG with gradient and letter
+    const svg = `
+      <svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${color1};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${color2};stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#gradient)" />
+        <text 
+          x="50%" 
+          y="50%" 
+          font-family="Arial, sans-serif" 
+          font-size="120" 
+          font-weight="bold" 
+          fill="white" 
+          text-anchor="middle" 
+          dy=".35em"
+          opacity="0.8"
+        >
+          ${firstLetter}
+        </text>
+        <text 
+          x="50%" 
+          y="85%" 
+          font-family="Arial, sans-serif" 
+          font-size="24" 
+          fill="white" 
+          text-anchor="middle" 
+          opacity="0.7"
+        >
+          ${projectName}
+        </text>
+      </svg>
+    `
+    
+    // Convert SVG to data URL
+    return 'data:image/svg+xml;base64,' + btoa(svg)
+  }
   
-  const imageIndex = apiProject.id ? (apiProject.id % defaultImages.length) : 0
+  const projectName = apiProject.title || apiProject.name || 'Untitled Project'
   
   return {
     id: apiProject.id,
-    name: apiProject.title || apiProject.name || 'Untitled Project',
+    name: projectName,
     description: apiProject.description || 'No description available.',
-    image: apiProject.image_path || defaultImages[imageIndex],
+    image: apiProject.image_path || generatePlaceholderImage(apiProject.id || 0, projectName),
     status: status,
     team: team,
     techStack: techStack,

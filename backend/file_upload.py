@@ -8,7 +8,21 @@ from typing import Optional
 
 class FileUploadService:
     def __init__(self):
-        self.upload_dir = Path(os.getenv("UPLOAD_DIR", "./uploads"))
+        # Try to use UPLOAD_DIR from environment, fallback to ./uploads
+        # If ./uploads is not writable, use /tmp/uploads
+        default_dir = "./uploads"
+        upload_dir = os.getenv("UPLOAD_DIR", default_dir)
+        
+        # Check if directory is writable
+        upload_path = Path(upload_dir)
+        if not upload_dir or not self._is_writable(upload_path):
+            # Fallback to /tmp/uploads
+            tmp_upload = Path("/tmp/uploads")
+            tmp_upload.mkdir(parents=True, exist_ok=True)
+            upload_dir = str(tmp_upload)
+            print(f"WARNING: Using fallback upload directory: {upload_dir}")
+        
+        self.upload_dir = Path(upload_dir)
         self.max_file_size = 10 * 1024 * 1024  # 10MB
         self.allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
         self.allowed_mime_types = {
@@ -23,6 +37,17 @@ class FileUploadService:
             "hackathon": "hackathons",
             "avatar": "avatars"
         }
+    
+    def _is_writable(self, path: Path) -> bool:
+        """Check if a directory is writable"""
+        try:
+            # Try to create a test file
+            test_file = path / ".write_test"
+            test_file.touch()
+            test_file.unlink()
+            return True
+        except (OSError, IOError):
+            return False
         
     async def save_upload_file(
         self, 
