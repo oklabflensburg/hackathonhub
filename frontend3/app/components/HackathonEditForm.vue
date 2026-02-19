@@ -56,14 +56,48 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ $t('hackathons.details.imageUrl') }}
+              {{ $t('create.hackathonForm.fields.hackathonImage') }}
             </label>
-            <input v-model="localFormData.image_url" type="url"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              :placeholder="$t('hackathons.details.imageUrlPlaceholder')" />
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {{ $t('hackathons.details.imageUrlHelper') }}
-            </p>
+            <div
+              @click="triggerImageUpload"
+              class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
+              :class="{ 'border-primary-500 dark:border-primary-400': localFormData.image_url }"
+            >
+              <div v-if="!localFormData.image_url">
+                <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  {{ $t('create.hackathonForm.fields.clickToUpload') }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {{ $t('create.hackathonForm.fields.imageRequirements') }}
+                </p>
+              </div>
+              <div v-else class="space-y-2">
+                <div class="w-32 h-32 mx-auto rounded-lg overflow-hidden">
+                  <img :src="localFormData.image_url" alt="Hackathon preview" class="w-full h-full object-cover" />
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  {{ $t('create.hackathonForm.fields.imageUploaded') }}
+                </p>
+                <button
+                  type="button"
+                  @click.stop="removeImage"
+                  class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                >
+                  {{ $t('create.hackathonForm.fields.removeImage') }}
+                </button>
+              </div>
+              <input
+                ref="imageInput"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="handleImageUpload"
+              />
+            </div>
+
           </div>
 
           <div>
@@ -234,5 +268,30 @@ watch(() => props.formData, (newData) => {
 // Emit save event with current form data
 const handleSave = () => {
   emit('save', localFormData.value)
+}
+
+// Image upload functionality
+const imageInput = ref<HTMLInputElement>()
+
+const triggerImageUpload = () => {
+  imageInput.value?.click()
+}
+
+const handleImageUpload = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      localFormData.value.image_url = e.target?.result as string
+    }
+    reader.readAsDataURL(input.files[0])
+  }
+}
+
+const removeImage = () => {
+  localFormData.value.image_url = ''
+  if (imageInput.value) {
+    imageInput.value.value = ''
+  }
 }
 </script>

@@ -733,7 +733,8 @@ const submitProject = async () => {
     const createdProject = await response.json()
     
     uiStore.showSuccess('Project submitted successfully!', `"${createdProject.title}" is now live on the platform.`)
-    resetProjectForm()
+    // Navigate to project detail page
+    navigateTo(`/projects/${createdProject.id}`)
   } catch (error) {
     console.error('Error creating project:', error)
     let errorMessage = 'Unknown error occurred'
@@ -832,7 +833,8 @@ const submitHackathon = async () => {
     const createdHackathon = await response.json()
     
     uiStore.showSuccess('Hackathon created successfully!', `"${createdHackathon.name}" is now live on the platform.`)
-    resetHackathonForm()
+    // Navigate to hackathon detail page
+    navigateTo(`/hackathons/${createdHackathon.id}`)
   } catch (error) {
     console.error('Error creating hackathon:', error)
     let errorMessage = 'Unknown error occurred'
