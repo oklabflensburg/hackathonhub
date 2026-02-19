@@ -15,8 +15,38 @@ GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 GITHUB_CALLBACK_URL = os.getenv("GITHUB_CALLBACK_URL")
 
 
+# Validate GitHub OAuth configuration
+def validate_github_config():
+    """Validate that GitHub OAuth credentials are configured correctly"""
+    if not GITHUB_CLIENT_ID:
+        raise ValueError(
+            "GitHub OAuth is not configured. Please set GITHUB_CLIENT_ID in .env file."
+        )
+
+    # Check if client_id looks like a Google client ID (common mistake)
+    if "apps.googleusercontent.com" in GITHUB_CLIENT_ID:
+        raise ValueError(
+            "Configuration error: GitHub client ID appears to be a Google client ID. "
+            "Please check your .env file and ensure GITHUB_CLIENT_ID is set to a valid GitHub OAuth client ID."
+        )
+
+    if not GITHUB_CLIENT_SECRET:
+        raise ValueError(
+            "GitHub OAuth is not configured. Please set GITHUB_CLIENT_SECRET in .env file."
+        )
+
+    if not GITHUB_CALLBACK_URL:
+        raise ValueError(
+            "GitHub OAuth callback URL is not configured. "
+            "Please set GITHUB_CALLBACK_URL in .env file."
+        )
+
+
 async def exchange_code_for_token(code: str):
     """Exchange GitHub OAuth code for access token"""
+    # Validate configuration before making API call
+    validate_github_config()
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://github.com/login/oauth/access_token",
@@ -80,6 +110,9 @@ async def get_github_user_info(access_token: str):
 
 async def authenticate_with_github(code: str, db: Session):
     """Complete GitHub OAuth authentication flow"""
+    # Validate configuration before starting OAuth flow
+    validate_github_config()
+
     # Exchange code for access token
     token_data = await exchange_code_for_token(code)
     access_token = token_data.get("access_token")

@@ -766,6 +766,21 @@ async def github_auth(redirect_url: str = Query(None)):
     client_id = os.getenv("GITHUB_CLIENT_ID")
     scope = "user:email"
 
+    # Validate that we're using a GitHub client ID, not a Google client ID
+    if not client_id:
+        raise HTTPException(
+            status_code=500,
+            detail="GitHub OAuth is not configured. Please set GITHUB_CLIENT_ID in .env file."
+        )
+    
+    # Check if client_id looks like a Google client ID (common mistake)
+    if "apps.googleusercontent.com" in client_id:
+        raise HTTPException(
+            status_code=500,
+            detail="Configuration error: GitHub client ID appears to be a Google client ID. "
+                   "Please check your .env file and ensure GITHUB_CLIENT_ID is set to a valid GitHub OAuth client ID."
+        )
+
     # Build authorization URL with state parameter containing redirect URL
     authorization_url = (
         f"https://github.com/login/oauth/authorize"
