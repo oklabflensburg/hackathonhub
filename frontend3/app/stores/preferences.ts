@@ -5,22 +5,65 @@ import type { User } from './auth'
 // SSR-safe localStorage wrapper
 class SSRStorage {
   private isClient = typeof window !== 'undefined'
+  private cleanedKeys = new Set<string>() // Track keys we've already cleaned up
 
   getItem<T>(key: string, defaultValue: T | null = null): T | null {
     if (!this.isClient) return defaultValue
-    try {
-      const item = localStorage.getItem(key)
-      return item ? JSON.parse(item) : defaultValue
-    } catch (error) {
-      console.error(`[Preferences] Failed to get item "${key}":`, error)
+    
+    const item = localStorage.getItem(key)
+    if (!item || item === 'undefined' || item === 'null') return defaultValue
+    
+    // Safe JSON parsing without throwing errors
+    const parsed = this.safeJsonParse(item)
+    if (parsed === undefined) {
+      // Invalid JSON - clean it up
+      if (!this.cleanedKeys.has(key)) {
+        console.warn(`[Preferences] Removing corrupted data for key "${key}"`)
+        this.cleanedKeys.add(key)
+      }
+      try {
+        localStorage.removeItem(key)
+      } catch (removeError) {
+        // Ignore removal errors
+      }
       return defaultValue
+    }
+    
+    return parsed as T
+  }
+
+  // Helper method to parse JSON without throwing errors
+  private safeJsonParse(str: string): any {
+    // First, check if it looks like JSON (starts with {, [, ", true, false, null, or a number)
+    const trimmed = str.trim()
+    if (trimmed === '') return undefined
+    
+    try {
+      // Use JSON.parse but wrap it to catch any errors
+      return JSON.parse(str)
+    } catch {
+      return undefined
     }
   }
 
   setItem<T>(key: string, value: T): void {
     if (!this.isClient) return
     try {
-      localStorage.setItem(key, JSON.stringify(value))
+      // Handle undefined/null values by removing the item instead
+      if (value === undefined || value === null) {
+        localStorage.removeItem(key)
+        return
+      }
+      
+      const serialized = JSON.stringify(value)
+      // JSON.stringify can return undefined for certain values (like undefined itself)
+      if (serialized === undefined) {
+        console.warn(`[Preferences] Cannot serialize value for key "${key}", removing item`)
+        localStorage.removeItem(key)
+        return
+      }
+      
+      localStorage.setItem(key, serialized)
     } catch (error) {
       console.error(`[Preferences] Failed to set item "${key}":`, error)
     }
