@@ -59,6 +59,7 @@ async def health_check():
 
 @app.post("/api/upload")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     type: str = Query("project", enum=["project", "hackathon", "avatar"]),
     current_user: schemas.User = Depends(auth.get_current_user)
@@ -68,10 +69,17 @@ async def upload_file(
         file_path = await file_upload.file_upload_service.save_upload_file(
             file, type
         )
-        file_url = file_upload.file_upload_service.get_file_url(file_path)
+        relative_url = file_upload.file_upload_service.get_file_url(file_path)
+        # Convert to absolute URL using request base URL
+        if relative_url.startswith(('http://', 'https://')):
+            absolute_url = relative_url
+        else:
+            # Ensure no double slashes
+            base_url = str(request.base_url).rstrip('/')
+            absolute_url = f"{base_url}{relative_url}"
         return {
             "file_path": file_path,
-            "url": file_url,
+            "url": absolute_url,
             "filename": file.filename,
             "message": "File uploaded successfully"
         }
