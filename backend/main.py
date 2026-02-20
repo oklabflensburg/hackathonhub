@@ -70,6 +70,9 @@ async def upload_file(
             file, type
         )
         relative_url = file_upload.file_upload_service.get_file_url(file_path)
+        # If relative_url is empty (file doesn't exist), construct default
+        if not relative_url:
+            relative_url = f"/static{file_path}"
         # Convert to absolute URL using request base URL
         if relative_url.startswith(('http://', 'https://')):
             absolute_url = relative_url
