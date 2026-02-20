@@ -182,6 +182,7 @@ const searchQuery = ref('')
 const loading = ref(true)
 const error = ref(false)
 const projects = ref<any[]>([])
+const isHackathonMember = ref(false)
 
 // Fetch real projects data from API
 const fetchProjects = async () => {
@@ -249,22 +250,22 @@ const transformProject = (apiProject: any) => {
     // Simple color based on project ID
     const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#a8edea']
     const color = colors[projectId % colors.length] || '#667eea'
-    
+
     // Get first letter of project name
     const firstLetter = projectName.charAt(0).toUpperCase() || 'P'
-    
+
     // Simple SVG
     const svg = `<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
       <rect width="100%" height="100%" fill="${color}" />
       <text x="50%" y="50%" font-family="Arial" font-size="120" font-weight="bold" 
             fill="white" text-anchor="middle" dy=".35em" opacity="0.8">${firstLetter}</text>
     </svg>`
-    
+
     return 'data:image/svg+xml;base64,' + btoa(svg)
   }
 
   const projectName = apiProject.title || apiProject.name || 'Untitled Project'
-  
+
   // Use real API data for counts
   const votes = apiProject.upvote_count || apiProject.vote_score || 0
   const comments = apiProject.comment_count || 0
@@ -274,13 +275,13 @@ const transformProject = (apiProject: any) => {
   let imageUrl = ''
   if (apiProject.image_path && !apiProject.image_path.includes('/temp/')) {
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-    
+
     // Handle different image_path formats:
     // 1. Full URL (http://... or https://...) - use as-is
     // 2. Path starting with /static/ - prepend backend URL
     // 3. Path starting with /uploads/ - convert to /static/uploads/ and prepend backend URL
     // 4. Other paths - prepend backend URL and ensure starts with /
-    
+
     if (apiProject.image_path.startsWith('http://') || apiProject.image_path.startsWith('https://')) {
       // Full URL - use as-is
       imageUrl = apiProject.image_path
@@ -292,7 +293,7 @@ const transformProject = (apiProject: any) => {
       imageUrl = `${backendUrl}/static${apiProject.image_path}`
     } else {
       // Other paths - ensure starts with /
-      const imagePath = apiProject.image_path.startsWith('/') ? 
+      const imagePath = apiProject.image_path.startsWith('/') ?
         apiProject.image_path : `/${apiProject.image_path}`
       imageUrl = `${backendUrl}${imagePath}`
     }
@@ -312,7 +313,8 @@ const transformProject = (apiProject: any) => {
     votes: votes,
     comments: comments,
     views: views,
-    hasVoted: false // This would come from user's vote status in a real app
+    hasVoted: false, // This would come from user's vote status in a real app
+    owner_id: apiProject.owner_id // Include owner_id for permission checks
   }
 }
 
@@ -345,13 +347,19 @@ const voteForProject = (projectId: number) => {
 
 // Check if current user can edit this project
 const canEditProject = (project: any) => {
-  // In a real app, you would check:
-  // 1. If current user is the project owner
-  // 2. If current user is a team member
-  // 3. If current user is admin
-  // For now, we'll show edit button for all projects for demonstration
-  // In production, you would integrate with auth store
-  return true
+  if (!authStore.isAuthenticated || !project) {
+    return false
+  }
+
+  // Check if user is the project owner
+  // Convert both to numbers for comparison
+  const userId = Number(authStore.user?.id)
+  const ownerId = Number(project.owner_id)
+  const isOwner = userId === ownerId
+
+  if (isOwner) return true
+
+  return isHackathonMember.value
 }
 
 // View project details
@@ -400,8 +408,32 @@ const editProject = async (project: any) => {
   }
 }
 
+// Check if current user is registered/teamed for this hackathon
+const checkHackathonMembership = async () => {
+  if (!authStore.isAuthenticated) {
+    isHackathonMember.value = false
+    return
+  }
+
+  try {
+    const response = await authStore.fetchWithAuth('/api/me/registrations')
+    if (!response.ok) {
+      isHackathonMember.value = false
+      return
+    }
+
+    const registrations = await response.json()
+    const hackathonId = Number(id)
+    isHackathonMember.value = registrations.some((reg: any) => Number(reg.hackathon_id) === hackathonId)
+  } catch (err) {
+    console.error('Error checking hackathon membership:', err)
+    isHackathonMember.value = false
+  }
+}
+
 // Fetch projects on component mount
 onMounted(() => {
   fetchProjects()
+  checkHackathonMembership()
 })
 </script>
