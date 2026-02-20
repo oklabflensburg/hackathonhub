@@ -318,8 +318,7 @@ const handleImageUpload = async (event: Event) => {
     
     // Upload file to backend
     const response = await uploadFile(file, {
-      type: 'hackathon',
-      entityId: props.formData.id
+      type: 'hackathon'
     })
     
     // Update with actual file path from backend

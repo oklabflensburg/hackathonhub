@@ -13,7 +13,6 @@ export interface UploadResponse {
 
 export interface UploadOptions {
   type?: 'project' | 'hackathon' | 'avatar'
-  entityId?: number
   maxSizeMB?: number
 }
 
@@ -28,7 +27,7 @@ export async function uploadFile(
   file: File,
   options: UploadOptions = {}
 ): Promise<UploadResponse> {
-  const { type = 'project', entityId, maxSizeMB = 10 } = options
+  const { type = 'project', maxSizeMB = 10 } = options
 
   // Validate file size
   const maxSizeBytes = maxSizeMB * 1024 * 1024
@@ -51,9 +50,6 @@ export async function uploadFile(
   // Build query parameters
   const params = new URLSearchParams()
   params.append('type', type)
-  if (entityId) {
-    params.append('entity_id', entityId.toString())
-  }
 
   // Get auth store for authenticated requests
   const authStore = useAuthStore()

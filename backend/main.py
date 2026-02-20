@@ -44,7 +44,7 @@ upload_path = Path(upload_dir)
 # Create directory if it doesn't exist
 upload_path.mkdir(parents=True, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory=str(upload_path)), name="static")
+app.mount("/static/uploads", StaticFiles(directory=str(upload_path)), name="uploads")
 
 
 @app.get("/")
@@ -61,13 +61,12 @@ async def health_check():
 async def upload_file(
     file: UploadFile = File(...),
     type: str = Query("project", enum=["project", "hackathon", "avatar"]),
-    entity_id: int = Query(None, description="ID for file organization"),
     current_user: schemas.User = Depends(auth.get_current_user)
 ):
     """Upload a file and return its path"""
     try:
         file_path = await file_upload.file_upload_service.save_upload_file(
-            file, type, entity_id
+            file, type
         )
         file_url = file_upload.file_upload_service.get_file_url(file_path)
         return {

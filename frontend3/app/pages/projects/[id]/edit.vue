@@ -208,18 +208,54 @@
             </p>
           </div>
 
-          <!-- Image URL -->
+          <!-- Image Upload -->
           <div>
-            <label class="label">Project Image URL</label>
-            <input
-              v-model="form.image_path"
-              type="url"
-              class="input"
-               :placeholder="$t('hackathons.details.imageUrlPlaceholder')"
-            />
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Optional: URL to a project screenshot or logo
-            </p>
+            <label class="label">Project Image</label>
+            <div
+              @click="triggerImageUpload"
+              class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
+              :class="{ 'border-primary-500 dark:border-primary-400': form.image_path }"
+            >
+              <div v-if="!form.image_path">
+                <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Click to upload project image
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  PNG, JPG, GIF or WebP. Max 10MB.
+                </p>
+              </div>
+              <div v-else class="space-y-2">
+                <div class="w-32 h-32 mx-auto rounded-lg overflow-hidden">
+                  <img :src="form.image_path" alt="Project preview" class="w-full h-full object-cover" />
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  Image uploaded
+                </p>
+                <button
+                  type="button"
+                  @click.stop="removeImage"
+                  class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                >
+                  Remove image
+                </button>
+              </div>
+              <input
+                ref="imageInput"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="handleImageUpload"
+              />
+            </div>
+            <div v-if="uploadError" class="mt-2 text-sm text-red-600 dark:text-red-400">
+              {{ uploadError }}
+            </div>
+            <div v-if="uploading" class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Uploading image...
+            </div>
           </div>
 
           <!-- Form Actions -->
@@ -261,6 +297,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
+import { uploadFile, createPreviewUrl, validateFile } from '~/utils/fileUpload'
 
 const route = useRoute()
 const router = useRouter()
@@ -275,6 +312,9 @@ const hackathons = ref<any[]>([])
 const hackathonsLoading = ref(false)
 const newTech = ref('')
 const teamMembers = ref<Array<{name: string, email: string}>>([{ name: '', email: '' }])
+const imageInput = ref<HTMLInputElement>()
+const uploading = ref(false)
+const uploadError = ref<string | null>(null)
 
 const form = ref({
   title: '',
@@ -317,6 +357,58 @@ const removeTeamMember = (index: number) => {
   if (teamMembers.value.length > 1) {
     teamMembers.value.splice(index, 1)
   }
+}
+
+// Image upload methods
+const triggerImageUpload = () => {
+  imageInput.value?.click()
+}
+
+const handleImageUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (!input.files || !input.files[0]) {
+    return
+  }
+  
+  const file = input.files[0]
+  
+  // Validate file
+  const validationError = validateFile(file)
+  if (validationError) {
+    uploadError.value = validationError
+    return
+  }
+  
+  uploading.value = true
+  uploadError.value = null
+  
+  try {
+    // Create preview for immediate display
+    const previewUrl = await createPreviewUrl(file)
+    form.value.image_path = previewUrl
+    
+    // Upload file to backend
+    const response = await uploadFile(file, {
+      type: 'project'
+    })
+    
+    // Update with actual file path from backend
+    form.value.image_path = response.url
+    
+  } catch (error) {
+    uploadError.value = error instanceof Error ? error.message : 'Upload failed'
+    console.error('Project image upload failed:', error)
+  } finally {
+    uploading.value = false
+  }
+}
+
+const removeImage = () => {
+  form.value.image_path = ''
+  if (imageInput.value) {
+    imageInput.value.value = ''
+  }
+  uploadError.value = null
 }
 
 const fetchProject = async () => {
@@ -424,7 +516,7 @@ const submitForm = async () => {
     if (form.value.live_url !== undefined) payload.live_url = form.value.live_url
     if (form.value.status) payload.status = form.value.status
     if (form.value.is_public !== undefined) payload.is_public = form.value.is_public
-    if (form.value.image_path !== undefined) payload.image_path = form.value.image_path
+    if (form.value.image_path !== undefined) payload.image_path = form.value.image_path || null
     if (form.value.hackathon_id !== undefined) payload.hackathon_id = form.value.hackathon_id
     
     // Use fetchWithAuth for automatic token refresh

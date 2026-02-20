@@ -3,7 +3,6 @@ import uuid
 from pathlib import Path
 from fastapi import UploadFile, HTTPException
 import shutil
-from typing import Optional
 
 
 class FileUploadService:
@@ -52,8 +51,7 @@ class FileUploadService:
     async def save_upload_file(
         self,
         upload_file: UploadFile,
-        subdirectory: str,
-        entity_id: Optional[int] = None
+        subdirectory: str
     ) -> str:
         """
         Save an uploaded file and return its relative path
@@ -61,7 +59,6 @@ class FileUploadService:
         Args:
             upload_file: The uploaded file
             subdirectory: Type of upload (project, hackathon, avatar)
-            entity_id: Optional ID for organizing files by entity
 
         Returns:
             Relative file path for database storage
@@ -80,10 +77,8 @@ class FileUploadService:
         # Map API type to directory name (e.g., "hackathon" -> "hackathons")
         dir_name = self.type_to_dir.get(subdirectory, subdirectory)
 
-        if entity_id:
-            save_dir = self.upload_dir / dir_name / str(entity_id)
-        else:
-            save_dir = self.upload_dir / dir_name / "temp"
+        # Save directly to type directory (no entity_id subdirectory, no temp)
+        save_dir = self.upload_dir / dir_name
 
         try:
             save_dir.mkdir(parents=True, exist_ok=True)
@@ -107,10 +102,7 @@ class FileUploadService:
             )
 
         # Return relative path for database storage
-        if entity_id:
-            return f"/uploads/{dir_name}/{entity_id}/{unique_filename}"
-        else:
-            return f"/uploads/{dir_name}/temp/{unique_filename}"
+        return f"/uploads/{dir_name}/{unique_filename}"
 
     async def _validate_file(self, upload_file: UploadFile):
         """Validate file size, type, and content"""
@@ -207,32 +199,6 @@ class FileUploadService:
 
         # For local files, return path that will be served by static files
         return f"/static{file_path}"
-
-    def cleanup_temp_files(self, subdirectory: str, max_age_hours: int = 24):
-        """
-        Clean up temporary files older than max_age_hours
-
-        Args:
-            subdirectory: Type of upload (project, hackathon, avatar)
-            max_age_hours: Maximum age in hours before deletion
-        """
-        import time
-        temp_dir = self.upload_dir / subdirectory / "temp"
-
-        if not temp_dir.exists():
-            return
-
-        current_time = time.time()
-        max_age_seconds = max_age_hours * 3600
-
-        for file_path in temp_dir.glob("*"):
-            if file_path.is_file():
-                file_age = current_time - file_path.stat().st_mtime
-                if file_age > max_age_seconds:
-                    try:
-                        file_path.unlink()
-                    except Exception:
-                        pass
 
 
 # Create a singleton instance
