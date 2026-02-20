@@ -253,9 +253,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from '#imports'
+import { useUIStore } from '~/stores/ui'
 
 const { t } = useI18n()
 const route = useRoute()
+const uiStore = useUIStore()
 const searchQuery = ref('')
 const selectedTags = ref<string[]>([])
 const sortBy = ref('popular')
@@ -335,6 +337,7 @@ const fetchProjects = async () => {
    } catch (err: any) {
     error.value = err.message || t('projects.errors.failedToLoad')
     console.error('Error fetching projects:', err)
+    uiStore.showError('Failed to load projects', 'Unable to load projects. Please try again later.')
     // Fallback to empty array
     projects.value = []
   } finally {
@@ -444,6 +447,7 @@ const loadMore = async () => {
     
   } catch (err: any) {
     console.error('Error loading more projects:', err)
+    uiStore.showError('Failed to load more projects', 'Unable to load more projects. Please try again.')
     // Show error to user (could add error state UI)
   } finally {
     loading.value = false

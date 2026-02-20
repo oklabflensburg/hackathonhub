@@ -119,20 +119,29 @@
           </ul>
           <div class="mt-6">
             <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">{{ t('footer.newsletter') }}</h4>
-             <div class="flex flex-col sm:flex-row max-w-full">
-                 <input
-                  v-model="newsletterEmail"
-                  type="email"
-                  :placeholder="t('footer.emailPlaceholder')"
-                  :disabled="newsletterLoading"
-                  class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-t-lg sm:rounded-l-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed w-full"
-                  @keyup.enter="subscribeToNewsletter"
-                />
-                <button 
-                  @click="subscribeToNewsletter"
-                  :disabled="newsletterLoading || !newsletterEmail"
-                  class="inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-t-none sm:rounded-tl-none sm:rounded-r-lg mt-0 sm:mt-0 w-full sm:w-auto font-medium"
-                >
+            <div class="flex flex-col sm:flex-row max-w-full">
+              <input
+                v-model="newsletterEmail"
+                type="email"
+                :placeholder="t('footer.emailPlaceholder')"
+                :disabled="newsletterLoading || isAlreadySubscribed"
+                :class="[
+                  'flex-1 px-4 py-2 border rounded-t-lg sm:rounded-l-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed w-full',
+                  isAlreadySubscribed ? 'border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20' : 
+                  newsletterEmail && !isValidEmail ? 'border-red-300 dark:border-red-600' : 
+                  'border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-transparent'
+                ]"
+                @keyup.enter="subscribeToNewsletter"
+              />
+              <button 
+                @click="subscribeToNewsletter"
+                :disabled="!canSubscribe"
+                :class="[
+                  'inline-flex items-center justify-center px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-t-none sm:rounded-tl-none sm:rounded-r-lg mt-0 sm:mt-0 w-full sm:w-auto font-medium',
+                  isAlreadySubscribed ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' :
+                  'bg-primary-600 hover:bg-primary-700 focus:ring-primary-500'
+                ]"
+              >
                 <svg 
                   v-if="newsletterLoading" 
                   class="w-5 h-5 animate-spin" 
@@ -143,11 +152,17 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span v-else>{{ t('footer.subscribe') }}</span>
+                <span v-else>
+                  {{ isAlreadySubscribed ? (t('footer.alreadySubscribed') || 'Subscribed') : t('footer.subscribe') }}
+                </span>
               </button>
             </div>
-            <div v-if="newsletterMessage" class="mt-2 text-sm" :class="newsletterSuccess ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
-              {{ newsletterMessage }}
+            <!-- Validation messages -->
+            <div v-if="newsletterEmail && !isValidEmail" class="mt-2 text-sm text-red-600 dark:text-red-400">
+              {{ t('validation.emailInvalid') || 'Please enter a valid email address' }}
+            </div>
+            <div v-if="isAlreadySubscribed" class="mt-2 text-sm text-green-600 dark:text-green-400">
+              {{ t('footer.alreadySubscribed') || 'You are already subscribed to our newsletter. Thank you!' }}
             </div>
           </div>
         </div>
@@ -175,39 +190,89 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useUIStore } from '~/stores/ui'
 
 const { t } = useI18n()
+const uiStore = useUIStore()
 
 const newsletterEmail = ref('')
 const newsletterLoading = ref(false)
-const newsletterMessage = ref('')
-const newsletterSuccess = ref(false)
+const subscribedEmails = ref<Set<string>>(new Set())
 
 const config = useRuntimeConfig()
 const apiUrl = config.public.apiUrl
+const preferences = usePreferencesStore()
+
+// Generate a unique idempotency key for each subscription request
+const generateIdempotencyKey = (): string => {
+  return `newsletter-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+}
+
+// Load subscribed emails from preferences store on component mount
+onMounted(() => {
+  loadSubscribedEmails()
+})
+
+// Load subscribed emails from preferences store
+const loadSubscribedEmails = () => {
+  try {
+    const emails = preferences.newsletter.getSubscribedEmails()
+    subscribedEmails.value = new Set(emails)
+  } catch (error) {
+    console.error('Failed to load subscribed emails from preferences store:', error)
+  }
+}
+
+// Save email to preferences store
+const saveSubscribedEmail = (email: string) => {
+  try {
+    preferences.newsletter.subscribe(email)
+    subscribedEmails.value = new Set(preferences.newsletter.getSubscribedEmails())
+  } catch (error) {
+    console.error('Failed to save subscribed email to preferences store:', error)
+  }
+}
+
+// Check if email is already subscribed (client-side check)
+const isAlreadySubscribed = computed(() => {
+  return subscribedEmails.value.has(newsletterEmail.value.toLowerCase())
+})
+
+// Check if email is valid
+const isValidEmail = computed(() => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(newsletterEmail.value)
+})
+
+// Check if subscribe button should be enabled
+const canSubscribe = computed(() => {
+  return newsletterEmail.value && 
+         isValidEmail.value && 
+         !newsletterLoading.value && 
+         !isAlreadySubscribed.value
+})
 
 const subscribeToNewsletter = async () => {
-  if (!newsletterEmail.value || newsletterLoading.value) {
+  if (!canSubscribe.value) {
     return
   }
 
-  // Basic email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(newsletterEmail.value)) {
-    newsletterMessage.value = t('validation.emailInvalid')
-    newsletterSuccess.value = false
-    return
-  }
+      // Client-side duplicate prevention
+      if (isAlreadySubscribed.value) {
+        uiStore.showInfo(t('footer.alreadySubscribed') || 'You are already subscribed to our newsletter.')
+        return
+      }
 
   newsletterLoading.value = true
-  newsletterMessage.value = ''
 
   try {
+    const idempotencyKey = generateIdempotencyKey()
     const response = await fetch(`${apiUrl}/api/newsletter/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey,
       },
       body: JSON.stringify({
         email: newsletterEmail.value,
@@ -218,26 +283,26 @@ const subscribeToNewsletter = async () => {
     const data = await response.json()
 
     if (response.ok) {
-      newsletterMessage.value = data.message
-      newsletterSuccess.value = true
-      
-      // Clear email field on success
-      if (!data.already_subscribed) {
+      if (data.already_subscribed) {
+        // Already subscribed on server side
+        uiStore.showInfo(data.message)
+        saveSubscribedEmail(newsletterEmail.value.toLowerCase())
+      } else {
+        // New subscription
+        uiStore.showSuccess(data.message)
+        saveSubscribedEmail(newsletterEmail.value.toLowerCase())
         newsletterEmail.value = ''
       }
-      
-      // Clear success message after 5 seconds
-      setTimeout(() => {
-        newsletterMessage.value = ''
-      }, 5000)
     } else {
-      newsletterMessage.value = data.detail || t('errors.subscriptionFailed')
-      newsletterSuccess.value = false
+      // API error
+      uiStore.showError(data.detail || t('footer.failedToSubscribe') || 'Subscription failed. Please try again.')
     }
   } catch (error: any) {
     console.error('Newsletter subscription error:', error)
-    newsletterMessage.value = t('errors.networkError')
-    newsletterSuccess.value = false
+    uiStore.showError(
+      t('footer.failedToSubscribe') || 'Newsletter subscription failed',
+      'Unable to subscribe to newsletter. Please try again later.'
+    )
   } finally {
     newsletterLoading.value = false
   }

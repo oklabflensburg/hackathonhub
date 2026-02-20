@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { usePreferencesStore } from './preferences'
 
 export const useThemeStore = defineStore('theme', () => {
   // Initialize with false for SSR, will be updated on client
@@ -9,32 +10,22 @@ export const useThemeStore = defineStore('theme', () => {
   const icon = computed(() => isDark.value ? '🌙' : '☀️')
 
   function toggleTheme() {
+    const preferences = usePreferencesStore()
+    const newTheme = isDark.value ? 'light' : 'dark'
     isDark.value = !isDark.value
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-      updateDocumentClass()
-    }
+    preferences.theme.setTheme(newTheme)
   }
 
   function setTheme(dark: boolean) {
     isDark.value = dark
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', dark ? 'dark' : 'light')
-      updateDocumentClass()
-    }
+    const preferences = usePreferencesStore()
+    preferences.theme.setTheme(dark ? 'dark' : 'light')
   }
 
   function initializeTheme() {
-    if (typeof window === 'undefined') return
-    
-    const savedTheme = localStorage.getItem('theme')
-    if (savedTheme) {
-      isDark.value = savedTheme === 'dark'
-    } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      isDark.value = prefersDark
-    }
+    const preferences = usePreferencesStore()
+    const savedTheme = preferences.theme.initialize()
+    isDark.value = savedTheme === 'dark'
     updateDocumentClass()
   }
 

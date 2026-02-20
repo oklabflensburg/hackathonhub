@@ -521,12 +521,14 @@ import { format } from 'date-fns'
 import { useRoute } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { useVotingStore } from '~/stores/voting'
+import { useUIStore } from '~/stores/ui'
 import VoteButtons from '~/components/VoteButtons.vue'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const authStore = useAuthStore()
 const votingStore = useVotingStore()
+const uiStore = useUIStore()
 const { t } = useI18n()
 
 const loading = ref(true)
@@ -609,8 +611,10 @@ const fetchProject = async () => {
     if (!response.ok) {
       if (response.status === 404) {
         error.value = 'Project not found'
+        uiStore.showError('Project not found', 'The project you are looking for does not exist or has been removed.')
       } else {
         error.value = `Failed to load project: ${response.status}`
+        uiStore.showError('Failed to load project', `Unable to load project details. Please try again later. (Error: ${response.status})`)
       }
       return
     }
@@ -622,6 +626,7 @@ const fetchProject = async () => {
   } catch (err) {
     console.error('Error fetching project:', err)
     error.value = 'Failed to load project details'
+    uiStore.showError('Failed to load project', 'An unexpected error occurred while loading the project. Please try again later.')
   } finally {
     loading.value = false
   }
@@ -642,6 +647,7 @@ const fetchComments = async () => {
     }
   } catch (err) {
     console.error('Error fetching comments:', err)
+    uiStore.showError('Failed to load comments', 'Unable to load comments. Please try again later.')
   } finally {
     commentsLoading.value = false
   }
@@ -659,6 +665,8 @@ const submitComment = async () => {
     // Check if user is authenticated
     if (!authStore.isAuthenticated) {
       console.error('No authentication token')
+      uiStore.showError('Authentication required', 'Please log in to post a comment.')
+      commentLoading.value = false
       return
     }
     
@@ -682,9 +690,11 @@ const submitComment = async () => {
       }
     } else {
       console.error('Failed to submit comment:', response.status)
+      uiStore.showError('Failed to submit comment', `Unable to submit your comment. Please try again. (Error: ${response.status})`)
     }
   } catch (err) {
     console.error('Error submitting comment:', err)
+    uiStore.showError('Failed to submit comment', 'An unexpected error occurred while submitting your comment. Please try again.')
   } finally {
     commentLoading.value = false
   }
@@ -705,6 +715,7 @@ const saveComment = async (commentId: number) => {
     // Check if user is authenticated
     if (!authStore.isAuthenticated) {
       console.error('No authentication token')
+      uiStore.showError('Authentication required', 'Please log in to edit a comment.')
       return
     }
     
@@ -725,9 +736,11 @@ const saveComment = async (commentId: number) => {
       await fetchComments()
     } else {
       console.error('Failed to update comment:', response.status)
+      uiStore.showError('Failed to update comment', `Unable to update your comment. Please try again. (Error: ${response.status})`)
     }
   } catch (err) {
     console.error('Error updating comment:', err)
+    uiStore.showError('Failed to update comment', 'An unexpected error occurred while updating your comment. Please try again.')
   }
 }
 
@@ -746,6 +759,7 @@ const deleteComment = async (commentId: number) => {
     // Check if user is authenticated
     if (!authStore.isAuthenticated) {
       console.error('No authentication token')
+      uiStore.showError('Authentication required', 'Please log in to edit a comment.')
       return
     }
     
@@ -762,9 +776,11 @@ const deleteComment = async (commentId: number) => {
       }
     } else {
       console.error('Failed to delete comment:', response.status)
+      uiStore.showError('Failed to delete comment', `Unable to delete your comment. Please try again. (Error: ${response.status})`)
     }
   } catch (err) {
     console.error('Error deleting comment:', err)
+    uiStore.showError('Failed to delete comment', 'An unexpected error occurred while deleting your comment. Please try again.')
   }
 }
 
@@ -776,6 +792,7 @@ const voteComment = async (commentId: number, voteType: 'upvote' | 'downvote') =
     // Check if user is authenticated
     if (!authStore.isAuthenticated) {
       console.error('No authentication token')
+      uiStore.showError('Authentication required', 'Please log in to vote on a comment.')
       return
     }
     
@@ -793,9 +810,11 @@ const voteComment = async (commentId: number, voteType: 'upvote' | 'downvote') =
       await fetchComments()
     } else {
       console.error('Failed to vote on comment:', response.status)
+      uiStore.showError('Failed to vote on comment', `Unable to vote on the comment. Please try again. (Error: ${response.status})`)
     }
   } catch (err) {
     console.error('Error voting on comment:', err)
+    uiStore.showError('Failed to vote on comment', 'An unexpected error occurred while voting on the comment. Please try again.')
   }
 }
 
@@ -822,6 +841,8 @@ const submitReply = async (commentId: number) => {
     // Check if user is authenticated
     if (!authStore.isAuthenticated) {
       console.error('No authentication token')
+      uiStore.showError('Authentication required', 'Please log in to post a reply.')
+      replyLoading.value = false
       return
     }
     
@@ -847,9 +868,11 @@ const submitReply = async (commentId: number) => {
       }
     } else {
       console.error('Failed to submit reply:', response.status)
+      uiStore.showError('Failed to submit reply', `Unable to submit your reply. Please try again. (Error: ${response.status})`)
     }
   } catch (err) {
     console.error('Error submitting reply:', err)
+    uiStore.showError('Failed to submit reply', 'An unexpected error occurred while submitting your reply. Please try again.')
   } finally {
     replyLoading.value = false
   }

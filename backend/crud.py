@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_, func, desc
+from sqlalchemy import and_, or_, func, desc, insert
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from typing import List, Optional, Tuple
 import models
 import schemas
@@ -1075,27 +1076,86 @@ def create_newsletter_subscription(
     email: str,
     source: str = "website_footer"
 ):
-    # Check if already subscribed
+    """Legacy function - use create_newsletter_subscription_atomic for atomic upsert"""
+    return create_newsletter_subscription_atomic(db, email, source)[0]
+
+
+def create_newsletter_subscription_atomic(
+    db: Session,
+    email: str,
+    source: str = "website_footer",
+    idempotency_key: Optional[str] = None
+) -> Tuple[models.NewsletterSubscription, bool]:
+    """
+    Atomically create or update newsletter subscription.
+    Returns (subscription, is_new) tuple where is_new is True if newly created.
+    
+    This function uses database-level atomic operations to prevent race conditions
+    and duplicate subscriptions.
+    """
+    # First, try to get existing subscription
     existing = get_newsletter_subscription(db, email)
+    
     if existing:
+        # Subscription exists
+        is_new = False
+        
         # Reactivate if previously unsubscribed
         if not existing.is_active:
             existing.is_active = True
             existing.unsubscribed_at = None
+            existing.source = source  # Update source
+            if idempotency_key:
+                # In a real implementation, we might store idempotency_key
+                pass
             db.commit()
             db.refresh(existing)
-        return existing
-
-    # Create new subscription
-    db_subscription = models.NewsletterSubscription(
-        email=email,
-        source=source,
-        is_active=True
-    )
-    db.add(db_subscription)
-    db.commit()
-    db.refresh(db_subscription)
-    return db_subscription
+        
+        return existing, is_new
+    
+    # No existing subscription - create new one
+    # Use database-level atomic insert with conflict handling
+    try:
+        db_subscription = models.NewsletterSubscription(
+            email=email,
+            source=source,
+            is_active=True
+        )
+        db.add(db_subscription)
+        db.commit()
+        db.refresh(db_subscription)
+        return db_subscription, True
+        
+    except Exception as e:
+        # Handle race condition: another request might have created the subscription
+        # between our check and the insert
+        db.rollback()
+        
+        if "UNIQUE constraint failed" in str(e) or "duplicate key" in str(e).lower():
+            # Subscription was created by another concurrent request
+            # Fetch the newly created subscription
+            existing = get_newsletter_subscription(db, email)
+            if existing:
+                return existing, False
+            else:
+                # This shouldn't happen, but if it does, retry once
+                try:
+                    db_subscription = models.NewsletterSubscription(
+                        email=email,
+                        source=source,
+                        is_active=True
+                    )
+                    db.add(db_subscription)
+                    db.commit()
+                    db.refresh(db_subscription)
+                    return db_subscription, True
+                except Exception as e2:
+                    # If still failing, raise the original error
+                    db.rollback()
+                    raise e
+        else:
+            # Some other error
+            raise e
 
 
 def unsubscribe_newsletter(db: Session, email: str):

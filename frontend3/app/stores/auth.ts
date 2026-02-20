@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUIStore } from './ui'
+import { usePreferencesStore } from './preferences'
 
 export interface User {
   id: number
@@ -213,10 +214,9 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = authData.access_token
     refreshToken.value = authData.refresh_token
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', authData.access_token)
-      localStorage.setItem('refresh_token', authData.refresh_token)
-    }
+    // Use preferences store for storage
+    const preferences = usePreferencesStore()
+    preferences.auth.setTokens(authData.access_token, authData.refresh_token)
 
     // Fetch user info
     await fetchUserWithToken(authData.access_token)
@@ -249,16 +249,14 @@ export const useAuthStore = defineStore('auth', () => {
         token.value = data.access_token
         refreshToken.value = data.refresh_token
 
-        // Save to localStorage
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('auth_token', data.access_token)
-          localStorage.setItem('refresh_token', data.refresh_token)
+        // Save to preferences store
+        const preferences = usePreferencesStore()
+        preferences.auth.setTokens(data.access_token, data.refresh_token)
 
-          // Also update user data if returned
-          if (data.user) {
-            user.value = data.user
-            localStorage.setItem('user', JSON.stringify(data.user))
-          }
+        // Also update user data if returned
+        if (data.user) {
+          user.value = data.user
+          preferences.auth.setUser(data.user)
         }
         return true
       } else {
@@ -305,18 +303,20 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout() {
     console.log('[Auth] Logging out user')
+
+    // Stop background token refresh timer
+    stopBackgroundTokenRefresh()
+
     user.value = null
     token.value = null
     refreshToken.value = null
 
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('user')
-      console.log('[Auth] LocalStorage cleared')
-    }
+    // Clear auth data from preferences store
+    const preferences = usePreferencesStore()
+    preferences.auth.clearAuth()
+    console.log('[Auth] Auth data cleared from preferences store')
     console.log('[Auth] Logout complete')
-    
+
     // Also reset any UI state that might be showing user info
     // This helps ensure UI updates properly after logout
     const uiStore = useUIStore()
@@ -344,7 +344,8 @@ export const useAuthStore = defineStore('auth', () => {
       if (urlToken && (source === 'github' || source === 'google')) {
         // Store token from URL
         token.value = urlToken
-        localStorage.setItem('auth_token', urlToken)
+        const preferences = usePreferencesStore()
+        preferences.auth.setTokens(urlToken, '') // Refresh token will be set later
 
         // Clear URL parameters
         const newUrl = window.location.pathname
@@ -352,23 +353,27 @@ export const useAuthStore = defineStore('auth', () => {
 
         // Fetch user info with the token
         fetchUserWithToken(urlToken)
+
+        // Start background token refresh timer
+        startBackgroundTokenRefresh()
         return
       } else {
-        // Check localStorage for existing tokens
-        const storedToken = localStorage.getItem('auth_token')
-        const storedRefreshToken = localStorage.getItem('refresh_token')
-        const storedUser = localStorage.getItem('user')
+        // Check preferences store for existing tokens
+        const preferences = usePreferencesStore()
+        const storedTokens = preferences.auth.tokens
+        const storedUser = preferences.auth.user
 
-        if (storedToken && storedUser) {
+        if (storedTokens.access && storedUser) {
           try {
-            token.value = storedToken
-            refreshToken.value = storedRefreshToken
-            user.value = JSON.parse(storedUser)
+            token.value = storedTokens.access
+            refreshToken.value = storedTokens.refresh
+            user.value = storedUser
+
+            // Start background token refresh timer
+            startBackgroundTokenRefresh()
           } catch (err) {
-            console.error('Failed to parse stored user:', err)
-            localStorage.removeItem('auth_token')
-            localStorage.removeItem('refresh_token')
-            localStorage.removeItem('user')
+            console.error('Failed to load stored user:', err)
+            preferences.auth.clearAuth()
           }
         }
       }
@@ -389,14 +394,17 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.ok) {
         const userData = await response.json()
         user.value = userData
-        localStorage.setItem('user', JSON.stringify(userData))
+        const preferences = usePreferencesStore()
+        preferences.auth.setUser(userData)
       } else {
         console.error('Failed to fetch user with token')
-        localStorage.removeItem('auth_token')
+        const preferences = usePreferencesStore()
+        preferences.auth.clearAuth()
       }
     } catch (err) {
       console.error('Error fetching user:', err)
-      localStorage.removeItem('auth_token')
+      const preferences = usePreferencesStore()
+      preferences.auth.clearAuth()
     }
   }
 
@@ -414,9 +422,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (response.ok) {
         user.value = await response.json()
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('user', JSON.stringify(user.value))
-        }
+        const preferences = usePreferencesStore()
+        preferences.auth.setUser(user.value!)
       } else if (response.status === 401) {
         // Token expired, clear auth
         logout()
@@ -477,6 +484,42 @@ export const useAuthStore = defineStore('auth', () => {
     return response
   }
 
+  // Background token refresh timer
+  let refreshTimer: NodeJS.Timeout | null = null
+
+  function startBackgroundTokenRefresh() {
+    // Clear existing timer if any
+    if (refreshTimer) {
+      clearInterval(refreshTimer)
+    }
+
+    // Only start timer if we have a refresh token
+    if (!refreshToken.value) {
+      return
+    }
+
+    // Refresh token every 10 minutes (600000 ms)
+    // This is proactive refresh to prevent token expiration during user session
+    refreshTimer = setInterval(async () => {
+      if (refreshToken.value && token.value) {
+        try {
+          console.log('[Auth] Background token refresh triggered')
+          await refreshAccessToken()
+        } catch (error) {
+          console.error('[Auth] Background token refresh failed:', error)
+          // Don't logout on background refresh failure - let next API call handle it
+        }
+      }
+    }, 10 * 60 * 1000) // 10 minutes
+  }
+
+  function stopBackgroundTokenRefresh() {
+    if (refreshTimer) {
+      clearInterval(refreshTimer)
+      refreshTimer = null
+    }
+  }
+
   return {
     user,
     token,
@@ -495,6 +538,8 @@ export const useAuthStore = defineStore('auth', () => {
     authenticatedFetch,
     refreshAccessToken,
     fetchWithAuth,
-    handleAuthResponse
+    handleAuthResponse,
+    startBackgroundTokenRefresh,
+    stopBackgroundTokenRefresh
   }
 })

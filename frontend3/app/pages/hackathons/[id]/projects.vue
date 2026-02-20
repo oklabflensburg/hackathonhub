@@ -217,6 +217,7 @@ const fetchProjects = async () => {
     console.error('Error fetching projects:', err)
     error.value = true
     projects.value = []
+    uiStore.showError('Failed to load projects', 'Unable to load hackathon projects. Please try again later.')
   } finally {
     loading.value = false
   }
@@ -371,7 +372,7 @@ const viewProject = (projectId: number) => {
 }
 
 // Edit project
-const editProject = (project: any) => {
+const editProject = async (project: any) => {
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
     uiStore.showWarning(t('projects.errors.loginToEdit'), t('common.authenticationRequired'))
@@ -381,38 +382,32 @@ const editProject = (project: any) => {
   // Show edit dialog or navigate to edit form
   const newName = prompt(t('projects.editProjectPrompt'), project.name)
   if (newName && newName !== project.name) {
-    // Call API to update project
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    // Call API to update project using fetchWithAuth for automatic token refresh
+    try {
+      const response = await authStore.fetchWithAuth(`/api/projects/${project.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: newName,
+          // Add other fields as needed
+        })
+      })
 
-    fetch(`${backendUrl}/api/projects/${project.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        title: newName,
-        // Add other fields as needed
-      })
-    })
-      .then(response => {
-        if (response.ok) {
-          uiStore.showSuccess(t('projects.updateSuccess'))
-          // Refresh projects
-          fetchProjects()
-        } else {
-          if (response.status === 401) {
-            authStore.logout()
-            uiStore.showError(t('auth.sessionExpired'), t('common.authenticationError'))
-          } else {
-            uiStore.showError(t('projects.updateFailed'), t('common.updateFailed'))
-          }
-        }
-      })
-      .catch(error => {
-        console.error('Error updating project:', error)
-        uiStore.showError(t('projects.updateError'), t('common.updateError'))
-      })
+      if (response.ok) {
+        uiStore.showSuccess(t('projects.updateSuccess'))
+        // Refresh projects
+        fetchProjects()
+      } else {
+        // fetchWithAuth already handles 401 by attempting token refresh
+        // If we still get an error after refresh, it will return the error response
+        uiStore.showError(t('projects.updateFailed'), t('common.updateFailed'))
+      }
+    } catch (error) {
+      console.error('Error updating project:', error)
+      uiStore.showError(t('projects.updateError'), t('common.updateError'))
+    }
   }
 }
 

@@ -207,11 +207,13 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
+import { useUIStore } from '~/stores/ui'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const uiStore = useUIStore()
 const config = useRuntimeConfig()
 const apiUrl = config.public.apiUrl
 
@@ -327,6 +329,10 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
       }
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err)
+      // Show UI error on client side
+      if (process.client) {
+        uiStore.showError('Failed to load dashboard', 'Unable to load dashboard data. Please try again later.')
+      }
       throw err
     }
   },

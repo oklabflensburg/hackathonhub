@@ -254,8 +254,10 @@
 import { ref, onMounted, computed } from 'vue'
 import { format } from 'date-fns'
 import { useAuthStore } from '~/stores/auth'
+import { useUIStore } from '~/stores/ui'
 
 const authStore = useAuthStore()
+const uiStore = useUIStore()
 const loading = ref(true)
 const projects = ref<any[]>([])
 const currentPage = ref(1)
@@ -311,6 +313,7 @@ const fetchMyProjects = async () => {
   } catch (error) {
     console.error('Error fetching my projects:', error)
     projects.value = []
+    uiStore.showError('Failed to load projects', 'Unable to load your projects. Please try again later.')
   } finally {
     loading.value = false
   }

@@ -250,8 +250,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
+import { useUIStore } from '~/stores/ui'
 
 const { t } = useI18n()
+const uiStore = useUIStore()
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -404,6 +406,7 @@ const fetchHackathons = async (page: number = 1) => {
   } catch (err: any) {
     error.value = err.message || 'Failed to load hackathons'
     console.error('Error fetching hackathons:', err)
+    uiStore.showError('Failed to load hackathons', 'Unable to load hackathon listings. Please try again later.')
   } finally {
     isLoading.value = false
   }

@@ -278,9 +278,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { format } from 'date-fns'
 import { useAuthStore } from '~/stores/auth'
+import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 
 const authStore = useAuthStore()
+const uiStore = useUIStore()
 const { t } = useI18n()
 const loading = ref(true)
 const votes = ref<any[]>([])
@@ -320,6 +322,7 @@ const fetchMyVotes = async () => {
   } catch (error) {
     console.error('Error fetching my votes:', error)
     votes.value = []
+    uiStore.showError('Failed to load votes', 'Unable to load your voting history. Please try again later.')
   } finally {
     loading.value = false
   }
@@ -343,6 +346,7 @@ const handleRemoveVote = async (vote: any) => {
     }
   } catch (error) {
     console.error('Error removing vote:', error)
+    uiStore.showError('Failed to remove vote', 'Unable to remove your vote. Please try again later.')
   }
 }
 

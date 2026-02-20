@@ -182,6 +182,7 @@
   "validation": {
     "required": "Dieses Feld ist erforderlich",
     "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+    "emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
     "minLength": "Muss mindestens {min} Zeichen lang sein",
     "maxLength": "Darf höchstens {max} Zeichen lang sein",
     "passwordMatch": "Passwörter stimmen nicht überein"

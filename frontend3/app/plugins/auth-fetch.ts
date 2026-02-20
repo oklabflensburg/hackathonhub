@@ -11,32 +11,32 @@ export default defineNuxtPlugin((nuxtApp) => {
     // Store the original fetch function
     const originalFetch = globalThis.fetch
     const authStore = useAuthStore()
-    
+
     // Create a wrapper function that handles token refresh
-    const authFetch = async function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    const authFetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
       const authStore = useAuthStore()
       const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      
+
       // Convert input to string for URL checking
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
-      
+
       // Check if this is an API call to our backend
       const isApiCall = url.startsWith(backendUrl) || url.startsWith('/api/')
-      
+
       if (!isApiCall) {
         // For non-API calls, use original fetch
         return originalFetch(input, init)
       }
-      
+
       // Prepare headers
       const headers = new Headers(init?.headers || {})
-      
+
       // Add auth header if we have a token
       if (authStore.token) {
         headers.set('Authorization', `Bearer ${authStore.token}`)
       }
-      
+
       // Add content type if not present and not FormData
       // Don't set Content-Type for FormData - browser will set it with boundary
       if (!headers.has('Content-Type') && init?.method && ['POST', 'PUT', 'PATCH'].includes(init.method)) {
@@ -46,35 +46,46 @@ export default defineNuxtPlugin((nuxtApp) => {
           headers.set('Content-Type', 'application/json')
         }
       }
-      
+
       // Make the request
       const requestInit: RequestInit = {
         ...init,
         headers
       }
-      
+
       let response = await originalFetch(input, requestInit)
-      
+
       // Handle token expiration for authenticated requests
       if (response.status === 401 && authStore.token && isApiCall) {
+        console.log('[AuthFetch] Token expired, attempting refresh for:', url)
+
         // Try to refresh the token
         const refreshed = await authStore.refreshAccessToken()
-        
+
         if (refreshed) {
+          console.log('[AuthFetch] Token refresh successful, retrying request')
+
           // Update the auth header with new token
           headers.set('Authorization', `Bearer ${authStore.token}`)
-          
-          // Retry the request
+
+          // For FormData requests, we need to ensure the body is still usable
+          // If body is FormData and we've already read it, we might need to recreate it
+          // In practice, fetch() doesn't consume the body on 401 responses
           const retryInit: RequestInit = {
             ...init,
             headers
           }
-          
+
           response = await originalFetch(input, retryInit)
+
+          // Check if retry also failed
+          if (response.status === 401) {
+            console.warn('[AuthFetch] Request still unauthorized after token refresh')
+          }
         } else {
           // Refresh failed - the user will be logged out by refreshAccessToken
-          console.warn('Token refresh failed, user logged out')
-          
+          console.warn('[AuthFetch] Token refresh failed, user logged out')
+
           // Log current auth state for debugging
           console.log('[AuthFetch] Current auth state after refresh failure:', {
             user: authStore.user,
@@ -84,13 +95,13 @@ export default defineNuxtPlugin((nuxtApp) => {
           })
         }
       }
-      
+
       return response
     }
-    
+
     // Override global fetch
     globalThis.fetch = authFetch
-    
+
     // Provide a way to access the original fetch if needed
     return {
       provide: {
@@ -98,7 +109,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       }
     }
   }
-  
+
   return {
     provide: {
       originalFetch: globalThis.fetch

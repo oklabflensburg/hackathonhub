@@ -483,6 +483,7 @@ const fetchHackathon = async () => {
   } catch (err) {
     console.error('Error fetching hackathon:', err)
     error.value = true
+    uiStore.showError('Failed to load hackathon', 'Unable to load hackathon details. Please try again later.')
   } finally {
     loading.value = false
   }
@@ -507,6 +508,8 @@ const checkRegistrationStatus = async () => {
     }
   } catch (error) {
     console.error('Error checking registration status:', error)
+    // This is a background operation, so we don't show a prominent error
+    // uiStore.showError('Registration status check failed', 'Unable to check your registration status. Please refresh the page.')
   }
 }
 

@@ -58,10 +58,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { usePreferencesStore } from '~/stores/preferences'
 
 // useI18n is auto-imported by @nuxtjs/i18n
 const { locale, t } = useI18n()
 const switchLocalePath = useSwitchLocalePath()
+const preferences = usePreferencesStore()
 
 const languageMenuOpen = ref(false)
 
@@ -89,10 +91,8 @@ const switchLanguage = async (lang: 'de' | 'en') => {
     locale.value = lang
   }
 
-  // Save preference to localStorage
-  if (process.client) {
-    localStorage.setItem('preferred-language', lang)
-  }
+  // Save preference to preferences store
+  preferences.language.setLanguage(lang)
 }
 
 // Close menu when clicking outside

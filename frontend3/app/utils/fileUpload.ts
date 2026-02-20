@@ -53,29 +53,19 @@ export async function uploadFile(
 
   // Get auth store for authenticated requests
   const authStore = useAuthStore()
-  const token = authStore.token
 
   try {
-    // For file uploads, we need to handle the request specially
-    // Use direct fetch instead of fetchWithAuth to avoid header issues
-
-    // Use runtime config for API URL
-    const config = useRuntimeConfig()
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    // Use fetchWithAuth for automatic token refresh handling
+    // Note: fetchWithAuth will handle token refresh on 401 responses
+    // For FormData, we don't set Content-Type header - browser will set it with boundary
 
     const fullUrl = `/api/upload?${params.toString()}`
-    const absoluteUrl = fullUrl.startsWith('http') ? fullUrl : `${backendUrl}${fullUrl}`
 
-    const headers: Record<string, string> = {}
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-    // Note: Don't set Content-Type - browser will set it with boundary for FormData
-
-    const response = await fetch(absoluteUrl, {
+    const response = await authStore.fetchWithAuth(fullUrl, {
       method: 'POST',
       body: formData,
-      headers
+      // Don't set Content-Type header for FormData - browser will set it automatically
+      headers: {}
     })
 
     if (!response.ok) {

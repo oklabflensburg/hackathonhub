@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Header, Query, Request, Body
 from fastapi import File, UploadFile
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -12,7 +12,7 @@ import models
 import schemas
 import crud
 import auth
-import email_service
+from email_service import email_service
 import email_auth
 import google_oauth
 import file_upload
@@ -1077,41 +1077,38 @@ async def refresh_token(
 @app.post("/api/newsletter/subscribe")
 async def subscribe_to_newsletter(
     subscription: schemas.NewsletterSubscriptionCreate,
+    idempotency_key: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    """Subscribe to newsletter"""
+    """Subscribe to newsletter with atomic duplicate prevention"""
     try:
-        # Create subscription in database
-        db_subscription = crud.create_newsletter_subscription(
+        # Create subscription atomically with duplicate prevention
+        db_subscription, is_new = crud.create_newsletter_subscription_atomic(
             db=db,
             email=subscription.email,
-            source=subscription.source
+            source=subscription.source,
+            idempotency_key=idempotency_key
         )
 
-        # Send welcome email
-        email_sent = email_service.send_newsletter_welcome(
-            subscription.email
-        )
+        # Send welcome email only for new subscriptions
+        email_sent = False
+        if is_new:
+            email_sent = email_service.send_newsletter_welcome(
+                subscription.email
+            )
 
+        message = ("Successfully subscribed to newsletter" 
+                   if is_new else "Already subscribed to newsletter")
+        
         return {
-            "message": "Successfully subscribed to newsletter",
+            "message": message,
             "email": subscription.email,
+            "already_subscribed": not is_new,
             "subscribed_at": db_subscription.subscribed_at,
             "welcome_email_sent": email_sent
         }
 
     except Exception as e:
-        # Check if it's a duplicate email error
-        if "UNIQUE constraint failed" in str(e):
-            # Check if already subscribed
-            existing = crud.get_newsletter_subscription(db, subscription.email)
-            if existing and existing.is_active:
-                return {
-                    "message": "Already subscribed to newsletter",
-                    "email": subscription.email,
-                    "already_subscribed": True
-                }
-
         raise HTTPException(
             status_code=400,
             detail=f"Failed to subscribe: {str(e)}"

@@ -185,9 +185,12 @@ import { ref, onMounted, computed, h } from 'vue'
 import { format } from 'date-fns'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '~/stores/auth'
+import { useUIStore } from '~/stores/ui'
 import ImprovedStatsCard from '~/components/ImprovedStatsCard.vue'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
+const uiStore = useUIStore()
 
 // Icon components for stats cards using render function
 const HackathonIcon = {
@@ -241,7 +244,6 @@ const VoteIcon = {
   }
 }
 
-const authStore = useAuthStore()
 const loading = ref(false)
 const user = computed(() => authStore.user)
 const stats = ref({
@@ -293,6 +295,7 @@ const fetchUserStats = async () => {
     }
   } catch (error) {
     console.error('Error fetching user stats:', error)
+    uiStore.showError('Failed to load profile stats', 'Unable to load your profile statistics. Please try again later.')
   }
 }
 
