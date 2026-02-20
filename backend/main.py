@@ -1042,24 +1042,21 @@ async def get_team_members(
 @app.post("/api/teams/{team_id}/members", response_model=schemas.TeamMember)
 async def add_team_member(
     team_id: int,
-    team_member: schemas.TeamMemberCreate,
+    team_member: schemas.TeamMemberAdd,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(auth.get_current_user)
 ):
-    """Add a user to a team (team owners only)"""
+    """Add a user to a team
+    
+    Rules:
+    1. Team owners can add any user to their team
+    2. Users can join open teams themselves (if team.is_open is True)
+    3. Users cannot add other users (only themselves)
+    """
     # Check if team exists
     team = crud.get_team(db, team_id=team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
-
-    # Check if current user is team owner
-    current_user_member = crud.get_team_member(
-        db, team_id=team_id, user_id=current_user.id)
-    if not current_user_member or current_user_member.role != 'owner':
-        raise HTTPException(
-            status_code=403,
-            detail="Only team owners can add members"
-        )
 
     # Check if user exists
     user = crud.get_user(db, user_id=team_member.user_id)
@@ -1076,12 +1073,45 @@ async def add_team_member(
             detail=f"Team has reached maximum size of {team.max_members} members"
         )
 
+    # Check permissions
+    current_user_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    
+    # Case 1: Current user is adding themselves to an open team
+    if team_member.user_id == current_user.id:
+        if not team.is_open:
+            raise HTTPException(
+                status_code=403,
+                detail="This team is not open for joining"
+            )
+        # User can join open team
+        role = "member"  # Users joining open teams become members
+    # Case 2: Current user is team owner adding another user
+    elif current_user_member and current_user_member.role == 'owner':
+        # Team owners can add any user with any role
+        role = team_member.role
+    # Case 3: Unauthorized - user trying to add someone else without permission
+    else:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to add this user to the team"
+        )
+
+    # Check if user is already a team member
+    existing_member = crud.get_team_member(
+        db, team_id=team_id, user_id=team_member.user_id)
+    if existing_member:
+        raise HTTPException(
+            status_code=400,
+            detail="User is already a team member"
+        )
+
     # Add team member
     new_member = crud.add_team_member(
         db,
         team_id=team_id,
         user_id=team_member.user_id,
-        role=team_member.role
+        role=role
     )
 
     return new_member

@@ -240,6 +240,11 @@ class TeamMemberCreate(TeamMemberBase):
     pass
 
 
+class TeamMemberAdd(BaseModel):
+    user_id: int
+    role: str = "member"  # 'owner' or 'member'
+
+
 class TeamMemberUpdate(BaseModel):
     role: Optional[str] = None  # 'owner' or 'member'
 
