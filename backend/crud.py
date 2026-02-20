@@ -150,11 +150,11 @@ def revoke_all_user_refresh_tokens(db: Session, user_id: int):
         models.RefreshToken.user_id == user_id,
         models.RefreshToken.revoked.is_(False)
     ).all()
-    
+
     for token in tokens:
         token.revoked = True
         token.revoked_at = datetime.utcnow()
-    
+
     db.commit()
     return len(tokens)
 
@@ -214,7 +214,7 @@ def get_projects(
     search: str = None
 ):
     query = db.query(models.Project)
-    
+
     if search:
         # Perform case-insensitive search across multiple fields
         search_pattern = f"%{search}%"
@@ -225,7 +225,7 @@ def get_projects(
                 models.Project.technologies.ilike(search_pattern)
             )
         )
-    
+
     return query.offset(skip).limit(limit).all()
 
 
@@ -271,6 +271,29 @@ def update_project(db: Session, project_id: int, project_update: schemas.Project
 def delete_project(db: Session, project_id: int):
     db_project = get_project(db, project_id)
     if db_project:
+        # First, get all comment IDs for this project
+        comment_ids = db.query(models.Comment.id).filter(
+            models.Comment.project_id == project_id
+        ).all()
+        comment_ids = [c[0] for c in comment_ids]
+
+        if comment_ids:
+            # Delete all comment votes for these comments
+            db.query(models.CommentVote).filter(
+                models.CommentVote.comment_id.in_(comment_ids)
+            ).delete(synchronize_session=False)
+
+            # Delete all comments for this project
+            db.query(models.Comment).filter(
+                models.Comment.project_id == project_id
+            ).delete(synchronize_session=False)
+
+        # Delete all votes for this project
+        db.query(models.Vote).filter(
+            models.Vote.project_id == project_id
+        ).delete(synchronize_session=False)
+
+        # Now delete the project
         db.delete(db_project)
         db.commit()
     return db_project
@@ -382,7 +405,7 @@ def get_hackathons(
         project_count_subquery,
         models.Hackathon.id == project_count_subquery.c.hackathon_id
     )
-    
+
     # Apply search filter if provided
     if search:
         search_pattern = f"%{search}%"
@@ -393,7 +416,7 @@ def get_hackathons(
                 models.Hackathon.location.ilike(search_pattern)
             )
         )
-    
+
     hackathons = query.offset(skip).limit(limit).all()
 
     # Convert to list of Hackathon objects with project_count added
@@ -444,8 +467,8 @@ def create_hackathon(
 
 
 def update_hackathon(
-    db: Session, 
-    hackathon_id: int, 
+    db: Session,
+    hackathon_id: int,
     hackathon_update: schemas.HackathonUpdate
 ):
     db_hackathon = get_hackathon(db, hackathon_id)
