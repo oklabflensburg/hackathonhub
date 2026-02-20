@@ -100,10 +100,18 @@ async def get_projects(
     skip: int = 0,
     limit: int = 100,
     search: str = Query(None, description="Search query for full-text search"),
+    hackathon_id: Optional[int] = Query(
+        None, description="Filter by hackathon ID"
+    ),
     db: Session = Depends(get_db)
 ):
-    """Get all hackathon projects with optional full-text search"""
-    projects = crud.get_projects(db, skip=skip, limit=limit, search=search)
+    """Get all hackathon projects with optional filters"""
+    if hackathon_id:
+        projects = crud.get_projects_by_hackathon(
+            db, hackathon_id=hackathon_id, skip=skip, limit=limit
+        )
+    else:
+        projects = crud.get_projects(db, skip=skip, limit=limit, search=search)
     return projects
 
 

@@ -233,96 +233,85 @@ const transformProject = (apiProject: any) => {
     status = 'Finalist'
   }
 
-  // Generate team data from owner (simplified - in real app you'd have team members)
+  // Team data - currently shows only project owner
+  // TODO: Implement proper team member display when backend supports project-team relationships
   const team = apiProject.owner ? [
     { id: apiProject.owner.id, name: apiProject.owner.name || apiProject.owner.username }
   ] : []
 
   // Parse technologies if available
   const techStack = apiProject.technologies ?
-    apiProject.technologies.split(',').map((t: string) => t.trim()) :
-    ['Python', 'JavaScript', 'React', 'Node.js']
+    apiProject.technologies.split(',').map((t: string) => t.trim()).filter(Boolean) :
+    []
 
-  // Generate a beautiful SVG placeholder if no image provided
+  // Generate a simple SVG placeholder if no image provided
   const generatePlaceholderImage = (projectId: number, projectName: string) => {
-    // Color palettes for beautiful gradients
-    const colorPalettes = [
-      ['#667eea', '#764ba2'], // Purple gradient
-      ['#f093fb', '#f5576c'], // Pink gradient
-      ['#4facfe', '#00f2fe'], // Blue gradient
-      ['#43e97b', '#38f9d7'], // Green gradient
-      ['#fa709a', '#fee140'], // Orange gradient
-      ['#a8edea', '#fed6e3'], // Pastel gradient
-    ]
-
-    const paletteIndex = projectId ? (projectId % colorPalettes.length) : 0
-    const palette = colorPalettes[paletteIndex] as [string, string]
-    const [color1, color2] = palette
-
-    // Get first letter of project name for the placeholder
+    // Simple color based on project ID
+    const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#a8edea']
+    const color = colors[projectId % colors.length] || '#667eea'
+    
+    // Get first letter of project name
     const firstLetter = projectName.charAt(0).toUpperCase() || 'P'
-
-    // Create SVG with gradient and letter
-    const svg = `
-      <svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:${color1};stop-opacity:1" />
-            <stop offset="100%" style="stop-color:${color2};stop-opacity:1" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#gradient)" />
-        <text 
-          x="50%" 
-          y="50%" 
-          font-family="Arial, sans-serif" 
-          font-size="120" 
-          font-weight="bold" 
-          fill="white" 
-          text-anchor="middle" 
-          dy=".35em"
-          opacity="0.8"
-        >
-          ${firstLetter}
-        </text>
-        <text 
-          x="50%" 
-          y="85%" 
-          font-family="Arial, sans-serif" 
-          font-size="24" 
-          fill="white" 
-          text-anchor="middle" 
-          opacity="0.7"
-        >
-          ${projectName}
-        </text>
-      </svg>
-    `
-
-    // Convert SVG to data URL
+    
+    // Simple SVG
+    const svg = `<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100%" height="100%" fill="${color}" />
+      <text x="50%" y="50%" font-family="Arial" font-size="120" font-weight="bold" 
+            fill="white" text-anchor="middle" dy=".35em" opacity="0.8">${firstLetter}</text>
+    </svg>`
+    
     return 'data:image/svg+xml;base64,' + btoa(svg)
   }
 
   const projectName = apiProject.title || apiProject.name || 'Untitled Project'
+  
+  // Use real API data for counts
+  const votes = apiProject.upvote_count || apiProject.vote_score || 0
+  const comments = apiProject.comment_count || 0
+  const views = apiProject.view_count || 0
 
-  // Check if we should use a placeholder image
-  // Use placeholder if no image path, or if path contains /temp/ (temporary files that might be cleaned up)
-  const shouldUsePlaceholder = !apiProject.image_path ||
-    (apiProject.image_path.includes && apiProject.image_path.includes('/temp/'))
+  // Generate proper image URL if image_path exists
+  let imageUrl = ''
+  if (apiProject.image_path && !apiProject.image_path.includes('/temp/')) {
+    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    
+    // Handle different image_path formats:
+    // 1. Full URL (http://... or https://...) - use as-is
+    // 2. Path starting with /static/ - prepend backend URL
+    // 3. Path starting with /uploads/ - convert to /static/uploads/ and prepend backend URL
+    // 4. Other paths - prepend backend URL and ensure starts with /
+    
+    if (apiProject.image_path.startsWith('http://') || apiProject.image_path.startsWith('https://')) {
+      // Full URL - use as-is
+      imageUrl = apiProject.image_path
+    } else if (apiProject.image_path.startsWith('/static/')) {
+      // Already in correct format for static serving
+      imageUrl = `${backendUrl}${apiProject.image_path}`
+    } else if (apiProject.image_path.startsWith('/uploads/')) {
+      // Convert /uploads/ to /static/uploads/
+      imageUrl = `${backendUrl}/static${apiProject.image_path}`
+    } else {
+      // Other paths - ensure starts with /
+      const imagePath = apiProject.image_path.startsWith('/') ? 
+        apiProject.image_path : `/${apiProject.image_path}`
+      imageUrl = `${backendUrl}${imagePath}`
+    }
+  } else {
+    // Use placeholder only when no real image
+    imageUrl = generatePlaceholderImage(apiProject.id || 0, projectName)
+  }
 
   return {
     id: apiProject.id,
     name: projectName,
     description: apiProject.description || 'No description available.',
-    image: shouldUsePlaceholder ?
-      generatePlaceholderImage(apiProject.id || 0, projectName) :
-      apiProject.image_path,
+    image: imageUrl,
     status: status,
     team: team,
     techStack: techStack,
-    votes: apiProject.upvote_count || apiProject.vote_score || Math.floor(Math.random() * 200) + 50,
-    comments: apiProject.comment_count || Math.floor(Math.random() * 50) + 5,
-    views: Math.floor(Math.random() * 1000) + 200,
+    votes: votes,
+    comments: comments,
+    views: views,
     hasVoted: false // This would come from user's vote status in a real app
   }
 }
