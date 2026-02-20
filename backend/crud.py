@@ -792,10 +792,11 @@ def create_team(db: Session, team: schemas.TeamCreate, user_id: int):
     return db_team
 
 
-def update_team(db: Session, team_id: int, team_update: schemas.TeamCreate):
+def update_team(db: Session, team_id: int, team_update: schemas.TeamUpdate):
     db_team = get_team(db, team_id)
     if db_team:
-        for key, value in team_update.dict().items():
+        update_data = team_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
             setattr(db_team, key, value)
         db.commit()
         db.refresh(db_team)
@@ -805,6 +806,45 @@ def update_team(db: Session, team_id: int, team_update: schemas.TeamCreate):
 def delete_team(db: Session, team_id: int):
     db_team = get_team(db, team_id)
     if db_team:
+        # Delete all team members first (team_id has NOT NULL constraint)
+        db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team_id
+        ).delete(synchronize_session=False)
+        
+        # Delete all team invitations
+        db.query(models.TeamInvitation).filter(
+            models.TeamInvitation.team_id == team_id
+        ).delete(synchronize_session=False)
+        
+        # Set team_id to NULL for any projects referencing this team
+        db.query(models.Project).filter(
+            models.Project.team_id == team_id
+        ).update(
+            {models.Project.team_id: None},
+            synchronize_session=False
+        )
+        
+        # Get all chat rooms associated with this team
+        chat_rooms = db.query(models.ChatRoom).filter(
+            models.ChatRoom.team_id == team_id
+        ).all()
+        
+        # For each chat room, delete related messages and participants
+        for room in chat_rooms:
+            # Delete chat messages for this room
+            db.query(models.ChatMessage).filter(
+                models.ChatMessage.room_id == room.id
+            ).delete(synchronize_session=False)
+            
+            # Delete chat participants for this room
+            db.query(models.ChatParticipant).filter(
+                models.ChatParticipant.room_id == room.id
+            ).delete(synchronize_session=False)
+            
+            # Delete the chat room
+            db.delete(room)
+        
+        # Now delete the team
         db.delete(db_team)
         db.commit()
     return db_team
@@ -841,6 +881,28 @@ def remove_team_member(db: Session, team_id: int, user_id: int):
     if team_member:
         db.delete(team_member)
         db.commit()
+    return team_member
+
+
+def update_team_member(
+    db: Session, 
+    team_id: int, 
+    user_id: int, 
+    team_member_update: schemas.TeamMemberUpdate
+):
+    team_member = get_team_member(db, team_id, user_id)
+    if not team_member:
+        return None
+    
+    # Update role if provided
+    if team_member_update.role is not None:
+        # Validate role value
+        if team_member_update.role not in ['owner', 'member']:
+            raise ValueError("Role must be 'owner' or 'member'")
+        team_member.role = team_member_update.role
+    
+    db.commit()
+    db.refresh(team_member)
     return team_member
 
 # Team Invitation CRUD operations

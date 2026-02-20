@@ -30,15 +30,20 @@ def upgrade() -> None:
     
     # Check if refresh_tokens table exists and has token_id
     result = conn.execute(
-        "SELECT EXISTS (SELECT FROM information_schema.tables "
-        "WHERE table_name = 'refresh_tokens')"
+        sa.text(
+            "SELECT EXISTS (SELECT FROM information_schema.tables "
+            "WHERE table_name = 'refresh_tokens')"
+        )
     ).scalar()
     
     if result:
         # Table exists, check for token_id column
         col_result = conn.execute(
-            "SELECT EXISTS (SELECT FROM information_schema.columns "
-            "WHERE table_name = 'refresh_tokens' AND column_name = 'token_id')"
+            sa.text(
+                "SELECT EXISTS (SELECT FROM information_schema.columns "
+                "WHERE table_name = 'refresh_tokens' "
+                "AND column_name = 'token_id')"
+            )
         ).scalar()
         if not col_result:
             # Add token_id column
@@ -48,8 +53,10 @@ def upgrade() -> None:
             )
             # Set temporary values for existing rows
             conn.execute(
-                "UPDATE refresh_tokens SET token_id = 'temp_' || id "
-                "WHERE token_id IS NULL"
+                sa.text(
+                    "UPDATE refresh_tokens SET token_id = 'temp_' || id "
+                    "WHERE token_id IS NULL"
+                )
             )
             # Make column NOT NULL
             op.alter_column(
@@ -65,30 +72,58 @@ def upgrade() -> None:
     
     # Fix email_verification_tokens table
     # Add used column if it doesn't exist
-    op.add_column(
-        'email_verification_tokens',
-        sa.Column(
-            'used', sa.Boolean(),
-            server_default=sa.text('false'), nullable=True
+    # Check if column exists first
+    col_exists = conn.execute(
+        sa.text(
+            "SELECT EXISTS (SELECT FROM information_schema.columns "
+            "WHERE table_name = 'email_verification_tokens' "
+            "AND column_name = 'used')"
         )
-    )
+    ).scalar()
+    
+    if not col_exists:
+        op.add_column(
+            'email_verification_tokens',
+            sa.Column(
+                'used', sa.Boolean(),
+                server_default=sa.text('false'), nullable=True
+            )
+        )
     # Try to drop used_at if it exists (will fail silently if not)
     
     # Fix password_reset_tokens table  
     # Add used column if it doesn't exist
-    op.add_column(
-        'password_reset_tokens',
-        sa.Column(
-            'used', sa.Boolean(),
-            server_default=sa.text('false'), nullable=True
+    # Check if column exists first
+    col_exists = conn.execute(
+        sa.text(
+            "SELECT EXISTS (SELECT FROM information_schema.columns "
+            "WHERE table_name = 'password_reset_tokens' "
+            "AND column_name = 'used')"
         )
-    )
+    ).scalar()
+    
+    if not col_exists:
+        op.add_column(
+            'password_reset_tokens',
+            sa.Column(
+                'used', sa.Boolean(),
+                server_default=sa.text('false'), nullable=True
+            )
+        )
     # Try to drop used_at if it exists (will fail silently if not)
     
-    # Add index to users.username
-    op.create_index(
-        'ix_users_username', 'users', ['username'], unique=True
-    )
+    # Add index to users.username (if it doesn't already exist)
+    index_exists = conn.execute(
+        sa.text(
+            "SELECT EXISTS (SELECT FROM pg_indexes "
+            "WHERE tablename = 'users' AND indexname = 'ix_users_username')"
+        )
+    ).scalar()
+    
+    if not index_exists:
+        op.create_index(
+            'ix_users_username', 'users', ['username'], unique=True
+        )
     
     # Note: We're NOT creating projects, hackathons, etc. tables
     # because they appear to already exist in the database

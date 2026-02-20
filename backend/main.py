@@ -44,7 +44,8 @@ upload_path = Path(upload_dir)
 # Create directory if it doesn't exist
 upload_path.mkdir(parents=True, exist_ok=True)
 
-app.mount("/static/uploads", StaticFiles(directory=str(upload_path)), name="uploads")
+app.mount("/static/uploads",
+          StaticFiles(directory=str(upload_path)), name="uploads")
 
 
 @app.get("/")
@@ -820,6 +821,628 @@ async def unregister_from_hackathon(
     return {"message": "Successfully unregistered from hackathon"}
 
 
+# ============================================================================
+# Team Management Endpoints
+# ============================================================================
+
+@app.get("/api/teams", response_model=List[schemas.TeamWithMembers])
+async def get_teams(
+    hackathon_id: Optional[int] = Query(None),
+    skip: int = 0,
+    limit: int = 100,
+    is_open: Optional[bool] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get teams with optional filters"""
+    if hackathon_id:
+        teams = crud.get_teams_by_hackathon(
+            db, hackathon_id=hackathon_id, skip=skip, limit=limit)
+    else:
+        # Get all teams (simplified - in production would need pagination)
+        teams = db.query(models.Team).offset(skip).limit(limit).all()
+
+    # Filter by is_open if specified
+    if is_open is not None:
+        teams = [team for team in teams if team.is_open == is_open]
+
+    # Convert to TeamWithMembers schema
+    result = []
+    for team in teams:
+        team_with_members = schemas.TeamWithMembers.from_orm(team)
+        # Get members count
+        member_count = db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team.id
+        ).count()
+        team_with_members.member_count = member_count
+        result.append(team_with_members)
+
+    return result
+
+
+@app.get("/api/teams/{team_id}", response_model=schemas.TeamWithMembers)
+async def get_team(
+    team_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get team details with members"""
+    team = crud.get_team_with_details(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team_with_members = schemas.TeamWithMembers.from_orm(team)
+    # Get members count
+    member_count = db.query(models.TeamMember).filter(
+        models.TeamMember.team_id == team.id
+    ).count()
+    team_with_members.member_count = member_count
+
+    return team_with_members
+
+
+@app.post("/api/teams", response_model=schemas.TeamWithMembers)
+async def create_team(
+    team: schemas.TeamCreate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Create a new team"""
+    # Check if hackathon exists
+    hackathon = crud.get_hackathon(db, hackathon_id=team.hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+
+    # Create team
+    db_team = crud.create_team(db, team=team, user_id=current_user.id)
+
+    # Get team with details
+    team_with_details = crud.get_team_with_details(db, team_id=db_team.id)
+    team_with_members = schemas.TeamWithMembers.from_orm(team_with_details)
+
+    # Get members count
+    member_count = db.query(models.TeamMember).filter(
+        models.TeamMember.team_id == db_team.id
+    ).count()
+    team_with_members.member_count = member_count
+
+    return team_with_members
+
+
+@app.put("/api/teams/{team_id}", response_model=schemas.TeamWithMembers)
+async def update_team(
+    team_id: int,
+    team_update: schemas.TeamUpdate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Update team details"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if user is team owner
+    team_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    if not team_member or team_member.role != 'owner':
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owners can update team details"
+        )
+
+    # Update team
+    updated_team = crud.update_team(
+        db, team_id=team_id, team_update=team_update)
+
+    # Get team with details
+    team_with_details = crud.get_team_with_details(db, team_id=updated_team.id)
+    team_with_members = schemas.TeamWithMembers.from_orm(team_with_details)
+
+    # Get members count
+    member_count = db.query(models.TeamMember).filter(
+        models.TeamMember.team_id == updated_team.id
+    ).count()
+    team_with_members.member_count = member_count
+
+    return team_with_members
+
+
+@app.delete("/api/teams/{team_id}")
+async def delete_team(
+    team_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Delete a team"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if user is team owner
+    team_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    if not team_member or team_member.role != 'owner':
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owners can delete the team"
+        )
+
+    # Delete team
+    crud.delete_team(db, team_id=team_id)
+
+    return {"message": "Team deleted successfully"}
+
+
+@app.get("/api/hackathons/{hackathon_id}/teams", response_model=List[schemas.TeamWithMembers])
+async def get_hackathon_teams(
+    hackathon_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get teams for a specific hackathon"""
+    # Check if hackathon exists
+    hackathon = crud.get_hackathon(db, hackathon_id=hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+
+    teams = crud.get_teams_by_hackathon(
+        db, hackathon_id=hackathon_id, skip=skip, limit=limit)
+
+    # Convert to TeamWithMembers schema
+    result = []
+    for team in teams:
+        team_with_members = schemas.TeamWithMembers.from_orm(team)
+        # Get members count
+        member_count = db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team.id
+        ).count()
+        team_with_members.member_count = member_count
+        result.append(team_with_members)
+
+    return result
+
+
+# ============================================================================
+# Team Member Management Endpoints
+# ============================================================================
+
+@app.get("/api/teams/{team_id}/members", response_model=List[schemas.TeamMember])
+async def get_team_members(
+    team_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get all members of a team"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if user is a team member
+    team_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    if not team_member:
+        raise HTTPException(
+            status_code=403,
+            detail="Only team members can view team members"
+        )
+
+    # Get team members with user details
+    members = db.query(models.TeamMember).join(models.User).filter(
+        models.TeamMember.team_id == team_id
+    ).all()
+
+    return members
+
+
+@app.post("/api/teams/{team_id}/members", response_model=schemas.TeamMember)
+async def add_team_member(
+    team_id: int,
+    team_member: schemas.TeamMemberCreate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Add a user to a team (team owners only)"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if current user is team owner
+    current_user_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    if not current_user_member or current_user_member.role != 'owner':
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owners can add members"
+        )
+
+    # Check if user exists
+    user = crud.get_user(db, user_id=team_member.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check team size limit
+    member_count = db.query(models.TeamMember).filter(
+        models.TeamMember.team_id == team_id
+    ).count()
+    if member_count >= team.max_members:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Team has reached maximum size of {team.max_members} members"
+        )
+
+    # Add team member
+    new_member = crud.add_team_member(
+        db,
+        team_id=team_id,
+        user_id=team_member.user_id,
+        role=team_member.role
+    )
+
+    return new_member
+
+
+@app.delete("/api/teams/{team_id}/members/{user_id}")
+async def remove_team_member(
+    team_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Remove a member from a team"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if target user is a team member
+    target_member = crud.get_team_member(db, team_id=team_id, user_id=user_id)
+    if not target_member:
+        raise HTTPException(
+            status_code=404, detail="User is not a team member")
+
+    # Check permissions:
+    # 1. Team owners can remove any member
+    # 2. Users can remove themselves
+    current_user_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+
+    if not current_user_member:
+        raise HTTPException(
+            status_code=403, detail="You are not a team member")
+
+    if current_user_member.role != 'owner' and current_user.id != user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only remove yourself from the team"
+        )
+
+    # Cannot remove the last owner
+    if target_member.role == 'owner':
+        owner_count = db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team_id,
+            models.TeamMember.role == 'owner'
+        ).count()
+        if owner_count <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot remove the last owner from the team. Transfer ownership first."
+            )
+
+    # Remove team member
+    crud.remove_team_member(db, team_id=team_id, user_id=user_id)
+
+    return {"message": "Team member removed successfully"}
+
+
+@app.patch("/api/teams/{team_id}/members/{user_id}", response_model=schemas.TeamMember)
+async def update_team_member_role(
+    team_id: int,
+    user_id: int,
+    team_member_update: schemas.TeamMemberUpdate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Update a team member's role (team owners only)"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if target user is a team member
+    target_member = crud.get_team_member(db, team_id=team_id, user_id=user_id)
+    if not target_member:
+        raise HTTPException(
+            status_code=404, detail="User is not a team member")
+
+    # Check if current user is team owner
+    current_user_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    if not current_user_member or current_user_member.role != 'owner':
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owners can update member roles"
+        )
+
+    # Cannot demote the last owner
+    if team_member_update.role == 'member' and target_member.role == 'owner':
+        owner_count = db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team_id,
+            models.TeamMember.role == 'owner'
+        ).count()
+        if owner_count <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot demote the last owner. Transfer ownership to another member first."
+            )
+
+    # Update team member
+    updated_member = crud.update_team_member(
+        db,
+        team_id=team_id,
+        user_id=user_id,
+        team_member_update=team_member_update
+    )
+
+    if not updated_member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    return updated_member
+
+
+@app.get("/api/users/{user_id}/teams", response_model=List[schemas.TeamWithMembers])
+async def get_user_teams(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get all teams a user belongs to"""
+    # Check if user exists
+    user = crud.get_user(db, user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Users can only view their own teams unless they're an admin
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only view your own teams"
+        )
+
+    teams = crud.get_user_teams(db, user_id=user_id)
+
+    # Convert to TeamWithMembers schema
+    result = []
+    for team in teams:
+        team_with_members = schemas.TeamWithMembers.from_orm(team)
+        # Get members count
+        member_count = db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team.id
+        ).count()
+        team_with_members.member_count = member_count
+        result.append(team_with_members)
+
+    return result
+
+
+# ============================================================================
+# Team Invitation Endpoints
+# ============================================================================
+
+@app.get("/api/teams/{team_id}/invitations", response_model=List[schemas.TeamInvitation])
+async def get_team_invitations(
+    team_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get pending invitations for a team"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if user is team owner
+    team_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    if not team_member or team_member.role != 'owner':
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owners can view invitations"
+        )
+
+    # Get pending invitations
+    invitations = db.query(models.TeamInvitation).filter(
+        models.TeamInvitation.team_id == team_id,
+        models.TeamInvitation.status == 'pending'
+    ).all()
+
+    return invitations
+
+
+@app.post("/api/teams/{team_id}/invitations", response_model=schemas.TeamInvitation)
+async def create_team_invitation(
+    team_id: int,
+    invitation: schemas.TeamInvitationCreate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Invite a user to join a team"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if current user is team owner
+    team_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    if not team_member or team_member.role != 'owner':
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owners can invite users"
+        )
+
+    # Check if invited user exists
+    invited_user = crud.get_user(db, user_id=invitation.invited_user_id)
+    if not invited_user:
+        raise HTTPException(status_code=404, detail="Invited user not found")
+
+    # Check if user is already a team member
+    existing_member = crud.get_team_member(
+        db, team_id=team_id, user_id=invitation.invited_user_id)
+    if existing_member:
+        raise HTTPException(
+            status_code=400,
+            detail="User is already a team member"
+        )
+
+    # Check team size limit
+    member_count = db.query(models.TeamMember).filter(
+        models.TeamMember.team_id == team_id
+    ).count()
+    if member_count >= team.max_members:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Team has reached maximum size of {team.max_members} members"
+        )
+
+    # Create invitation
+    db_invitation = crud.create_team_invitation(
+        db,
+        invitation=invitation,
+        inviter_id=current_user.id
+    )
+
+    return db_invitation
+
+
+@app.get("/api/me/invitations", response_model=List[schemas.TeamInvitation])
+async def get_my_invitations(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get current user's pending team invitations"""
+    invitations = crud.get_user_invitations(db, user_id=current_user.id)
+    return invitations
+
+
+@app.post("/api/invitations/{invitation_id}/accept", response_model=schemas.TeamMember)
+async def accept_invitation(
+    invitation_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Accept a team invitation"""
+    # Get invitation
+    invitation = crud.get_team_invitation(db, invitation_id=invitation_id)
+    if not invitation:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    # Check if invitation is for current user
+    if invitation.invited_user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="This invitation is not for you"
+        )
+
+    # Check if invitation is still pending
+    if invitation.status != 'pending':
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invitation has already been {invitation.status}"
+        )
+
+    # Check if invitation has expired
+    from datetime import datetime
+    if invitation.expires_at and invitation.expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=400,
+            detail="Invitation has expired"
+        )
+
+    # Accept invitation (this will also add user to team)
+    team_member = crud.accept_team_invitation(db, invitation_id=invitation_id)
+
+    return team_member
+
+
+@app.post("/api/invitations/{invitation_id}/decline")
+async def decline_invitation(
+    invitation_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Decline a team invitation"""
+    # Get invitation
+    invitation = crud.get_team_invitation(db, invitation_id=invitation_id)
+    if not invitation:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    # Check if invitation is for current user
+    if invitation.invited_user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="This invitation is not for you"
+        )
+
+    # Check if invitation is still pending
+    if invitation.status != 'pending':
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invitation has already been {invitation.status}"
+        )
+
+    # Decline invitation
+    crud.decline_team_invitation(db, invitation_id=invitation_id)
+
+    return {"message": "Invitation declined"}
+
+
+@app.delete("/api/invitations/{invitation_id}")
+async def cancel_invitation(
+    invitation_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Cancel a pending invitation"""
+    # Get invitation
+    invitation = crud.get_team_invitation(db, invitation_id=invitation_id)
+    if not invitation:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    # Check if user is the inviter or team owner
+    team_member = crud.get_team_member(
+        db, team_id=invitation.team_id, user_id=current_user.id)
+    if not team_member or team_member.role != 'owner':
+        if invitation.invited_by != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Only the inviter or team owner can cancel the invitation"
+            )
+
+    # Check if invitation is still pending
+    if invitation.status != 'pending':
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot cancel invitation that has been {invitation.status}"
+        )
+
+    # Delete invitation
+    db.delete(invitation)
+    db.commit()
+
+    return {"message": "Invitation cancelled"}
+
+
+# ============================================================================
+# End of Team Management Endpoints
+# ============================================================================
+
+
 @app.get("/api/auth/github")
 async def github_auth(redirect_url: str = Query(None)):
     """Initiate GitHub OAuth flow"""
@@ -832,7 +1455,7 @@ async def github_auth(redirect_url: str = Query(None)):
             status_code=500,
             detail="GitHub OAuth is not configured. Please set GITHUB_CLIENT_ID in .env file."
         )
-    
+
     # Check if client_id looks like a Google client ID (common mistake)
     if "apps.googleusercontent.com" in client_id:
         raise HTTPException(
@@ -1105,9 +1728,9 @@ async def subscribe_to_newsletter(
                 subscription.email
             )
 
-        message = ("Successfully subscribed to newsletter" 
+        message = ("Successfully subscribed to newsletter"
                    if is_new else "Already subscribed to newsletter")
-        
+
         return {
             "message": message,
             "email": subscription.email,
@@ -1144,12 +1767,68 @@ async def unsubscribe_from_newsletter(
         )
 
 
-@app.get("/api/me", response_model=schemas.User)
+@app.get("/api/me", response_model=schemas.UserWithDetails)
 async def get_current_user(
+    db: Session = Depends(get_db),
     current_user: schemas.User = Depends(auth.get_current_user)
 ):
-    """Get current authenticated user"""
-    return current_user
+    """Get current authenticated user with details including team memberships"""
+    # Get user from database to ensure we have all relationships
+    db_user = crud.get_user(db, user_id=current_user.id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Convert to UserWithDetails schema
+    user_with_details = schemas.UserWithDetails.from_orm(db_user)
+
+    # Get user's team memberships
+    team_memberships = db.query(models.TeamMember).filter(
+        models.TeamMember.user_id == db_user.id
+    ).all()
+
+    # Convert team memberships to schema
+    user_with_details.teams = []
+    for membership in team_memberships:
+        team_member_schema = schemas.TeamMember.from_orm(membership)
+        # Include team details
+        team = crud.get_team_with_details(db, team_id=membership.team_id)
+        if team:
+            team_member_schema.team = schemas.Team.from_orm(team)
+        user_with_details.teams.append(team_member_schema)
+
+    # Get user's projects
+    user_projects = db.query(models.Project).filter(
+        models.Project.owner_id == db_user.id
+    ).all()
+    user_with_details.projects = [
+        schemas.Project.from_orm(project) for project in user_projects
+    ]
+
+    # Get user's votes
+    user_votes = db.query(models.Vote).filter(
+        models.Vote.user_id == db_user.id
+    ).all()
+    user_with_details.votes = [
+        schemas.Vote.from_orm(vote) for vote in user_votes
+    ]
+
+    # Get user's comments
+    user_comments = db.query(models.Comment).filter(
+        models.Comment.user_id == db_user.id
+    ).all()
+    user_with_details.comments = [
+        schemas.Comment.from_orm(comment) for comment in user_comments
+    ]
+
+    # Get user's hackathon registrations
+    user_registrations = db.query(models.HackathonRegistration).filter(
+        models.HackathonRegistration.user_id == db_user.id
+    ).all()
+    user_with_details.hackathon_registrations = [
+        schemas.HackathonRegistration.from_orm(reg) for reg in user_registrations
+    ]
+
+    return user_with_details
 
 
 if __name__ == "__main__":

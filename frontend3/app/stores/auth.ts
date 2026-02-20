@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useUIStore } from './ui'
 import { usePreferencesStore } from './preferences'
+import { useTeamStore } from './team'
 
 export interface User {
   id: number
@@ -14,6 +15,29 @@ export interface User {
   auth_method?: 'github' | 'google' | 'email'
   created_at: string
   last_login?: string
+  // Extended fields from /api/me (UserWithDetails)
+  teams?: Array<{
+    id: number
+    team_id: number
+    user_id: number
+    role: 'owner' | 'member'
+    joined_at: string
+    team?: {
+      id: number
+      name: string
+      description: string
+      hackathon_id: number
+      max_members: number
+      is_open: boolean
+      created_by: number
+      created_at: string
+      member_count?: number
+    }
+  }>
+  projects?: any[]
+  votes?: any[]
+  comments?: any[]
+  hackathon_registrations?: any[]
 }
 
 export interface LoginCredentials {
@@ -321,6 +345,14 @@ export const useAuthStore = defineStore('auth', () => {
     // This helps ensure UI updates properly after logout
     const uiStore = useUIStore()
     // You could add a method to reset UI state if needed
+    
+    // Clear team store
+    try {
+      const teamStore = useTeamStore()
+      teamStore.clear()
+    } catch (err) {
+      console.error('Failed to clear team store:', err)
+    }
   }
 
   function initializeAuth() {
@@ -396,6 +428,14 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = userData
         const preferences = usePreferencesStore()
         preferences.auth.setUser(userData)
+        
+        // Initialize team store with user's teams
+        try {
+          const teamStore = useTeamStore()
+          teamStore.initializeFromUser(userData)
+        } catch (err) {
+          console.error('Failed to initialize team store:', err)
+        }
       } else {
         console.error('Failed to fetch user with token')
         const preferences = usePreferencesStore()
@@ -421,9 +461,18 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       if (response.ok) {
-        user.value = await response.json()
+        const userData = await response.json()
+        user.value = userData
         const preferences = usePreferencesStore()
-        preferences.auth.setUser(user.value!)
+        preferences.auth.setUser(userData)
+        
+        // Initialize team store with user's teams
+        try {
+          const teamStore = useTeamStore()
+          teamStore.initializeFromUser(userData)
+        } catch (err) {
+          console.error('Failed to initialize team store:', err)
+        }
       } else if (response.status === 401) {
         // Token expired, clear auth
         logout()

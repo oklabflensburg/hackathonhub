@@ -314,7 +314,8 @@ const transformProject = (apiProject: any) => {
     comments: comments,
     views: views,
     hasVoted: false, // This would come from user's vote status in a real app
-    owner_id: apiProject.owner_id // Include owner_id for permission checks
+    owner_id: apiProject.owner_id, // Include owner_id for permission checks
+    hackathon_id: apiProject.hackathon_id // Include hackathon_id for team member checks
   }
 }
 
@@ -359,7 +360,12 @@ const canEditProject = (project: any) => {
 
   if (isOwner) return true
 
-  return isHackathonMember.value
+  // Check if user is a hackathon team member (for projects belonging to this hackathon)
+  if (project.hackathon_id && Number(project.hackathon_id) === Number(id)) {
+    return isHackathonMember.value
+  }
+  
+  return false
 }
 
 // View project details
@@ -397,9 +403,15 @@ const editProject = async (project: any) => {
         // Refresh projects
         fetchProjects()
       } else {
-        // fetchWithAuth already handles 401 by attempting token refresh
-        // If we still get an error after refresh, it will return the error response
-        uiStore.showError(t('projects.updateFailed'), t('common.updateFailed'))
+        // Try to parse error message from backend
+        try {
+          const errorData = await response.json()
+          const errorMessage = errorData.detail || t('projects.updateFailed')
+          uiStore.showError(errorMessage, t('common.updateFailed'))
+        } catch {
+          // If we can't parse JSON, show generic error
+          uiStore.showError(t('projects.updateFailed'), t('common.updateFailed'))
+        }
       }
     } catch (error) {
       console.error('Error updating project:', error)

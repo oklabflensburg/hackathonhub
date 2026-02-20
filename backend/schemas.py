@@ -46,6 +46,7 @@ class ProjectBase(BaseModel):
     status: Optional[str] = "active"
     is_public: Optional[bool] = True
     hackathon_id: Optional[int] = None
+    team_id: Optional[int] = None
     image_path: Optional[str] = None
 
 
@@ -62,12 +63,14 @@ class ProjectUpdate(ProjectBase):
     status: Optional[str] = None
     is_public: Optional[bool] = None
     hackathon_id: Optional[int] = None
+    team_id: Optional[int] = None
     image_path: Optional[str] = None
 
 
 class Project(ProjectBase):
     id: int
     owner_id: int
+    team_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     upvote_count: int = 0
@@ -77,6 +80,7 @@ class Project(ProjectBase):
     view_count: int = 0
     owner: Optional[User] = None
     hackathon: Optional["Hackathon"] = None
+    team: Optional["Team"] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -208,6 +212,14 @@ class TeamCreate(TeamBase):
     pass
 
 
+class TeamUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    hackathon_id: Optional[int] = None
+    max_members: Optional[int] = None
+    is_open: Optional[bool] = None
+
+
 class Team(TeamBase):
     id: int
     created_by: int
@@ -228,10 +240,15 @@ class TeamMemberCreate(TeamMemberBase):
     pass
 
 
+class TeamMemberUpdate(BaseModel):
+    role: Optional[str] = None  # 'owner' or 'member'
+
+
 class TeamMember(TeamMemberBase):
     id: int
     joined_at: datetime
     user: Optional[User] = None
+    team: Optional[Team] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -483,6 +500,7 @@ class UserWithDetails(User):
 class ChatRoomWithMessages(ChatRoom):
     messages: List[ChatMessage] = []
     participants: List[ChatParticipant] = []
+
 
 # Newsletter Subscription schemas
 class NewsletterSubscriptionBase(BaseModel):

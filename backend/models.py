@@ -71,9 +71,11 @@ class Project(Base):
     comment_count = Column(Integer, default=0)
     view_count = Column(Integer, default=0)  # Project view count
     hackathon_id = Column(Integer, ForeignKey("hackathons.id"), nullable=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
 
     owner = relationship("User", back_populates="projects")
     hackathon = relationship("Hackathon", back_populates="projects")
+    team = relationship("Team")
     votes = relationship("Vote", back_populates="project")
     comments = relationship("Comment", back_populates="project")
 
