@@ -49,7 +49,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                {{ hackathon.location || 'Virtual' }}
+                {{ hackathon.location || $t('common.virtual') }}
               </span>
             </div>
           </div>
@@ -151,11 +151,11 @@
                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                         : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                     ]">
-                      {{ team.is_open ? 'Open' : 'Closed' }}
+                      {{ team.is_open ? $t('common.open') : $t('common.closed') }}
                     </span>
                   </div>
                   <p class="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
-                    {{ team.description || 'No description' }}
+                    {{ team.description || $t('common.noDescription') }}
                   </p>
                   <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                     <span class="flex items-center">
@@ -172,7 +172,7 @@
               </div>
               <div v-if="teams.length > 0" class="mt-6 text-center">
                 <NuxtLink :to="`/teams?hackathon_id=${id}`" class="btn btn-outline">
-                  View All Teams
+                  {{ $t('hackathons.details.viewAllTeams') }}
                 </NuxtLink>
               </div>
             </div>
@@ -510,9 +510,9 @@ const fetchHackathon = async () => {
     // Only use defaults if prizes is null/undefined/empty string (not if it's empty array)
     if (!apiData.prizes && prizes.length === 0) {
       prizes = [
-        { name: 'First Place', description: 'Grand prize for the winning team', value: '$5,000' },
-        { name: 'Second Place', description: 'Runner-up prize', value: '$2,500' },
-        { name: 'Best Design', description: 'Award for best UI/UX design', value: '$1,000' }
+        { name: t('hackathons.details.prizeNamePlaceholder'), description: t('hackathons.details.prizeDescriptionPlaceholder'), value: t('hackathons.details.prizeAmountPlaceholder') },
+        { name: t('common.unknown'), description: t('common.unknown'), value: t('common.unknown') },
+        { name: t('common.unknown'), description: t('common.unknown'), value: t('common.unknown') }
       ]
     }
 
@@ -529,18 +529,18 @@ const fetchHackathon = async () => {
     // Only use defaults if organizers is null/undefined/empty string (not if it's empty array)
     if (!apiData.organizers && organizers.length === 0) {
       organizers = [
-        { id: 1, name: 'Hackathon Organizer', role: 'Lead Organizer' },
-        { id: 2, name: 'Technical Committee', role: 'Technical Lead' }
+        { id: 1, name: t('hackathons.details.organizerNamePlaceholder'), role: t('hackathons.details.organizerRolePlaceholder') },
+        { id: 2, name: t('common.unknown'), role: t('common.unknown') }
       ]
     }
 
     hackathon.value = {
       id: apiData.id,
       name: apiData.name,
-      description: apiData.description || 'No description available.',
+      description: apiData.description || t('common.noDescription'),
       start_date: apiData.start_date,
       end_date: apiData.end_date,
-      location: apiData.location || 'Virtual',
+      location: apiData.location || t('common.virtual'),
       latitude: apiData.latitude || null,
       longitude: apiData.longitude || null,
       status,

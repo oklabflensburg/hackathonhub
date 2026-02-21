@@ -520,7 +520,7 @@ export const useTeamStore = defineStore('team', () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ invited_user_id: userId })
+        body: JSON.stringify({ team_id: teamId, invited_user_id: userId })
       })
       
       if (!response.ok) {

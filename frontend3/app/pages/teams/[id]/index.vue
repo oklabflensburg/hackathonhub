@@ -186,29 +186,77 @@
             </div>
           </div>
 
-          <!-- Invite Section (for owners) -->
+           <!-- Invite Section (for owners) -->
           <div v-if="isTeamOwner && !isTeamFull" class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
             <h4 class="text-md font-medium text-gray-900 dark:text-white mb-4">{{ t('teams.inviteMembers') }}</h4>
-            <div class="flex space-x-3">
-              <input
-                v-model="inviteUsername"
-                type="text"
-                :placeholder="t('teams.enterUsername')"
-                class="flex-1 input"
-                @keyup.enter="sendInvitation"
-              />
-              <button
-                @click="sendInvitation"
-                class="btn btn-primary"
-                :disabled="!inviteUsername.trim() || inviting"
-              >
-                <span v-if="inviting">{{ t('teams.inviting') }}</span>
-                <span v-else>{{ t('teams.invite') }}</span>
-              </button>
+            <div class="relative">
+              <div class="flex space-x-3">
+                <div class="flex-1 relative">
+                  <input
+                    v-model="inviteUsername"
+                    type="text"
+                    :placeholder="t('teams.enterUsername')"
+                    class="w-full input"
+                    @input="searchUsers"
+                    @keyup.enter="sendInvitation"
+                    @focus="showSuggestions = true"
+                    @blur="onInputBlur"
+                  />
+                  <!-- Loading indicator -->
+                  <div v-if="searching" class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                  </div>
+                  <!-- Suggestions dropdown -->
+                  <div 
+                    v-if="showSuggestions" 
+                    class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                    style="top: 100%;"
+                  >
+                    <div v-if="userSuggestions.length > 0">
+                      <div 
+                        v-for="user in userSuggestions" 
+                        :key="user.id"
+                        class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center"
+                        @mousedown="selectUser(user)"
+                      >
+                        <div class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-3 overflow-hidden">
+                          <img
+                            v-if="user.avatar_url"
+                            :src="user.avatar_url"
+                            :alt="user.username"
+                            class="w-full h-full object-cover"
+                          />
+                          <span
+                            v-else
+                            class="text-xs font-medium text-primary-600 dark:text-primary-400"
+                          >
+                            {{ user.username.charAt(0).toUpperCase() }}
+                          </span>
+                        </div>
+                        <div>
+                          <div class="font-medium text-gray-900 dark:text-white">{{ user.username }}</div>
+                          <div v-if="user.name" class="text-sm text-gray-500 dark:text-gray-400">{{ user.name }}</div>
+                        </div>
+                      </div>
+                    </div>
+                     <div v-else class="px-4 py-3 text-gray-500 dark:text-gray-400 text-sm">
+                       No matching users found or user is already a team member
+                     </div>
+                   </div>
+                 </div>
+                 <button
+                  @click="sendInvitation"
+                  class="btn btn-primary"
+                  :disabled="!inviteUsername.trim() || inviting"
+                >
+                  <span v-if="inviting">{{ t('teams.inviting') }}</span>
+                  <span v-else>{{ t('teams.invite') }}</span>
+                </button>
+              </div>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                {{ t('teams.inviteUsernameHelp') }}
+              </p>
             </div>
-             <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-               {{ t('teams.inviteUsernameHelp') }}
-             </p>
           </div>
         </div>
       </div>
@@ -335,6 +383,10 @@ const team = ref<any>(null)
 const members = ref<any[]>([])
 const inviteUsername = ref('')
 const inviting = ref(false)
+const userSuggestions = ref<any[]>([])
+const searching = ref(false)
+const showSuggestions = ref(false)
+let searchTimeout: NodeJS.Timeout | null = null
 
 // Computed
 const teamId = computed(() => Number(route.params.id))
@@ -456,6 +508,73 @@ async function makeMember(userId: number) {
   }
 }
 
+async function searchUsers() {
+  const query = inviteUsername.value.trim()
+  
+  if (!query || query.length < 2) {
+    userSuggestions.value = []
+    showSuggestions.value = false
+    return
+  }
+  
+  // Clear previous timeout
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
+  
+  // Debounce search to avoid too many API calls
+  searchTimeout = setTimeout(async () => {
+    searching.value = true
+    try {
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      const response = await authStore.fetchWithAuth(`/api/users?username=${encodeURIComponent(query)}&limit=8`)
+      
+      if (response.ok) {
+        const users = await response.json()
+        console.log('Search results:', users, 'for query:', query)
+        // Filter out users who are already team members
+        const memberUserIds = new Set(
+          members.value
+            .map(m => m.user_id)
+            .filter(id => id != null)
+            .map(id => Number(id))
+        )
+        const filteredUsers = users.filter((user: any) => {
+          const userId = Number(user.id)
+          return !memberUserIds.has(userId)
+        })
+        console.log('Filtered users:', filteredUsers, 'member IDs:', Array.from(memberUserIds))
+        userSuggestions.value = filteredUsers
+        showSuggestions.value = true
+      } else {
+        console.error('Search failed with status:', response.status, response.statusText)
+        const errorText = await response.text().catch(() => '')
+        console.error('Error response:', errorText)
+      }
+    } catch (err) {
+      console.error('Failed to search users:', err)
+      console.error('Error details:', err)
+      userSuggestions.value = []
+    } finally {
+      searching.value = false
+    }
+  }, 300)
+}
+
+function selectUser(user: any) {
+  inviteUsername.value = user.username
+  userSuggestions.value = []
+  showSuggestions.value = false
+}
+
+function onInputBlur() {
+  // Delay hiding suggestions to allow click on suggestion
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
 async function sendInvitation() {
   if (!inviteUsername.value.trim()) return
 
@@ -479,8 +598,9 @@ async function sendInvitation() {
     
     // Send invitation
     await teamStore.inviteToTeam(teamId.value, user.id)
-    uiStore.showSuccess(t('teams.invitationSentTo', { username: inviteUsername.value }))
     inviteUsername.value = ''
+    userSuggestions.value = []
+    showSuggestions.value = false
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : t('teams.invitationError')
     uiStore.showError(errorMsg, t('teams.invitationError'))

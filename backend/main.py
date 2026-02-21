@@ -1819,6 +1819,17 @@ async def update_current_user_profile(
     return updated_user
 
 
+@app.get("/api/users", response_model=List[schemas.User])
+async def search_users(
+    username: Optional[str] = Query(None, description="Search query for username (case-insensitive partial match)"),
+    limit: int = Query(10, description="Maximum number of results to return"),
+    db: Session = Depends(get_db)
+):
+    """Search users by username"""
+    users = crud.search_users(db, username_query=username, limit=limit)
+    return users
+
+
 @app.get("/api/users/{user_id}", response_model=schemas.UserWithDetails)
 async def get_user_profile(
     user_id: int,

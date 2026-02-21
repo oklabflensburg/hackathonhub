@@ -28,6 +28,18 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
+def search_users(db: Session, username_query: str = None, limit: int = 10):
+    """Search users by username (case-insensitive partial match)"""
+    query = db.query(models.User)
+
+    if username_query:
+        # Case-insensitive partial match on username
+        query = query.filter(models.User.username.ilike(f"%{username_query}%"))
+
+    # Limit results and exclude current user from suggestions
+    return query.limit(limit).all()
+
+
 def create_user(db: Session, user: schemas.UserCreate):
     db_user = models.User(
         github_id=user.github_id,
@@ -98,12 +110,12 @@ def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
     user = get_user(db, user_id)
     if not user:
         return None
-    
+
     # Update only provided fields
     update_data = user_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(user, field, value)
-    
+
     db.commit()
     db.refresh(user)
     return user
@@ -826,12 +838,12 @@ def delete_team(db: Session, team_id: int):
         db.query(models.TeamMember).filter(
             models.TeamMember.team_id == team_id
         ).delete(synchronize_session=False)
-        
+
         # Delete all team invitations
         db.query(models.TeamInvitation).filter(
             models.TeamInvitation.team_id == team_id
         ).delete(synchronize_session=False)
-        
+
         # Set team_id to NULL for any projects referencing this team
         db.query(models.Project).filter(
             models.Project.team_id == team_id
@@ -839,27 +851,27 @@ def delete_team(db: Session, team_id: int):
             {models.Project.team_id: None},
             synchronize_session=False
         )
-        
+
         # Get all chat rooms associated with this team
         chat_rooms = db.query(models.ChatRoom).filter(
             models.ChatRoom.team_id == team_id
         ).all()
-        
+
         # For each chat room, delete related messages and participants
         for room in chat_rooms:
             # Delete chat messages for this room
             db.query(models.ChatMessage).filter(
                 models.ChatMessage.room_id == room.id
             ).delete(synchronize_session=False)
-            
+
             # Delete chat participants for this room
             db.query(models.ChatParticipant).filter(
                 models.ChatParticipant.room_id == room.id
             ).delete(synchronize_session=False)
-            
+
             # Delete the chat room
             db.delete(room)
-        
+
         # Now delete the team
         db.delete(db_team)
         db.commit()
@@ -901,22 +913,22 @@ def remove_team_member(db: Session, team_id: int, user_id: int):
 
 
 def update_team_member(
-    db: Session, 
-    team_id: int, 
-    user_id: int, 
+    db: Session,
+    team_id: int,
+    user_id: int,
     team_member_update: schemas.TeamMemberUpdate
 ):
     team_member = get_team_member(db, team_id, user_id)
     if not team_member:
         return None
-    
+
     # Update role if provided
     if team_member_update.role is not None:
         # Validate role value
         if team_member_update.role not in ['owner', 'member']:
             raise ValueError("Role must be 'owner' or 'member'")
         team_member.role = team_member_update.role
-    
+
     db.commit()
     db.refresh(team_member)
     return team_member
@@ -1167,17 +1179,17 @@ def create_newsletter_subscription_atomic(
     """
     Atomically create or update newsletter subscription.
     Returns (subscription, is_new) tuple where is_new is True if newly created.
-    
+
     This function uses database-level atomic operations to prevent race conditions
     and duplicate subscriptions.
     """
     # First, try to get existing subscription
     existing = get_newsletter_subscription(db, email)
-    
+
     if existing:
         # Subscription exists
         is_new = False
-        
+
         # Reactivate if previously unsubscribed
         if not existing.is_active:
             existing.is_active = True
@@ -1188,9 +1200,9 @@ def create_newsletter_subscription_atomic(
                 pass
             db.commit()
             db.refresh(existing)
-        
+
         return existing, is_new
-    
+
     # No existing subscription - create new one
     # Use database-level atomic insert with conflict handling
     try:
@@ -1203,12 +1215,12 @@ def create_newsletter_subscription_atomic(
         db.commit()
         db.refresh(db_subscription)
         return db_subscription, True
-        
+
     except Exception as e:
         # Handle race condition: another request might have created the subscription
         # between our check and the insert
         db.rollback()
-        
+
         if "UNIQUE constraint failed" in str(e) or "duplicate key" in str(e).lower():
             # Subscription was created by another concurrent request
             # Fetch the newly created subscription
