@@ -10,9 +10,9 @@
       </div>
       <div class="mt-4 md:mt-0">
         <button
-          @click="navigateTo('/teams/create')"
+          @click="handleCreateTeamClick"
           class="btn btn-primary"
-          :disabled="!isAuthenticated"
+          :disabled="authStore.isLoading"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -233,7 +233,6 @@
                 v-else-if="team.is_open && !isTeamFull(team)"
                 @click="joinTeam(team.id)"
                 class="text-sm px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700"
-                :disabled="!isAuthenticated"
               >
                 {{ $t('teams.joinTeam') }}
               </button>
@@ -336,6 +335,15 @@ function navigateTo(path: string) {
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString()
+}
+
+function handleCreateTeamClick() {
+  if (!isAuthenticated) {
+    uiStore.showError('You must be logged in to create a team', 'Authentication Required')
+    navigateTo('/login')
+    return
+  }
+  navigateTo('/teams/create')
 }
 
 function handleAvatarError(event: Event) {
