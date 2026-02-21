@@ -7,64 +7,44 @@ import crud
 import schemas
 import auth
 from email_verification import (
-    send_verification_email, create_verification_token)
+    send_verification_email, create_verification_token
+)
 
-# Password hashing using bcrypt directly (replaces passlib)
-# bcrypt has a 72-byte limit, we handle truncation for longer passwords
+
+def _truncate_to_72_bytes(password: str) -> bytes:
+    """Truncate password to 72 bytes in UTF-8 safe way"""
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) <= 72:
+        return password_bytes
+
+    # Take first 72 bytes and remove any incomplete UTF-8 sequence at the end
+    truncated = password_bytes[:72]
+    while truncated:
+        try:
+            truncated.decode('utf-8')
+            return truncated
+        except UnicodeDecodeError:
+            truncated = truncated[:-1]
+    return b''  # Should never happen
 
 
 def verify_password(plain_password: str, hashed_password: str):
     """Verify a password against its hash"""
-    # bcrypt has a 72-byte limit
-    # Always truncate to 72 bytes in a UTF-8 safe way
-    # (same as get_password_hash)
-    password_bytes = plain_password.encode('utf-8')
-    if len(password_bytes) > 72:
-        # Truncate to 72 bytes, but ensure we don't cut in
-        # middle of multi-byte char
-        # Find the last valid UTF-8 boundary
-        for i in range(72, 0, -1):
-            try:
-                truncated = password_bytes[:i].decode('utf-8')
-                break
-            except UnicodeDecodeError:
-                continue
-        else:
-            # If we can't decode any prefix, use empty string
-            # (shouldn't happen)
-            truncated = ""
-        password_bytes = truncated.encode('utf-8')
-    
+    password_bytes = _truncate_to_72_bytes(plain_password)
+
     # Convert hashed_password from string to bytes if needed
     if isinstance(hashed_password, str):
         hashed_password_bytes = hashed_password.encode('utf-8')
     else:
         hashed_password_bytes = hashed_password
-    
+
     return bcrypt.checkpw(password_bytes, hashed_password_bytes)
 
 
 def get_password_hash(password: str):
     """Hash a password"""
-    # bcrypt has a 72-byte limit
-    # Always truncate to 72 bytes in a UTF-8 safe way
-    password_bytes = password.encode('utf-8')
-    if len(password_bytes) > 72:
-        # Truncate to 72 bytes, but ensure we don't cut in
-        # middle of multi-byte char
-        # Find the last valid UTF-8 boundary
-        for i in range(72, 0, -1):
-            try:
-                truncated = password_bytes[:i].decode('utf-8')
-                break
-            except UnicodeDecodeError:
-                continue
-        else:
-            # If we can't decode any prefix, use empty string
-            # (shouldn't happen)
-            truncated = ""
-        password_bytes = truncated.encode('utf-8')
-    
+    password_bytes = _truncate_to_72_bytes(password)
+
     # Hash password with bcrypt
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password_bytes, salt)
@@ -79,7 +59,7 @@ def validate_email_address(email: str):
         # Normalize email
         return valid.email
     except EmailNotValidError:
-        return None
+        raise ValueError("Invalid email address")
 
 
 def register_user(db: Session, user_data: schemas.UserRegister):
@@ -132,15 +112,15 @@ def login_user(db: Session, email: str, password: str):
     # Find user by email
     user = crud.get_user_by_email(db, email)
     if not user:
-        return None
+        raise ValueError("Invalid email or password")
 
     # Check if user has password hash (email/password user)
     if not user.password_hash:
-        return None
+        raise ValueError("Invalid email or password")
 
     # Verify password
     if not verify_password(password, user.password_hash):
-        return None
+        raise ValueError("Invalid email or password")
 
     # Check if email is verified
     if not user.email_verified:
