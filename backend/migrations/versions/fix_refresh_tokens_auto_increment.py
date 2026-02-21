@@ -6,6 +6,7 @@ Create Date: 2026-02-21 13:28:01.746769
 
 """
 from alembic import op
+from sqlalchemy import text
 
 
 # revision identifiers, used by Alembic.
@@ -29,8 +30,8 @@ def upgrade():
         for table_name in tables_to_fix:
             # Check if table exists
             table_exists = bind.execute(
-                f"SELECT EXISTS (SELECT FROM information_schema.tables "
-                f"WHERE table_name = '{table_name}')"
+                text(f"SELECT EXISTS (SELECT FROM information_schema.tables "
+                     f"WHERE table_name = '{table_name}')")
             ).fetchone()[0]
             
             if not table_exists:
@@ -39,13 +40,13 @@ def upgrade():
             
             # Check if sequence already exists
             result = bind.execute(
-                f"SELECT pg_get_serial_sequence('{table_name}', 'id')"
+                text(f"SELECT pg_get_serial_sequence('{table_name}', 'id')")
             ).fetchone()
             
             if not result or not result[0]:
                 # Get current max id
                 max_id_result = bind.execute(
-                    f"SELECT COALESCE(MAX(id), 0) FROM {table_name}"
+                    text(f"SELECT COALESCE(MAX(id), 0) FROM {table_name}")
                 ).fetchone()
                 max_id = max_id_result[0] if max_id_result else 0
                 next_id = max_id + 1
@@ -89,8 +90,8 @@ def downgrade():
         for table_name in tables_to_check:
             # Check if table exists
             table_exists = bind.execute(
-                f"SELECT EXISTS (SELECT FROM information_schema.tables "
-                f"WHERE table_name = '{table_name}')"
+                text(f"SELECT EXISTS (SELECT FROM information_schema.tables "
+                     f"WHERE table_name = '{table_name}')")
             ).fetchone()[0]
             
             if not table_exists:
@@ -99,7 +100,7 @@ def downgrade():
             
             # Check if our sequence exists
             result = bind.execute(
-                f"SELECT pg_get_serial_sequence('{table_name}', 'id')"
+                text(f"SELECT pg_get_serial_sequence('{table_name}', 'id')")
             ).fetchone()
             
             seq_name = f"{table_name}_id_seq"
