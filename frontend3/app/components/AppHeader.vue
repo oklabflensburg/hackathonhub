@@ -47,7 +47,7 @@
               :class="{ 'text-primary-600 dark:text-primary-400': route.path === '/projects' }">
               {{ $t('appHeader.projects') }}
             </NuxtLink>
-            <NuxtLink to="/create"
+            <NuxtLink v-if="isAuthenticated" to="/create"
               class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
               :class="{ 'text-primary-600 dark:text-primary-400': route.path === '/create' }">
               {{ $t('appHeader.create') }}

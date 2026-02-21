@@ -74,6 +74,7 @@
           </NuxtLink>
 
           <NuxtLink
+            v-if="isAuthenticated"
             to="/create"
             @click="closeSidebar"
             class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

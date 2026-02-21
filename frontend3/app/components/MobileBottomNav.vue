@@ -49,10 +49,11 @@
 
       <!-- Create (Center with accent) -->
       <NuxtLink
+        v-if="isAuthenticated"
         to="/create"
-        class="flex flex-col items-center justify-center p-3 -mt-6 rounded-full 
-               bg-gradient-to-br from-primary-500 to-purple-600 
-               text-white shadow-lg hover:shadow-xl 
+        class="flex flex-col items-center justify-center p-3 -mt-6 rounded-full
+               bg-gradient-to-br from-primary-500 to-purple-600
+               text-white shadow-lg hover:shadow-xl
                transition-all duration-200 hover:-translate-y-1"
       >
         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,16 +133,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from '#imports'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '~/stores/auth'
 
 const { t } = useI18n()
 
 const router = useRouter()
+const authStore = useAuthStore()
 const showSearch = ref(false)
 const searchQuery = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
+
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const toggleSearch = () => {
   showSearch.value = !showSearch.value

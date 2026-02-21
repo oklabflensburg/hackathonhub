@@ -54,7 +54,7 @@
                 {{ t('navigation.projects') }}
               </NuxtLink>
             </li>
-            <li>
+            <li v-if="isAuthenticated">
               <NuxtLink to="/create" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                 {{ t('navigation.create') }}
               </NuxtLink>
@@ -192,9 +192,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useUIStore } from '~/stores/ui'
+import { useAuthStore } from '~/stores/auth'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
+
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const newsletterEmail = ref('')
 const newsletterLoading = ref(false)
