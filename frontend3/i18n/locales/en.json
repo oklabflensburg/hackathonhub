@@ -139,6 +139,35 @@
       "noAccount": "Don't have an account?",
       "createAccount": "Create one"
     },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email address and we'll send you a link to reset your password",
+      "email": "Email address",
+      "emailPlaceholder": "you[at]example.com",
+      "instructions": "Enter the email address associated with your account and we'll send you a link to reset your password.",
+      "sendResetLink": "Send reset link",
+      "sending": "Sending...",
+      "backToLogin": "Back to login",
+      "successMessage": "If an account with that email exists, a password reset link has been sent. Please check your email.",
+      "errorMessage": "An error occurred. Please try again."
+    },
+    "resetPassword": {
+      "title": "Set new password",
+      "subtitle": "Enter your new password below",
+      "newPassword": "New password",
+      "passwordPlaceholder": "Enter your new password",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "Re-enter your new password",
+      "passwordMismatch": "Passwords do not match",
+      "resetPassword": "Reset password",
+      "resetting": "Resetting...",
+      "backToLogin": "Back to login",
+      "requestNewLink": "Request new reset link",
+      "successMessage": "Password has been reset successfully. You can now log in with your new password.",
+      "errorMessage": "An error occurred. Please try again.",
+      "invalidToken": "Invalid or expired reset token",
+      "missingToken": "Missing reset token"
+    },
     "register": {
       "title": "Create your account",
       "subtitle": "Join our community of innovators",

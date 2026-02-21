@@ -1621,6 +1621,60 @@ async def login_user(
         )
 
 
+@app.post("/api/auth/forgot-password")
+async def forgot_password(
+    email_data: schemas.PasswordResetRequest,
+    db: Session = Depends(get_db)
+):
+    """Initiate password reset process"""
+    try:
+        # Call forgot_password function
+        email_auth.forgot_password(db, email_data.email)
+        
+        # Always return success (security best practice)
+        return {
+            "message": "If an account with that email exists, "
+                       "a password reset link has been sent."
+        }
+    except Exception:
+        # Still return success to avoid email enumeration
+        return {
+            "message": "If an account with that email exists, "
+                       "a password reset link has been sent."
+        }
+
+
+@app.post("/api/auth/reset-password")
+async def reset_password(
+    reset_data: schemas.PasswordResetConfirm,
+    db: Session = Depends(get_db)
+):
+    """Reset password using reset token"""
+    try:
+        # Call reset_password function
+        success = email_auth.reset_password(
+            db, reset_data.token, reset_data.new_password
+        )
+        
+        if success:
+            return {
+                "message": "Password has been reset successfully. "
+                           "You can now log in with your new password."
+            }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired reset token"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password reset failed: {str(e)}"
+        )
+
+
 @app.post("/api/auth/verify-email")
 async def verify_email(
     token: str = Body(..., embed=True),

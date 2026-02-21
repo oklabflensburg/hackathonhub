@@ -148,7 +148,8 @@ def login_user(db: Session, email: str, password: str):
     }
 
 
-def change_password(db: Session, user_id: int, current_password: str, new_password: str):
+def change_password(db: Session, user_id: int,
+                    current_password: str, new_password: str):
     """Change user password"""
     user = crud.get_user(db, user_id)
     if not user or not user.password_hash:
@@ -170,11 +171,157 @@ def change_password(db: Session, user_id: int, current_password: str, new_passwo
     return True
 
 
+def forgot_password(db: Session, email: str):
+    """Initiate password reset process by sending reset email"""
+    # Find user by email
+    user = crud.get_user_by_email(db, email)
+    if not user:
+        # Don't reveal that user doesn't exist (security best practice)
+        return True
+
+    # Generate reset token
+    import uuid
+    token = str(uuid.uuid4())
+    
+    # Set expiration (1 hour)
+    from datetime import timedelta
+    expires_at = datetime.utcnow() + timedelta(hours=1)
+    
+    # Create password reset token in database
+    crud.create_password_reset_token(db, user.id, token, expires_at)
+    
+    # Send password reset email
+    from email_service import EmailService
+    from email_verification import FRONTEND_URL
+    
+    reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
+    
+    subject = "Reset Your Password - Hackathon Dashboard"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+            }}
+            .container {{
+                background-color: #f9f9f9;
+                padding: 30px;
+                border-radius: 10px;
+            }}
+            .header {{
+                text-align: center;
+                margin-bottom: 30px;
+            }}
+            .logo {{
+                font-size: 24px;
+                font-weight: bold;
+                color: #4F46E5;
+            }}
+            .button {{
+                display: inline-block;
+                padding: 12px 24px;
+                background-color: #4F46E5;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                font-weight: bold;
+            }}
+            .footer {{
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #ddd;
+                font-size: 12px;
+                color: #666;
+                text-align: center;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo">Hackathon Dashboard</div>
+                <h1>Reset Your Password</h1>
+            </div>
+            
+            <p>Hello {user.name or user.username},</p>
+            
+            <p>We received a request to reset your password for your
+            Hackathon Dashboard account. If you made this request,
+            please click the button below to reset your password:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{reset_url}" class="button">Reset Password</a>
+            </div>
+            
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; background-color: #f0f0f0;
+               padding: 10px; border-radius: 5px; font-size: 12px;">
+                {reset_url}
+            </p>
+            
+            <p>This password reset link will expire in 1 hour.</p>
+            
+            <p>If you didn't request a password reset, you can safely
+            ignore this email. Your password will not be changed.</p>
+            
+            <div class="footer">
+                <p>This email was sent by Hackathon Dashboard</p>
+                <p>© {datetime.now().year} Hackathon Dashboard.
+                All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    text_content = f"""
+    Reset Your Password - Hackathon Dashboard
+    
+    Hello {user.name or user.username},
+    
+    We received a request to reset your password for your
+    Hackathon Dashboard account. If you made this request,
+    please click the link below to reset your password:
+    
+    {reset_url}
+    
+    This password reset link will expire in 1 hour.
+    
+    If you didn't request a password reset, you can safely
+    ignore this email. Your password will not be changed.
+    
+    © {datetime.now().year} Hackathon Dashboard. All rights reserved.
+    """
+    
+    # Send email
+    email_service = EmailService()
+    email_service.send_email(
+        to_email=user.email,
+        subject=subject,
+        body=text_content,
+        html_body=html_content
+    )
+    
+    return True
+
+
 def reset_password(db: Session, token: str, new_password: str):
     """Reset password using reset token"""
     # Find valid reset token
     reset_token = crud.get_password_reset_token(db, token)
-    if not reset_token or reset_token.used or reset_token.expires_at < datetime.utcnow():
+    if (not reset_token or reset_token.used or 
+            reset_token.expires_at < datetime.utcnow()):
         return False
 
     # Hash new password

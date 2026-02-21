@@ -140,6 +140,35 @@
       "noAccount": "Noch kein Konto?",
       "createAccount": "Konto erstellen"
     },
+    "forgotPassword": {
+      "title": "Passwort zurücksetzen",
+      "subtitle": "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts",
+      "email": "E-Mail-Adresse",
+      "emailPlaceholder": "sie[at]beispiel.com",
+      "instructions": "Geben Sie die mit Ihrem Konto verknüpfte E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.",
+      "sendResetLink": "Link zum Zurücksetzen senden",
+      "sending": "Wird gesendet...",
+      "backToLogin": "Zurück zur Anmeldung",
+      "successMessage": "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum Zurücksetzen des Passworts gesendet. Bitte überprüfen Sie Ihre E-Mails.",
+      "errorMessage": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+    },
+    "resetPassword": {
+      "title": "Neues Passwort festlegen",
+      "subtitle": "Geben Sie unten Ihr neues Passwort ein",
+      "newPassword": "Neues Passwort",
+      "passwordPlaceholder": "Geben Sie Ihr neues Passwort ein",
+      "confirmPassword": "Passwort bestätigen",
+      "confirmPasswordPlaceholder": "Geben Sie Ihr neues Passwort erneut ein",
+      "passwordMismatch": "Passwörter stimmen nicht überein",
+      "resetPassword": "Passwort zurücksetzen",
+      "resetting": "Wird zurückgesetzt...",
+      "backToLogin": "Zurück zur Anmeldung",
+      "requestNewLink": "Neuen Link zum Zurücksetzen anfordern",
+      "successMessage": "Passwort wurde erfolgreich zurückgesetzt. Sie können sich jetzt mit Ihrem neuen Passwort anmelden.",
+      "errorMessage": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+      "invalidToken": "Ungültiger oder abgelaufener Reset-Token",
+      "missingToken": "Reset-Token fehlt"
+    },
     "register": {
       "title": "Erstellen Sie Ihr Konto",
       "subtitle": "Werden Sie Teil unserer Community von Innovatoren",
