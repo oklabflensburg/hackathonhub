@@ -1582,17 +1582,14 @@ async def register_user(
     """Register a new user with email/password"""
     try:
         # Register user
-        result = email_auth.register_user(db, user_data)
+        user = email_auth.register_user(db, user_data)
 
-        # Send verification email
-        email_auth.send_verification_email(
-            db, result["user"].id, result["user"].email
-        )
+        # Note: Verification email is already sent by register_user function
 
         return {
             "message": "User registered successfully. "
                        "Please check your email for verification.",
-            "user": result["user"],
+            "user": user,
             "requires_verification": True
         }
     except ValueError as e:
