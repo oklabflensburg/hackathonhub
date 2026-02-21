@@ -135,13 +135,12 @@ async def create_project(
         from i18n.middleware import get_locale_from_request
         language = get_locale_from_request() or "en"
         
-        # For now, just log that notification would be sent
-        # In future, we could notify team members, hackathon participants, etc.
+        # Log project creation
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Project created: {db_project.id} by user {current_user.id}")
         
-        # Example: Notify team members if project has a team
+        # Notify team members if project has a team
         if db_project.team_id:
             # Get team members (excluding the project creator)
             team_members = db.query(models.TeamMember).filter(
