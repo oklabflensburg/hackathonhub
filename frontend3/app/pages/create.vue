@@ -483,6 +483,10 @@
 import { ref, onMounted } from 'vue'
 import { useUIStore } from '~/stores/ui'
 
+definePageMeta({
+  middleware: 'auth'
+})
+
 const { t } = useI18n()
 const uiStore = useUIStore()
 const route = useRoute()
