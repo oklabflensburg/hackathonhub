@@ -24,64 +24,96 @@ def upgrade() -> None:
     # 1. Fix authentication tables that might be missing columns
     # 2. Add any missing indexes
     
-    # First, ensure refresh_tokens has token_id column
-    # We'll use raw SQL to check and add if needed
     conn = op.get_bind()
+    dialect_name = conn.engine.dialect.name
     
-    # Check if refresh_tokens table exists and has token_id
-    result = conn.execute(
-        sa.text(
-            "SELECT EXISTS (SELECT FROM information_schema.tables "
-            "WHERE table_name = 'refresh_tokens')"
+    # Helper function to check if column exists in a database-agnostic way
+    def column_exists(table_name, column_name):
+        if dialect_name == 'sqlite':
+            # For SQLite, use pragma table_info
+            try:
+                result = conn.execute(
+                    sa.text(f"PRAGMA table_info({table_name})")
+                ).fetchall()
+                # result is list of tuples:
+                # (cid, name, type, notnull, default_value, pk)
+                for col in result:
+                    if col[1] == column_name:
+                        return True
+                return False
+            except Exception:
+                return False
+        else:
+            # PostgreSQL and other databases
+            try:
+                result = conn.execute(
+                    sa.text(
+                        "SELECT EXISTS (SELECT FROM "
+                        "information_schema.columns "
+                        f"WHERE table_name = '{table_name}' "
+                        f"AND column_name = '{column_name}')"
+                    )
+                ).scalar()
+                return bool(result)
+            except Exception:
+                return False
+    
+    # Helper function to check if table exists
+    def table_exists(table_name):
+        if dialect_name == 'sqlite':
+            try:
+                result = conn.execute(
+                    sa.text(
+                        f"SELECT name FROM sqlite_master "
+                        f"WHERE type='table' AND name='{table_name}'"
+                    )
+                ).fetchone()
+                return result is not None
+            except Exception:
+                return False
+        else:
+            try:
+                result = conn.execute(
+                    sa.text(
+                        "SELECT EXISTS (SELECT FROM information_schema.tables "
+                        f"WHERE table_name = '{table_name}')"
+                    )
+                ).scalar()
+                return bool(result)
+            except Exception:
+                return False
+    
+    # 1. Fix refresh_tokens table - add token_id column if missing
+    if (table_exists('refresh_tokens') and
+            not column_exists('refresh_tokens', 'token_id')):
+        # Add token_id column
+        op.add_column(
+            'refresh_tokens',
+            sa.Column('token_id', sa.String(64), nullable=True)
         )
-    ).scalar()
-    
-    if result:
-        # Table exists, check for token_id column
-        col_result = conn.execute(
+        # Set temporary values for existing rows
+        conn.execute(
             sa.text(
-                "SELECT EXISTS (SELECT FROM information_schema.columns "
-                "WHERE table_name = 'refresh_tokens' "
-                "AND column_name = 'token_id')"
+                "UPDATE refresh_tokens SET token_id = 'temp_' || id "
+                "WHERE token_id IS NULL"
             )
-        ).scalar()
-        if not col_result:
-            # Add token_id column
-            op.add_column(
-                'refresh_tokens',
-                sa.Column('token_id', sa.String(64), nullable=True)
-            )
-            # Set temporary values for existing rows
-            conn.execute(
-                sa.text(
-                    "UPDATE refresh_tokens SET token_id = 'temp_' || id "
-                    "WHERE token_id IS NULL"
-                )
-            )
-            # Make column NOT NULL
+        )
+        # Make column NOT NULL (except for SQLite which has limitations)
+        if dialect_name != 'sqlite':
             op.alter_column(
                 'refresh_tokens', 'token_id',
                 existing_type=sa.String(64),
                 nullable=False
             )
-            # Create unique index
-            op.create_index(
-                'ix_refresh_tokens_token_id',
-                'refresh_tokens', ['token_id'], unique=True
-            )
-    
-    # Fix email_verification_tokens table
-    # Add used column if it doesn't exist
-    # Check if column exists first
-    col_exists = conn.execute(
-        sa.text(
-            "SELECT EXISTS (SELECT FROM information_schema.columns "
-            "WHERE table_name = 'email_verification_tokens' "
-            "AND column_name = 'used')"
+        # Create unique index
+        op.create_index(
+            'ix_refresh_tokens_token_id',
+            'refresh_tokens', ['token_id'], unique=True
         )
-    ).scalar()
     
-    if not col_exists:
+    # 2. Fix email_verification_tokens table - add used column if missing
+    if (table_exists('email_verification_tokens') and
+            not column_exists('email_verification_tokens', 'used')):
         op.add_column(
             'email_verification_tokens',
             sa.Column(
@@ -89,20 +121,10 @@ def upgrade() -> None:
                 server_default=sa.text('false'), nullable=True
             )
         )
-    # Try to drop used_at if it exists (will fail silently if not)
     
-    # Fix password_reset_tokens table  
-    # Add used column if it doesn't exist
-    # Check if column exists first
-    col_exists = conn.execute(
-        sa.text(
-            "SELECT EXISTS (SELECT FROM information_schema.columns "
-            "WHERE table_name = 'password_reset_tokens' "
-            "AND column_name = 'used')"
-        )
-    ).scalar()
-    
-    if not col_exists:
+    # 3. Fix password_reset_tokens table - add used column if missing
+    if (table_exists('password_reset_tokens') and
+            not column_exists('password_reset_tokens', 'used')):
         op.add_column(
             'password_reset_tokens',
             sa.Column(
@@ -110,15 +132,34 @@ def upgrade() -> None:
                 server_default=sa.text('false'), nullable=True
             )
         )
-    # Try to drop used_at if it exists (will fail silently if not)
     
-    # Add index to users.username (if it doesn't already exist)
-    index_exists = conn.execute(
-        sa.text(
-            "SELECT EXISTS (SELECT FROM pg_indexes "
-            "WHERE tablename = 'users' AND indexname = 'ix_users_username')"
-        )
-    ).scalar()
+    # 4. Add index to users.username if it doesn't exist
+    # Check if index exists (database-specific)
+    if dialect_name == 'sqlite':
+        # SQLite: check sqlite_master for index
+        try:
+            result = conn.execute(
+                sa.text(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type='index' AND name='ix_users_username'"
+                )
+            ).fetchone()
+            index_exists = result is not None
+        except Exception:
+            index_exists = False
+    else:
+        # PostgreSQL
+        try:
+            result = conn.execute(
+                sa.text(
+                    "SELECT EXISTS (SELECT FROM pg_indexes "
+                    "WHERE tablename = 'users' AND "
+                    "indexname = 'ix_users_username')"
+                )
+            ).scalar()
+            index_exists = bool(result)
+        except Exception:
+            index_exists = False
     
     if not index_exists:
         op.create_index(
