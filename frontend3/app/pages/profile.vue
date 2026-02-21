@@ -280,6 +280,15 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ $t('profile.accountSettings') }}</h3>
           <div class="space-y-4">
+            <NuxtLink to="/notifications?tab=preferences"
+              class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span class="font-medium">{{ $t('profile.notificationPreferences') }}</span>
+            </NuxtLink>
+            
             <button @click="handleLogout"
               class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

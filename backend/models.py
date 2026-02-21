@@ -134,7 +134,7 @@ class HackathonRegistration(Base):
     )
 
     user = relationship("User")
-    hackathon = relationship("Hackathon", back_populates="registrations")
+    hackathon = relationship("Hackathon")
 
 
 class Vote(Base):
@@ -382,6 +382,79 @@ class PasswordResetToken(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     used = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+
+
+class UserNotificationPreference(Base):
+    __tablename__ = "user_notification_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey(
+        "users.id", ondelete="CASCADE"), nullable=False)
+    notification_type = Column(String(50), nullable=False)
+    # 'email', 'push', 'in_app', 'all'
+    channel = Column(String(20), nullable=False)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            'user_id', 'notification_type', 'channel',
+            name='_user_notification_channel_uc'
+        ),
+    )
+
+    user = relationship("User")
+
+
+class NotificationType(Base):
+    __tablename__ = "notification_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    type_key = Column(String(50), unique=True, nullable=False)
+    # 'team', 'project', 'hackathon', 'system'
+    category = Column(String(50), nullable=False)
+    default_channels = Column(String(100), default='email,in_app')
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserNotification(Base):
+    __tablename__ = "user_notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey(
+        "users.id", ondelete="CASCADE"), nullable=False)
+    notification_type = Column(String(50), nullable=False)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    data = Column(Text)  # JSON string for additional data
+    # Comma-separated channels actually used
+    channels_sent = Column(String(100))
+    read_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey(
+        "users.id", ondelete="CASCADE"), nullable=False)
+    endpoint = Column(Text, nullable=False)
+    p256dh_key = Column(Text, nullable=False)
+    auth_key = Column(Text, nullable=False)
+    user_agent = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('endpoint', name='_push_endpoint_uc'),
+    )
 
     user = relationship("User")
 

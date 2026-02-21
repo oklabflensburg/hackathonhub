@@ -535,6 +535,85 @@ class NewsletterSubscription(NewsletterSubscriptionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# Notification schemas
+class NotificationTypeBase(BaseModel):
+    type_key: str
+    category: str  # 'team', 'project', 'hackathon', 'system'
+    default_channels: str = 'email,in_app'
+    description: Optional[str] = None
+
+
+class NotificationTypeCreate(NotificationTypeBase):
+    pass
+
+
+class NotificationType(NotificationTypeBase):
+    id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserNotificationPreferenceBase(BaseModel):
+    notification_type: str
+    channel: str  # 'email', 'push', 'in_app', 'all'
+    enabled: bool = True
+
+
+class UserNotificationPreferenceCreate(UserNotificationPreferenceBase):
+    pass
+
+
+class UserNotificationPreference(UserNotificationPreferenceBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserNotificationBase(BaseModel):
+    notification_type: str
+    title: str
+    message: str
+    data: Optional[str] = None
+    channels_sent: Optional[str] = None
+
+
+class UserNotificationCreate(UserNotificationBase):
+    pass
+
+
+class UserNotification(UserNotificationBase):
+    id: int
+    user_id: int
+    read_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PushSubscriptionBase(BaseModel):
+    endpoint: str
+    p256dh_key: str
+    auth_key: str
+    user_agent: Optional[str] = None
+
+
+class PushSubscriptionCreate(PushSubscriptionBase):
+    pass
+
+
+class PushSubscription(PushSubscriptionBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # Update Comment to handle recursive references
 
 

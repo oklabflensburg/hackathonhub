@@ -364,6 +364,7 @@
     "viewMyProjects": "View My Projects",
     "viewMyVotes": "View My Votes",
     "accountSettings": "Account Settings",
+    "notificationPreferences": "Notification Preferences",
     "logOut": "Log Out",
     "publicProfile": "Public Profile",
     "viewingPublicProfile": "Viewing public profile",
@@ -844,5 +845,91 @@
     "upvotedSuccessfully": "Vote upvoted successfully",
     "downvotedSuccessfully": "Vote downvoted successfully",
     "failedToVote": "Failed to vote"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Manage your notifications and preferences",
+    "markAllAsRead": "Mark all as read",
+    "refresh": "Refresh",
+    "totalNotifications": "Total Notifications",
+    "readNotifications": "Read",
+    "unreadNotifications": "Unread",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read",
+      "preferences": "Preferences"
+    },
+    "loading": "Loading notifications...",
+    "noNotifications": "No notifications",
+    "noNotificationsDescription": "You're all caught up! No new notifications.",
+    "unread": "Unread",
+    "markAsRead": "Mark as read",
+    "channels": {
+      "email": "Email",
+      "push": "Push",
+      "in_app": "In-App"
+    },
+    "actions": {
+      "viewProject": "View Project",
+      "viewTeam": "View Team",
+      "viewHackathon": "View Hackathon",
+      "viewInvitation": "View Invitation",
+      "view": "View"
+    },
+    "loadMore": "Load more",
+    "loadMoreError": "Failed to load more notifications",
+    "markAllAsReadError": "Failed to mark all notifications as read",
+    "justNow": "Just now",
+    "minutesAgo": "{minutes} min ago",
+    "hoursAgo": "{hours} hr ago",
+    "daysAgo": "{days} day ago"
+  },
+  "notificationSettings": {
+    "title": "Notification Settings",
+    "description": "Configure how and when you receive notifications",
+    "globalSettings": "Global Settings",
+    "globalDescription": "Control all notifications at once",
+    "enableAllNotifications": "Enable all notifications",
+    "enableAllDescription": "Turn all notifications on or off",
+    "disableAllNotifications": "Disable all notifications",
+    "channelPreferences": "Channel Preferences",
+    "channelDescription": "Choose how you want to receive notifications",
+    "emailNotifications": "Email notifications",
+    "emailDescription": "Receive notifications via email",
+    "disableEmailNotifications": "Disable email notifications",
+    "enableEmailNotifications": "Enable email notifications",
+    "pushNotifications": "Push notifications",
+    "pushDescription": "Receive browser push notifications",
+    "disablePushNotifications": "Disable push notifications",
+    "enablePushNotifications": "Enable push notifications",
+    "enablePush": "Enable push notifications",
+    "pushNotSupported": "Push notifications are not supported in your browser",
+    "inAppNotifications": "In-app notifications",
+    "inAppDescription": "See notifications within the application",
+    "disableInAppNotifications": "Disable in-app notifications",
+    "enableInAppNotifications": "Enable in-app notifications",
+    "categories": {
+      "team": "Team Notifications",
+      "project": "Project Notifications",
+      "system": "System Notifications"
+    },
+    "categoryDescriptions": {
+      "team": "Notifications about team activities",
+      "project": "Notifications about project updates",
+      "system": "System announcements and alerts"
+    },
+    "channels": {
+      "email": "Email",
+      "push": "Push",
+      "in_app": "In-App"
+    },
+    "enableNotificationType": "Enable {type} notifications",
+    "disableNotificationType": "Disable {type} notifications",
+    "saveSettings": "Save Settings",
+    "settingsSaved": "Notification settings saved successfully",
+    "pushEnabledSuccess": "Push notifications enabled successfully",
+    "pushEnableError": "Failed to enable push notifications",
+    "saveError": "Failed to save settings"
   }
 }

@@ -1263,3 +1263,218 @@ def get_active_subscriptions(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.NewsletterSubscription).filter(
         models.NewsletterSubscription.is_active == True
     ).offset(skip).limit(limit).all()
+
+
+# Notification CRUD operations
+
+def get_notification_type(db: Session, type_key: str):
+    """Get a notification type by its key."""
+    return db.query(models.NotificationType).filter(
+        models.NotificationType.type_key == type_key
+    ).first()
+
+
+def get_notification_types(db: Session):
+    """Get all notification types."""
+    return db.query(models.NotificationType).all()
+
+
+def create_notification_type(db: Session, notification_type: schemas.NotificationTypeCreate):
+    """Create a new notification type."""
+    db_notification_type = models.NotificationType(**notification_type.dict())
+    db.add(db_notification_type)
+    db.commit()
+    db.refresh(db_notification_type)
+    return db_notification_type
+
+
+def get_user_notification_preference(
+    db: Session,
+    user_id: int,
+    notification_type: str,
+    channel: str
+):
+    """Get a user's notification preference for a specific type and channel."""
+    return db.query(models.UserNotificationPreference).filter(
+        models.UserNotificationPreference.user_id == user_id,
+        models.UserNotificationPreference.notification_type == notification_type,
+        models.UserNotificationPreference.channel == channel
+    ).first()
+
+
+def get_user_notification_preferences(db: Session, user_id: int):
+    """Get all notification preferences for a user."""
+    return db.query(models.UserNotificationPreference).filter(
+        models.UserNotificationPreference.user_id == user_id
+    ).all()
+
+
+def create_user_notification_preference(
+    db: Session,
+    user_id: int,
+    notification_type: str,
+    channel: str,
+    enabled: bool = True
+):
+    """Create or update a user's notification preference."""
+    # Check if preference already exists
+    existing = get_user_notification_preference(db, user_id, notification_type, channel)
+    
+    if existing:
+        # Update existing preference
+        existing.enabled = enabled
+        db.commit()
+        db.refresh(existing)
+        return existing
+    else:
+        # Create new preference
+        db_preference = models.UserNotificationPreference(
+            user_id=user_id,
+            notification_type=notification_type,
+            channel=channel,
+            enabled=enabled
+        )
+        db.add(db_preference)
+        db.commit()
+        db.refresh(db_preference)
+        return db_preference
+
+
+def update_user_notification_preference(
+    db: Session,
+    user_id: int,
+    notification_type: str,
+    channel: str,
+    enabled: bool
+):
+    """Update a user's notification preference."""
+    preference = get_user_notification_preference(db, user_id, notification_type, channel)
+    if preference:
+        preference.enabled = enabled
+        db.commit()
+        db.refresh(preference)
+    return preference
+
+
+def get_user_notifications(
+    db: Session,
+    user_id: int,
+    skip: int = 0,
+    limit: int = 50,
+    unread_only: bool = False
+):
+    """Get notifications for a user."""
+    query = db.query(models.UserNotification).filter(
+        models.UserNotification.user_id == user_id
+    )
+    
+    if unread_only:
+        query = query.filter(models.UserNotification.read_at.is_(None))
+    
+    return query.order_by(models.UserNotification.created_at.desc()).offset(skip).limit(limit).all()
+
+
+def create_user_notification(
+    db: Session,
+    user_id: int,
+    notification_type: str,
+    title: str,
+    message: str,
+    data: dict = None,
+    channel: str = "in_app"
+):
+    """Create a new user notification."""
+    db_notification = models.UserNotification(
+        user_id=user_id,
+        notification_type=notification_type,
+        title=title,
+        message=message,
+        data=data,
+        channel=channel
+    )
+    db.add(db_notification)
+    db.commit()
+    db.refresh(db_notification)
+    return db_notification
+
+
+def mark_notification_as_read(db: Session, notification_id: int):
+    """Mark a notification as read."""
+    notification = db.query(models.UserNotification).filter(
+        models.UserNotification.id == notification_id
+    ).first()
+    
+    if notification and notification.read_at is None:
+        notification.read_at = datetime.utcnow()
+        db.commit()
+        db.refresh(notification)
+    
+    return notification
+
+
+def mark_all_notifications_as_read(db: Session, user_id: int):
+    """Mark all notifications for a user as read."""
+    notifications = db.query(models.UserNotification).filter(
+        models.UserNotification.user_id == user_id,
+        models.UserNotification.read_at.is_(None)
+    ).all()
+    
+    for notification in notifications:
+        notification.read_at = datetime.utcnow()
+    
+    db.commit()
+    return len(notifications)
+
+
+def get_push_subscription(db: Session, user_id: int, endpoint: str):
+    """Get a push subscription for a user."""
+    return db.query(models.PushSubscription).filter(
+        models.PushSubscription.user_id == user_id,
+        models.PushSubscription.endpoint == endpoint
+    ).first()
+
+
+def get_user_push_subscriptions(db: Session, user_id: int):
+    """Get all push subscriptions for a user."""
+    return db.query(models.PushSubscription).filter(
+        models.PushSubscription.user_id == user_id
+    ).all()
+
+
+def create_push_subscription(
+    db: Session,
+    user_id: int,
+    endpoint: str,
+    keys: dict
+):
+    """Create a new push subscription."""
+    # Check if subscription already exists
+    existing = get_push_subscription(db, user_id, endpoint)
+    
+    if existing:
+        # Update existing subscription
+        existing.keys = keys
+        existing.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(existing)
+        return existing
+    else:
+        # Create new subscription
+        db_subscription = models.PushSubscription(
+            user_id=user_id,
+            endpoint=endpoint,
+            keys=keys
+        )
+        db.add(db_subscription)
+        db.commit()
+        db.refresh(db_subscription)
+        return db_subscription
+
+
+def delete_push_subscription(db: Session, user_id: int, endpoint: str):
+    """Delete a push subscription."""
+    subscription = get_push_subscription(db, user_id, endpoint)
+    if subscription:
+        db.delete(subscription)
+        db.commit()
+    return subscription

@@ -365,6 +365,7 @@
     "viewMyProjects": "Meine Projekte anzeigen",
     "viewMyVotes": "Meine Stimmen anzeigen",
     "accountSettings": "Kontoeinstellungen",
+    "notificationPreferences": "Benachrichtigungseinstellungen",
     "logOut": "Abmelden",
     "publicProfile": "Öffentliches Profil",
     "viewingPublicProfile": "Öffentliches Profil anzeigen",
@@ -533,6 +534,10 @@
     "stats": {
       "views": "Aufrufe",
       "comments": "Kommentare"
+    },
+    "team": {
+      "team": "Team",
+      "members": "Mitglieder"
     },
     "teams": {
       "team": "Team",
@@ -927,5 +932,91 @@
     "upvotedSuccessfully": "Erfolgreich positiv bewertet",
     "downvotedSuccessfully": "Erfolgreich negativ bewertet",
     "failedToVote": "Bewertung fehlgeschlagen"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "description": "Verwalte deine Benachrichtigungen und Einstellungen",
+    "markAllAsRead": "Alle als gelesen markieren",
+    "refresh": "Aktualisieren",
+    "totalNotifications": "Gesamte Benachrichtigungen",
+    "readNotifications": "Gelesen",
+    "unreadNotifications": "Ungelesen",
+    "tabs": {
+      "all": "Alle",
+      "unread": "Ungelesen",
+      "read": "Gelesen",
+      "preferences": "Einstellungen"
+    },
+    "loading": "Lade Benachrichtigungen...",
+    "noNotifications": "Keine Benachrichtigungen",
+    "noNotificationsDescription": "Du bist auf dem neuesten Stand! Keine neuen Benachrichtigungen.",
+    "unread": "Ungelesen",
+    "markAsRead": "Als gelesen markieren",
+    "channels": {
+      "email": "E-Mail",
+      "push": "Push",
+      "in_app": "In-App"
+    },
+    "actions": {
+      "viewProject": "Projekt ansehen",
+      "viewTeam": "Team ansehen",
+      "viewHackathon": "Hackathon ansehen",
+      "viewInvitation": "Einladung ansehen",
+      "view": "Ansehen"
+    },
+    "loadMore": "Mehr laden",
+    "loadMoreError": "Fehler beim Laden weiterer Benachrichtigungen",
+    "markAllAsReadError": "Fehler beim Markieren aller Benachrichtigungen als gelesen",
+    "justNow": "Gerade eben",
+    "minutesAgo": "Vor {minutes} Min.",
+    "hoursAgo": "Vor {hours} Std.",
+    "daysAgo": "Vor {days} Tag"
+  },
+  "notificationSettings": {
+    "title": "Benachrichtigungseinstellungen",
+    "description": "Konfiguriere, wie und wann du Benachrichtigungen erhältst",
+    "globalSettings": "Globale Einstellungen",
+    "globalDescription": "Alle Benachrichtigungen auf einmal steuern",
+    "enableAllNotifications": "Alle Benachrichtigungen aktivieren",
+    "enableAllDescription": "Alle Benachrichtigungen ein- oder ausschalten",
+    "disableAllNotifications": "Alle Benachrichtigungen deaktivieren",
+    "channelPreferences": "Kanalpräferenzen",
+    "channelDescription": "Wähle, wie du Benachrichtigungen erhalten möchtest",
+    "emailNotifications": "E-Mail-Benachrichtigungen",
+    "emailDescription": "Benachrichtigungen per E-Mail erhalten",
+    "disableEmailNotifications": "E-Mail-Benachrichtigungen deaktivieren",
+    "enableEmailNotifications": "E-Mail-Benachrichtigungen aktivieren",
+    "pushNotifications": "Push-Benachrichtigungen",
+    "pushDescription": "Browser-Push-Benachrichtigungen erhalten",
+    "disablePushNotifications": "Push-Benachrichtigungen deaktivieren",
+    "enablePushNotifications": "Push-Benachrichtigungen aktivieren",
+    "enablePush": "Push-Benachrichtigungen aktivieren",
+    "pushNotSupported": "Push-Benachrichtigungen werden von deinem Browser nicht unterstützt",
+    "inAppNotifications": "In-App-Benachrichtigungen",
+    "inAppDescription": "Benachrichtigungen innerhalb der Anwendung sehen",
+    "disableInAppNotifications": "In-App-Benachrichtigungen deaktivieren",
+    "enableInAppNotifications": "In-App-Benachrichtigungen aktivieren",
+    "categories": {
+      "team": "Team-Benachrichtigungen",
+      "project": "Projekt-Benachrichtigungen",
+      "system": "System-Benachrichtigungen"
+    },
+    "categoryDescriptions": {
+      "team": "Benachrichtigungen über Teamaktivitäten",
+      "project": "Benachrichtigungen über Projektaktualisierungen",
+      "system": "Systemankündigungen und Warnungen"
+    },
+    "channels": {
+      "email": "E-Mail",
+      "push": "Push",
+      "in_app": "In-App"
+    },
+    "enableNotificationType": "{type}-Benachrichtigungen aktivieren",
+    "disableNotificationType": "{type}-Benachrichtigungen deaktivieren",
+    "saveSettings": "Einstellungen speichern",
+    "settingsSaved": "Benachrichtigungseinstellungen erfolgreich gespeichert",
+    "pushEnabledSuccess": "Push-Benachrichtigungen erfolgreich aktiviert",
+    "pushEnableError": "Fehler beim Aktivieren von Push-Benachrichtigungen",
+    "saveError": "Fehler beim Speichern der Einstellungen"
   }
 }

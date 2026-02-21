@@ -17,6 +17,8 @@ import email_auth
 import google_oauth
 import file_upload
 from notification_service import notification_service
+from notification_preference_service import notification_preference_service
+from push_notification_service import push_notification_service
 
 from i18n.middleware import LocaleMiddleware
 from i18n.translations import get_translation
@@ -2121,6 +2123,189 @@ async def get_current_user(
     ]
 
     return user_with_details
+
+
+# Notification endpoints
+
+@app.get("/api/notifications", response_model=List[schemas.UserNotification])
+async def get_user_notifications(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    unread_only: bool = Query(False)
+):
+    """Get notifications for the current user."""
+    notifications = crud.get_user_notifications(
+        db, current_user.id, skip, limit, unread_only
+    )
+    return notifications
+
+
+@app.get("/api/notifications/unread-count")
+async def get_unread_notification_count(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get count of unread notifications for the current user."""
+    notifications = crud.get_user_notifications(
+        db, current_user.id, unread_only=True
+    )
+    return {"count": len(notifications)}
+
+
+@app.post("/api/notifications/{notification_id}/read")
+async def mark_notification_as_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Mark a notification as read."""
+    notification = crud.mark_notification_as_read(db, notification_id)
+    
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    if notification.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    return {"message": "Notification marked as read", "notification_id": notification_id}
+
+
+@app.post("/api/notifications/read-all")
+async def mark_all_notifications_as_read(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Mark all notifications for the current user as read."""
+    count = crud.mark_all_notifications_as_read(db, current_user.id)
+    return {"message": f"Marked {count} notifications as read", "count": count}
+
+
+@app.get("/api/notification-preferences")
+async def get_notification_preferences(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get notification preferences for the current user."""
+    preferences = notification_preference_service.get_user_preferences(db, current_user.id)
+    return preferences
+
+
+@app.get("/api/notification-types")
+async def get_notification_types_with_preferences(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get all notification types with user's preferences."""
+    types = notification_preference_service.get_notification_types_with_preferences(
+        db, current_user.id
+    )
+    return types
+
+
+@app.put("/api/notification-preferences")
+async def update_notification_preferences(
+    preferences: dict,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Update notification preferences for the current user."""
+    success = notification_preference_service.update_user_preferences(
+        db, current_user.id, preferences
+    )
+    
+    if success:
+        return {"message": "Notification preferences updated successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update preferences")
+
+
+@app.post("/api/notification-preferences/{notification_type}/{channel}")
+async def update_notification_preference(
+    notification_type: str,
+    channel: str,
+    enabled: bool = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Update a specific notification preference."""
+    if channel not in ["email", "push", "in_app"]:
+        raise HTTPException(status_code=400, detail="Invalid channel")
+    
+    preference = crud.update_user_notification_preference(
+        db, current_user.id, notification_type, channel, enabled
+    )
+    
+    if preference:
+        return {"message": "Preference updated successfully", "enabled": enabled}
+    else:
+        # Create new preference if it doesn't exist
+        preference = crud.create_user_notification_preference(
+            db, current_user.id, notification_type, channel, enabled
+        )
+        return {"message": "Preference created successfully", "enabled": enabled}
+
+
+# Push notification endpoints
+
+@app.get("/api/push-subscriptions")
+async def get_push_subscriptions(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get push subscriptions for the current user."""
+    subscriptions = crud.get_user_push_subscriptions(db, current_user.id)
+    return subscriptions
+
+
+@app.post("/api/push-subscriptions")
+async def create_push_subscription(
+    subscription: schemas.PushSubscriptionCreate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Create or update a push subscription for the current user."""
+    # Validate endpoint
+    if not subscription.endpoint or not subscription.keys:
+        raise HTTPException(status_code=400, detail="Endpoint and keys are required")
+    
+    # Create or update subscription
+    db_subscription = crud.create_push_subscription(
+        db, current_user.id, subscription.endpoint, subscription.keys
+    )
+    
+    return {"message": "Push subscription saved successfully", "id": db_subscription.id}
+
+
+@app.delete("/api/push-subscriptions/{endpoint}")
+async def delete_push_subscription(
+    endpoint: str,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Delete a push subscription for the current user."""
+    subscription = crud.delete_push_subscription(db, current_user.id, endpoint)
+    
+    if subscription:
+        return {"message": "Push subscription deleted successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+
+@app.get("/api/push/vapid-public-key")
+async def get_vapid_public_key():
+    """Get VAPID public key for web push notifications."""
+    import os
+    vapid_public_key = os.environ.get("VAPID_PUBLIC_KEY")
+    
+    if not vapid_public_key:
+        raise HTTPException(
+            status_code=501,
+            detail="Push notifications not configured. VAPID public key not set."
+        )
+    
+    return {"public_key": vapid_public_key}
 
 
 if __name__ == "__main__":
