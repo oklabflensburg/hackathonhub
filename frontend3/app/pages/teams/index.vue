@@ -181,13 +181,23 @@
               </span>
             </div>
             <div class="flex -space-x-2">
-              <div
+               <div
                 v-for="member in getTeamMembers(team.id).slice(0, 5)"
                 :key="member.id"
-                class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 border-2 border-white dark:border-gray-800 flex items-center justify-center"
+                class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 border-2 border-white dark:border-gray-800 flex items-center justify-center overflow-hidden"
                 :title="member.user?.name || member.user?.username"
               >
-                <span class="text-xs font-medium text-primary-600 dark:text-primary-400">
+                <img
+                  v-if="member.user?.avatar_url"
+                  :src="member.user.avatar_url"
+                  :alt="member.user?.name || member.user?.username"
+                  class="w-full h-full object-cover"
+                  @error="handleAvatarError"
+                />
+                <span
+                  v-else
+                  class="text-xs font-medium text-primary-600 dark:text-primary-400"
+                >
                   {{ (member.user?.name || member.user?.username || '?').charAt(0).toUpperCase() }}
                 </span>
               </div>
@@ -326,6 +336,13 @@ function navigateTo(path: string) {
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString()
+}
+
+function handleAvatarError(event: Event) {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
+  // The parent div will show the fallback initials automatically
+  // because we're using v-if/v-else
 }
 
 function isTeamMember(teamId: number) {

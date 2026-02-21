@@ -99,9 +99,19 @@
               class="flex items-center justify-between p-4 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
             >
               <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4">
-                  <span class="text-sm font-medium text-primary-600 dark:text-primary-400">
-                     {{ (member.user?.name || member.user?.username || t('teams.unknownUserInitial')).charAt(0).toUpperCase() }}
+                <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4 overflow-hidden">
+                  <img
+                    v-if="member.user?.avatar_url"
+                    :src="member.user.avatar_url"
+                    :alt="member.user?.name || member.user?.username || t('teams.unknownUser')"
+                    class="w-full h-full object-cover"
+                    @error="handleAvatarError"
+                  />
+                  <span
+                    v-else
+                    class="text-sm font-medium text-primary-600 dark:text-primary-400"
+                  >
+                    {{ (member.user?.name || member.user?.username || t('teams.unknownUserInitial')).charAt(0).toUpperCase() }}
                   </span>
                 </div>
                 <div>
@@ -209,8 +219,18 @@
             <div v-if="team.creator">
                <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.createdBy') }}</p>
               <div class="flex items-center mt-1">
-                <div class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-2">
-                  <span class="text-xs font-medium text-primary-600 dark:text-primary-400">
+                <div class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-2 overflow-hidden">
+                  <img
+                    v-if="team.creator.avatar_url"
+                    :src="team.creator.avatar_url"
+                    :alt="team.creator.username"
+                    class="w-full h-full object-cover"
+                    @error="handleAvatarError"
+                  />
+                  <span
+                    v-else
+                    class="text-xs font-medium text-primary-600 dark:text-primary-400"
+                  >
                     {{ team.creator.username.charAt(0).toUpperCase() }}
                   </span>
                 </div>
@@ -291,6 +311,13 @@ const isTeamFull = computed(() => {
 // Methods
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString()
+}
+
+function handleAvatarError(event: Event) {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
+  // The parent div will show the fallback initials automatically
+  // because we're using v-if/v-else
 }
 
 async function loadTeam() {
