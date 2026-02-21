@@ -69,7 +69,32 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
         },
         "email": {
             "newsletter_welcome_subject": "Welcome to Newsletter",
-            "newsletter_welcome_body": "Thanks for subscribing"
+            "newsletter_welcome_body": "Thanks for subscribing",
+            "verification_subject": (
+                "Verify Your Email Address - Hackathon Dashboard"
+            ),
+            "password_reset_subject": (
+                "Reset Your Password - Hackathon Dashboard"
+            ),
+            "verification_title": "Verify Your Email Address",
+            "password_reset_title": "Reset Your Password",
+            "newsletter_welcome_title": "Welcome to Hackathon Hub!",
+            "team_invitation_subject": (
+                "You've been invited to join a team - Hackathon Dashboard"
+            ),
+            "team_invitation_accepted_subject": (
+                "Your team invitation has been accepted - Hackathon Dashboard"
+            ),
+            "team_member_added_subject": (
+                "You've been added to a team - Hackathon Dashboard"
+            ),
+            "project_created_subject": (
+                "New project created - Hackathon Dashboard"
+            ),
+            "team_invitation_title": "Team Invitation",
+            "team_invitation_accepted_title": "Invitation Accepted",
+            "team_member_added_title": "Team Member Added",
+            "project_created_title": "New Project"
         }
     },
     "de": {
@@ -141,7 +166,32 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
         },
         "email": {
             "newsletter_welcome_subject": "Willkommen beim Newsletter",
-            "newsletter_welcome_body": "Danke fürs Abonnieren"
+            "newsletter_welcome_body": "Danke fürs Abonnieren",
+            "verification_subject": (
+                "Bestätigen Sie Ihre E-Mail-Adresse - Hackathon Dashboard"
+            ),
+            "password_reset_subject": (
+                "Setzen Sie Ihr Passwort zurück - Hackathon Dashboard"
+            ),
+            "verification_title": "Bestätigen Sie Ihre E-Mail-Adresse",
+            "password_reset_title": "Setzen Sie Ihr Passwort zurück",
+            "newsletter_welcome_title": "Willkommen beim Hackathon Hub!",
+            "team_invitation_subject": (
+                "Sie wurden zu einem Team eingeladen - Hackathon Dashboard"
+            ),
+            "team_invitation_accepted_subject": (
+                "Ihre Teameinladung wurde angenommen - Hackathon Dashboard"
+            ),
+            "team_member_added_subject": (
+                "Sie wurden einem Team hinzugefügt - Hackathon Dashboard"
+            ),
+            "project_created_subject": (
+                "Neues Projekt erstellt - Hackathon Dashboard"
+            ),
+            "team_invitation_title": "Teameinladung",
+            "team_invitation_accepted_title": "Einladung angenommen",
+            "team_member_added_title": "Teammitglied hinzugefügt",
+            "project_created_title": "Neues Projekt"
         }
     }
 }

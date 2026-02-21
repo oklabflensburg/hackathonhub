@@ -16,6 +16,7 @@ from email_service import email_service
 import email_auth
 import google_oauth
 import file_upload
+from notification_service import notification_service
 
 from i18n.middleware import LocaleMiddleware
 from i18n.translations import get_translation
@@ -123,7 +124,45 @@ async def create_project(
     current_user: schemas.User = Depends(auth.get_current_user)
 ):
     """Create a new hackathon project"""
-    return crud.create_project(db=db, project=project, user_id=current_user.id)
+    # Create project
+    db_project = crud.create_project(db=db, project=project, user_id=current_user.id)
+    
+    # Send notification email about project creation
+    try:
+        # Get language from request headers or default to English
+        from i18n.middleware import get_locale_from_request
+        language = get_locale_from_request() or "en"
+        
+        # For now, just log that notification would be sent
+        # In future, we could notify team members, hackathon participants, etc.
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Project created: {db_project.id} by user {current_user.id}")
+        
+        # Example: Notify team members if project has a team
+        if db_project.team_id:
+            # Get team members (excluding the project creator)
+            team_members = db.query(models.TeamMember).filter(
+                models.TeamMember.team_id == db_project.team_id,
+                models.TeamMember.user_id != current_user.id
+            ).all()
+            
+            recipient_ids = [member.user_id for member in team_members]
+            
+            if recipient_ids:
+                notification_service.send_project_created_notification(
+                    db=db,
+                    project_id=db_project.id,
+                    language=language,
+                    recipient_ids=recipient_ids
+                )
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send project creation notification: {e}")
+    
+    return db_project
 
 
 @app.get("/api/projects/{project_id}", response_model=schemas.Project)
@@ -1114,6 +1153,26 @@ async def add_team_member(
         role=role
     )
 
+    # Send notification email to added user (if not self-joining)
+    if team_member.user_id != current_user.id:
+        try:
+            # Get language from request headers or default to English
+            from i18n.middleware import get_locale_from_request
+            language = get_locale_from_request() or "en"
+            
+            notification_service.send_team_member_added_notification(
+                db=db,
+                team_id=team_id,
+                user_id=team_member.user_id,
+                added_by_id=current_user.id,
+                language=language
+            )
+        except Exception as e:
+            # Log error but don't fail the request
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send team member added notification: {e}")
+
     return new_member
 
 
@@ -1347,6 +1406,23 @@ async def create_team_invitation(
         inviter_id=current_user.id
     )
 
+    # Send notification email to invited user
+    try:
+        # Get language from request headers or default to English
+        from i18n.middleware import get_locale_from_request
+        language = get_locale_from_request() or "en"
+        
+        notification_service.send_team_invitation_notification(
+            db=db,
+            invitation_id=db_invitation.id,
+            language=language
+        )
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send invitation notification: {e}")
+
     return db_invitation
 
 
@@ -1401,6 +1477,23 @@ async def accept_invitation(
             status_code=400,
             detail="Invitation could not be accepted (may have already been processed)"
         )
+
+    # Send notification email to inviter
+    try:
+        # Get language from request headers or default to English
+        from i18n.middleware import get_locale_from_request
+        language = get_locale_from_request() or "en"
+        
+        notification_service.send_team_invitation_accepted_notification(
+            db=db,
+            invitation_id=invitation_id,
+            language=language
+        )
+    except Exception as e:
+        # Log error but don't fail the request
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send invitation accepted notification: {e}")
 
     return team_member
 

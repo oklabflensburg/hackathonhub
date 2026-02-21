@@ -9,6 +9,7 @@ import auth
 from email_verification import (
     send_verification_email, create_verification_token
 )
+from template_engine import template_engine
 
 
 def _truncate_to_72_bytes(password: str) -> bytes:
@@ -62,7 +63,11 @@ def validate_email_address(email: str):
         raise ValueError("Invalid email address")
 
 
-def register_user(db: Session, user_data: schemas.UserRegister):
+def register_user(
+    db: Session,
+    user_data: schemas.UserRegister,
+    language: str = "en"
+):
     """Register a new user with email/password"""
     # Validate email
     normalized_email = validate_email_address(user_data.email)
@@ -101,7 +106,8 @@ def register_user(db: Session, user_data: schemas.UserRegister):
     send_verification_email(
         user.email,
         user.name or user.username,
-        token
+        token,
+        language
     )
 
     return user
@@ -171,7 +177,11 @@ def change_password(db: Session, user_id: int,
     return True
 
 
-def forgot_password(db: Session, email: str):
+def forgot_password(
+    db: Session,
+    email: str,
+    language: str = "en"
+):
     """Initiate password reset process by sending reset email"""
     # Find user by email
     user = crud.get_user_by_email(db, email)
@@ -190,127 +200,36 @@ def forgot_password(db: Session, email: str):
     # Create password reset token in database
     crud.create_password_reset_token(db, user.id, token, expires_at)
     
-    # Send password reset email
-    from email_service import EmailService
-    from email_verification import FRONTEND_URL
+    # Get FRONTEND_URL from environment
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3001")
     
     reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
     
-    subject = "Reset Your Password - Hackathon Dashboard"
+    # Prepare template variables
+    variables = {
+        "user_name": user.name or user.username,
+        "reset_url": reset_url,
+        "expiration_hours": 1
+    }
     
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Reset Your Password</title>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-            }}
-            .container {{
-                background-color: #f9f9f9;
-                padding: 30px;
-                border-radius: 10px;
-            }}
-            .header {{
-                text-align: center;
-                margin-bottom: 30px;
-            }}
-            .logo {{
-                font-size: 24px;
-                font-weight: bold;
-                color: #4F46E5;
-            }}
-            .button {{
-                display: inline-block;
-                padding: 12px 24px;
-                background-color: #4F46E5;
-                color: white;
-                text-decoration: none;
-                border-radius: 5px;
-                font-weight: bold;
-            }}
-            .footer {{
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #ddd;
-                font-size: 12px;
-                color: #666;
-                text-align: center;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <div class="logo">Hackathon Dashboard</div>
-                <h1>Reset Your Password</h1>
-            </div>
-            
-            <p>Hello {user.name or user.username},</p>
-            
-            <p>We received a request to reset your password for your
-            Hackathon Dashboard account. If you made this request,
-            please click the button below to reset your password:</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="{reset_url}" class="button">Reset Password</a>
-            </div>
-            
-            <p>Or copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; background-color: #f0f0f0;
-               padding: 10px; border-radius: 5px; font-size: 12px;">
-                {reset_url}
-            </p>
-            
-            <p>This password reset link will expire in 1 hour.</p>
-            
-            <p>If you didn't request a password reset, you can safely
-            ignore this email. Your password will not be changed.</p>
-            
-            <div class="footer">
-                <p>This email was sent by Hackathon Dashboard</p>
-                <p>© {datetime.now().year} Hackathon Dashboard.
-                All rights reserved.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    
-    text_content = f"""
-    Reset Your Password - Hackathon Dashboard
-    
-    Hello {user.name or user.username},
-    
-    We received a request to reset your password for your
-    Hackathon Dashboard account. If you made this request,
-    please click the link below to reset your password:
-    
-    {reset_url}
-    
-    This password reset link will expire in 1 hour.
-    
-    If you didn't request a password reset, you can safely
-    ignore this email. Your password will not be changed.
-    
-    © {datetime.now().year} Hackathon Dashboard. All rights reserved.
-    """
+    # Render email using template engine
+    email_content = template_engine.render_email(
+        template_name="password_reset",
+        language=language,
+        variables=variables
+    )
     
     # Send email
+    from email_service import EmailService
     email_service = EmailService()
     email_service.send_email(
         to_email=user.email,
-        subject=subject,
-        body=text_content,
-        html_body=html_content
+        subject=email_content["subject"],
+        body=email_content["text"],
+        html_body=email_content["html"]
     )
     
     return True
@@ -320,8 +239,18 @@ def reset_password(db: Session, token: str, new_password: str):
     """Reset password using reset token"""
     # Find valid reset token
     reset_token = crud.get_password_reset_token(db, token)
-    if (not reset_token or reset_token.used or 
-            reset_token.expires_at < datetime.utcnow()):
+    if not reset_token or reset_token.used:
+        return False
+    
+    # Check expiration - use naive UTC for comparison
+    now = datetime.utcnow()
+    expires_at = reset_token.expires_at
+    
+    # If expires_at is aware (has timezone), convert to naive UTC
+    if expires_at.tzinfo is not None:
+        expires_at = expires_at.replace(tzinfo=None)
+    
+    if expires_at < now:
         return False
 
     # Hash new password

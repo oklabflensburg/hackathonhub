@@ -1,0 +1,23 @@
+<p>Hallo {{ recipient_name }},</p>
+
+<p>Sie wurden von {{ actor_name }} eingeladen, dem Team <strong>{{ team_name }}</strong> beizutreten.</p>
+
+<p><strong>Team-Details:</strong><br>
+{{ team_description }}</p>
+
+<p><strong>Hackathon:</strong> {{ hackathon_name }}</p>
+
+<p>Um diese Einladung anzunehmen oder abzulehnen, klicken Sie bitte auf die Schaltfläche unten:</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ invitation_url }}" class="button">Einladung ansehen</a>
+</div>
+
+<p>Oder kopieren Sie diesen Link und fügen Sie ihn in Ihren Browser ein:</p>
+<p style="word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px;">
+    {{ invitation_url }}
+</p>
+
+<p>Diese Einladung läuft am {{ expiration_date }} ab.</p>
+
+<p>Wenn Sie glauben, dass Sie diese Einladung versehentlich erhalten haben, können Sie diese E-Mail ignorieren.</p>

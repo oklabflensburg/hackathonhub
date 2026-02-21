@@ -1,0 +1,16 @@
+<p>Hello {{ user_name }},</p>
+
+<p>Thank you for registering with Hackathon Dashboard! To complete your registration and start using your account, please verify your email address by clicking the button below:</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ verification_url }}" class="button">Verify Email Address</a>
+</div>
+
+<p>Or copy and paste this link into your browser:</p>
+<p style="word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px;">
+    {{ verification_url }}
+</p>
+
+<p>This verification link will expire in {{ expiration_hours }} hours.</p>
+
+<p>If you didn't create an account with Hackathon Dashboard, you can safely ignore this email.</p>

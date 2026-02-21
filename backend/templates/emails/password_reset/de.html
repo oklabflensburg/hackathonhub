@@ -1,0 +1,16 @@
+<p>Hallo {{ user_name }},</p>
+
+<p>Wir haben eine Anfrage zum Zurücksetzen Ihres Passworts für Ihr Hackathon Dashboard-Konto erhalten. Wenn Sie diese Anfrage gestellt haben, klicken Sie bitte auf die Schaltfläche unten, um Ihr Passwort zurückzusetzen:</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ reset_url }}" class="button">Passwort zurücksetzen</a>
+</div>
+
+<p>Oder kopieren Sie diesen Link und fügen Sie ihn in Ihren Browser ein:</p>
+<p style="word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px;">
+    {{ reset_url }}
+</p>
+
+<p>Dieser Link zum Zurücksetzen des Passworts läuft in {{ expiration_hours }} Stunde ab.</p>
+
+<p>Wenn Sie keine Passwort-Zurücksetzung angefordert haben, können Sie diese E-Mail ignorieren. Ihr Passwort wird nicht geändert.</p>

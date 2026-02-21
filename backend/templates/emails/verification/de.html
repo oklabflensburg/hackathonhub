@@ -1,0 +1,16 @@
+<p>Hallo {{ user_name }},</p>
+
+<p>Vielen Dank für Ihre Registrierung beim Hackathon Dashboard! Um Ihre Registrierung abzuschließen und Ihr Konto zu nutzen, bestätigen Sie bitte Ihre E-Mail-Adresse, indem Sie auf die Schaltfläche unten klicken:</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ verification_url }}" class="button">E-Mail-Adresse bestätigen</a>
+</div>
+
+<p>Oder kopieren Sie diesen Link und fügen Sie ihn in Ihren Browser ein:</p>
+<p style="word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px;">
+    {{ verification_url }}
+</p>
+
+<p>Dieser Bestätigungslink läuft in {{ expiration_hours }} Stunden ab.</p>
+
+<p>Wenn Sie kein Konto beim Hackathon Dashboard erstellt haben, können Sie diese E-Mail ignorieren.</p>

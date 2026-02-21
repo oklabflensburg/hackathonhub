@@ -10,6 +10,8 @@ from email.mime.multipart import MIMEMultipart
 from typing import Optional, List
 import logging
 
+from template_engine import template_engine
+
 logger = logging.getLogger(__name__)
 
 
@@ -105,55 +107,30 @@ class EmailService:
             logger.error("Failed to send email to %s: %s", to_email, str(e))
             return False
     
-    def send_newsletter_welcome(self, to_email: str) -> bool:
+    def send_newsletter_welcome(
+        self,
+        to_email: str,
+        language: str = "en"
+    ) -> bool:
         """Send welcome email to new newsletter subscribers"""
         
-        # Create HTML version of welcome email
-        html_body = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background-color: #4f46e5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }}
-                .content {{ background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }}
-                .footer {{ text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>Welcome to Hackathon Hub!</h1>
-                </div>
-                <div class="content">
-                    <p>Hello,</p>
-                    <p>Thank you for subscribing to the Hackathon Hub newsletter. 
-                    We're excited to have you as part of our community!</p>
-                    <p>You'll receive updates about:</p>
-                    <ul>
-                        <li>New hackathon announcements</li>
-                        <li>Featured projects and success stories</li>
-                        <li>Community events and workshops</li>
-                        <li>Tips and resources for hackathon participants</li>
-                    </ul>
-                    <p>If you have any questions or suggestions, feel free to reply to this email.</p>
-                    <p>Best regards,<br>The Hackathon Hub Team</p>
-                </div>
-                <div class="footer">
-                    <p>© 2024 Hackathon Hub. All rights reserved.</p>
-                    <p><a href="[UNSUBSCRIBE_URL]" style="color: #6b7280;">Unsubscribe</a></p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
+        # Prepare template variables
+        variables = {
+            "unsubscribe_url": "[UNSUBSCRIBE_URL]"  # Should be replaced
+        }
+        
+        # Render email using template engine
+        email_content = template_engine.render_email(
+            template_name="newsletter_welcome",
+            language=language,
+            variables=variables
+        )
         
         return self.send_email(
             to_email=to_email,
-            subject=self.welcome_subject,
-            body=self.welcome_body,
-            html_body=html_body
+            subject=email_content["subject"],
+            body=email_content["text"],
+            html_body=email_content["html"]
         )
 
 

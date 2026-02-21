@@ -1,0 +1,25 @@
+<p>Hello {{ recipient_name }},</p>
+
+<p>You have been added to the team <strong>{{ team_name }}</strong> by {{ actor_name }}.</p>
+
+<p><strong>Team Details:</strong><br>
+{{ team_description }}</p>
+
+<p><strong>Hackathon:</strong> {{ hackathon_name }}</p>
+
+<p><strong>Your Role:</strong> {{ member_role }}</p>
+
+<p>To start collaborating with your team members, click the button below:</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ team_url }}" class="button">Go to Team</a>
+</div>
+
+<p>Or copy and paste this link into your browser:</p>
+<p style="word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px;">
+    {{ team_url }}
+</p>
+
+<p>The team now has {{ member_count }} members including you.</p>
+
+<p>If you have any questions about the team or your role, please contact the team owner.</p>

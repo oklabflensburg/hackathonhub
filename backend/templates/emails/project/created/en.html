@@ -1,0 +1,31 @@
+<p>Hello {{ recipient_name }},</p>
+
+<p>A new project has been created by {{ actor_name }}.</p>
+
+<p><strong>Project Title:</strong> {{ project_title }}</p>
+
+<p><strong>Description:</strong><br>
+{{ project_description }}</p>
+
+<p><strong>Technologies:</strong> {{ project_technologies }}</p>
+
+{% if hackathon_name %}
+<p><strong>Hackathon:</strong> {{ hackathon_name }}</p>
+{% endif %}
+
+{% if team_name %}
+<p><strong>Team:</strong> {{ team_name }}</p>
+{% endif %}
+
+<p>To view the project and show your support, click the button below:</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ project_url }}" class="button">View Project</a>
+</div>
+
+<p>Or copy and paste this link into your browser:</p>
+<p style="word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px;">
+    {{ project_url }}
+</p>
+
+<p>You can vote, comment, or share the project with others who might be interested.</p>
