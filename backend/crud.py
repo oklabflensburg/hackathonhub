@@ -972,13 +972,18 @@ def create_team_invitation(db: Session, invitation: schemas.TeamInvitationCreate
 
 def accept_team_invitation(db: Session, invitation_id: int):
     invitation = get_team_invitation(db, invitation_id)
-    if invitation and invitation.status == 'pending':
-        invitation.status = 'accepted'
-        # Add user to team
-        add_team_member(db, invitation.team_id, invitation.invited_user_id)
-        db.commit()
-        db.refresh(invitation)
-    return invitation
+    if not invitation:
+        return None
+    if invitation.status != 'pending':
+        return None
+    invitation.status = 'accepted'
+    # Add user to team and get the team member object
+    team_member = add_team_member(
+        db, invitation.team_id, invitation.invited_user_id
+    )
+    db.commit()
+    db.refresh(invitation)
+    return team_member
 
 
 def decline_team_invitation(db: Session, invitation_id: int):

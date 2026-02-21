@@ -24,21 +24,21 @@ def create_verification_token(db: Session, user_id: int):
     """Create and store email verification token"""
     # Generate token
     token = generate_verification_token()
-    
+
     # Set expiration (24 hours)
     expires_at = datetime.utcnow() + timedelta(hours=VERIFICATION_TOKEN_EXPIRE_HOURS)
-    
+
     # Store token in database
     db_token = models.EmailVerificationToken(
         user_id=user_id,
         token=token,
         expires_at=expires_at
     )
-    
+
     db.add(db_token)
     db.commit()
     db.refresh(db_token)
-    
+
     return token
 
 
@@ -46,10 +46,10 @@ def send_verification_email(user_email: str, user_name: str, token: str):
     """Send verification email to user"""
     # Create verification URL
     verification_url = f"{FRONTEND_URL}/verify-email?token={token}"
-    
+
     # Email content
     subject = "Verify Your Email Address - Hackathon Dashboard"
-    
+
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -98,7 +98,7 @@ def send_verification_email(user_email: str, user_name: str, token: str):
     </body>
     </html>
     """
-    
+
     text_content = f"""
     Verify Your Email Address - Hackathon Dashboard
     
@@ -114,14 +114,14 @@ def send_verification_email(user_email: str, user_name: str, token: str):
     
     © {datetime.now().year} Hackathon Dashboard. All rights reserved.
     """
-    
+
     # Send email
     email_service = EmailService()
     email_service.send_email(
         to_email=user_email,
         subject=subject,
-        html_content=html_content,
-        text_content=text_content
+        body=text_content,
+        html_body=html_content
     )
 
 
@@ -133,17 +133,17 @@ def verify_email_token(db: Session, token: str):
         models.EmailVerificationToken.used.is_(False),
         models.EmailVerificationToken.expires_at > datetime.utcnow()
     ).first()
-    
+
     if not db_token:
         return None
-    
+
     # Mark token as used
     db_token.used = True
     db.commit()
-    
+
     # Verify user's email
     user = crud.verify_user_email(db, db_token.user_id)
-    
+
     return user
 
 
@@ -151,20 +151,20 @@ def resend_verification_email(db: Session, user_email: str):
     """Resend verification email to user"""
     # Find user by email
     user = crud.get_user_by_email(db, user_email)
-    
+
     if not user:
         return False
-    
+
     # Check if email is already verified
     if user.email_verified:
         return False
-    
+
     # Create new verification token
     token = create_verification_token(db, user.id)
-    
+
     # Send verification email
     send_verification_email(user.email, user.name or user.username, token)
-    
+
     return True
 
 
@@ -173,10 +173,10 @@ def cleanup_expired_tokens(db: Session):
     expired_tokens = db.query(models.EmailVerificationToken).filter(
         models.EmailVerificationToken.expires_at <= datetime.utcnow()
     ).all()
-    
+
     for token in expired_tokens:
         db.delete(token)
-    
+
     db.commit()
-    
+
     return len(expired_tokens)

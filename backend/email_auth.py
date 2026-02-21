@@ -1,21 +1,16 @@
-import os
 from datetime import datetime
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
 from email_validator import validate_email, EmailNotValidError
+import bcrypt
 
 import crud
 import schemas
 import auth
-from email_verification import send_verification_email, create_verification_token
+from email_verification import (
+    send_verification_email, create_verification_token)
 
-# Password hashing
-# Configure bcrypt to truncate passwords longer than 72 bytes
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__truncate_error=True  # This might help with long passwords
-)
+# Password hashing using bcrypt directly (replaces passlib)
+# bcrypt has a 72-byte limit, we handle truncation for longer passwords
 
 
 def verify_password(plain_password: str, hashed_password: str):
@@ -38,8 +33,15 @@ def verify_password(plain_password: str, hashed_password: str):
             # If we can't decode any prefix, use empty string
             # (shouldn't happen)
             truncated = ""
-        return pwd_context.verify(truncated, hashed_password)
-    return pwd_context.verify(plain_password, hashed_password)
+        password_bytes = truncated.encode('utf-8')
+    
+    # Convert hashed_password from string to bytes if needed
+    if isinstance(hashed_password, str):
+        hashed_password_bytes = hashed_password.encode('utf-8')
+    else:
+        hashed_password_bytes = hashed_password
+    
+    return bcrypt.checkpw(password_bytes, hashed_password_bytes)
 
 
 def get_password_hash(password: str):
@@ -61,8 +63,12 @@ def get_password_hash(password: str):
             # If we can't decode any prefix, use empty string
             # (shouldn't happen)
             truncated = ""
-        return pwd_context.hash(truncated)
-    return pwd_context.hash(password)
+        password_bytes = truncated.encode('utf-8')
+    
+    # Hash password with bcrypt
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')  # Return as string for storage
 
 
 def validate_email_address(email: str):
@@ -82,20 +88,20 @@ def register_user(db: Session, user_data: schemas.UserRegister):
     normalized_email = validate_email_address(user_data.email)
     if not normalized_email:
         raise ValueError("Invalid email address")
-    
+
     # Check if user already exists
     existing_user = crud.get_user_by_email(db, normalized_email)
     if existing_user:
         raise ValueError("User with this email already exists")
-    
+
     # Check if username is taken
     existing_username = crud.get_user_by_username(db, user_data.username)
     if existing_username:
         raise ValueError("Username already taken")
-    
+
     # Hash password
     password_hash = get_password_hash(user_data.password)
-    
+
     # Create user
     user_create = schemas.UserCreate(
         username=user_data.username,
@@ -105,19 +111,19 @@ def register_user(db: Session, user_data: schemas.UserRegister):
         auth_method="email",
         email_verified=False
     )
-    
+
     user = crud.create_user(db, user_create)
-    
+
     # Create verification token
     token = create_verification_token(db, user.id)
-    
+
     # Send verification email
     send_verification_email(
         user.email,
         user.name or user.username,
         token
     )
-    
+
     return user
 
 
@@ -127,25 +133,25 @@ def login_user(db: Session, email: str, password: str):
     user = crud.get_user_by_email(db, email)
     if not user:
         return None
-    
+
     # Check if user has password hash (email/password user)
     if not user.password_hash:
         return None
-    
+
     # Verify password
     if not verify_password(password, user.password_hash):
         return None
-    
+
     # Check if email is verified
     if not user.email_verified:
         raise ValueError("Email not verified. Please check your email.")
-    
+
     # Update last login
     crud.update_user_last_login(db, user.id)
-    
+
     # Create tokens
     tokens = auth.create_tokens(user.id, user.username)
-    
+
     # Store refresh token
     crud.create_refresh_token(
         db,
@@ -153,7 +159,7 @@ def login_user(db: Session, email: str, password: str):
         token_id=tokens["refresh_token_id"],
         expires_at=datetime.utcnow() + tokens["refresh_token_expires"]
     )
-    
+
     return {
         "access_token": tokens["access_token"],
         "refresh_token": tokens["refresh_token"],
@@ -167,20 +173,20 @@ def change_password(db: Session, user_id: int, current_password: str, new_passwo
     user = crud.get_user(db, user_id)
     if not user or not user.password_hash:
         return False
-    
+
     # Verify current password
     if not verify_password(current_password, user.password_hash):
         return False
-    
+
     # Hash new password
     new_password_hash = get_password_hash(new_password)
-    
+
     # Update password
     crud.update_user_password(db, user_id, new_password_hash)
-    
+
     # Revoke all refresh tokens (security measure)
     crud.revoke_all_user_refresh_tokens(db, user_id)
-    
+
     return True
 
 
@@ -190,17 +196,17 @@ def reset_password(db: Session, token: str, new_password: str):
     reset_token = crud.get_password_reset_token(db, token)
     if not reset_token or reset_token.used or reset_token.expires_at < datetime.utcnow():
         return False
-    
+
     # Hash new password
     new_password_hash = get_password_hash(new_password)
-    
+
     # Update user password
     crud.update_user_password(db, reset_token.user_id, new_password_hash)
-    
+
     # Mark token as used
     crud.mark_password_reset_token_used(db, reset_token.id)
-    
+
     # Revoke all refresh tokens (security measure)
     crud.revoke_all_user_refresh_tokens(db, reset_token.user_id)
-    
+
     return True

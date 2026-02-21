@@ -1396,6 +1396,11 @@ async def accept_invitation(
 
     # Accept invitation (this will also add user to team)
     team_member = crud.accept_team_invitation(db, invitation_id=invitation_id)
+    if not team_member:
+        raise HTTPException(
+            status_code=400,
+            detail="Invitation could not be accepted (may have already been processed)"
+        )
 
     return team_member
 
@@ -1606,7 +1611,7 @@ async def login_user(
 ):
     """Login with email/password"""
     try:
-        result = email_auth.authenticate_user(
+        result = email_auth.login_user(
             db, credentials.email, credentials.password
         )
         return result
