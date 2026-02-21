@@ -11,33 +11,8 @@
         </p>
       </div>
 
-      <!-- Success Message -->
-      <div v-if="successMessage" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-        <div class="flex items-center">
-          <svg class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          <span class="text-sm text-green-600 dark:text-green-400">{{ successMessage }}</span>
-        </div>
-        <div class="mt-4 text-center">
-          <NuxtLink to="/login" class="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400">
-            {{ t('auth.forgotPassword.backToLogin') }}
-          </NuxtLink>
-        </div>
-      </div>
-
-      <!-- Error Message -->
-      <div v-if="errorMessage" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-        <div class="flex items-center">
-          <svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span class="text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</span>
-        </div>
-      </div>
-
-      <!-- Form (only show if not successful) -->
-      <form v-if="!successMessage" @submit.prevent="handleForgotPassword" class="space-y-6">
+      <!-- Form -->
+      <form @submit.prevent="handleForgotPassword" class="space-y-6">
         <div>
           <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
             {{ t('auth.forgotPassword.email') }}
@@ -86,20 +61,21 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useUIStore } from '~/stores/ui'
 
 const { t } = useI18n()
+const config = useRuntimeConfig()
+const uiStore = useUIStore()
 
 const email = ref('')
 const isLoading = ref(false)
-const successMessage = ref('')
-const errorMessage = ref('')
 
 const handleForgotPassword = async () => {
   isLoading.value = true
-  errorMessage.value = ''
   
   try {
-    const response = await $fetch<{ message: string }>('/api/auth/forgot-password', {
+    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    const response = await fetch(`${backendUrl}/api/auth/forgot-password`, {
       method: 'POST',
       body: JSON.stringify({ email: email.value }),
       headers: {
@@ -107,15 +83,30 @@ const handleForgotPassword = async () => {
       }
     })
     
-    successMessage.value = response.message || t('auth.forgotPassword.successMessage')
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || `HTTP error ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    // Show success notification
+    uiStore.showSuccess(
+      data.message || t('auth.forgotPassword.successMessage'),
+      t('auth.forgotPassword.title')
+    )
+    
+    // Clear email field
+    email.value = ''
+    
   } catch (error: any) {
     console.error('Forgot password error:', error)
     
-    if (error.data?.detail) {
-      errorMessage.value = error.data.detail
-    } else {
-      errorMessage.value = t('auth.forgotPassword.errorMessage')
-    }
+    // Show error notification
+    uiStore.showError(
+      error.message || t('auth.forgotPassword.errorMessage'),
+      t('auth.forgotPassword.title')
+    )
   } finally {
     isLoading.value = false
   }
