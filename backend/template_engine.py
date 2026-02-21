@@ -14,17 +14,17 @@ logger = logging.getLogger(__name__)
 
 class TemplateEngine:
     """Engine for loading and rendering email templates."""
-    
+
     def __init__(self, template_dir: str = "templates/emails"):
         """
         Initialize template engine.
-        
+
         Args:
             template_dir: Directory containing email templates
         """
         self.template_dir = template_dir
         self.base_template = self._load_template("base.html")
-        
+
     def _load_template(self, template_path: str) -> Optional[str]:
         """Load template file from disk."""
         full_path = os.path.join(self.template_dir, template_path)
@@ -37,24 +37,29 @@ class TemplateEngine:
         except Exception as e:
             logger.error(f"Error loading template {full_path}: {e}")
             return None
-    
+
     def _render_template(self, template: str,
                          variables: Dict[str, Any]) -> str:
         """Render template with variable substitution."""
         if not template:
             return ""
-        
-        # Simple variable substitution: {{ variable_name }}
+
+        # Handle Jinja2-style templates with optional filters
+        # Supports {{ variable }} and {{ variable|filter }}
         result = template
         for key, value in variables.items():
-            placeholder = f"{{{{ {key} }}}}"
+            # Escape the key for regex
+            escaped_key = re.escape(key)
+            # Pattern to match {{ key }} or {{ key|filter }}
+            pattern = r'\{\{\s*' + escaped_key + r'(\s*\|\s*\w+)?\s*\}\}'
+
             if isinstance(value, str):
-                result = result.replace(placeholder, value)
+                result = re.sub(pattern, value, result)
             else:
-                result = result.replace(placeholder, str(value))
-        
+                result = re.sub(pattern, str(value), result)
+
         return result
-    
+
     def render_email(
         self,
         template_name: str,
@@ -63,26 +68,26 @@ class TemplateEngine:
     ) -> Dict[str, str]:
         """
         Render email template with given variables.
-        
+
         Args:
             template_name: Name of template directory (e.g., "verification")
             language: Language code (e.g., "en", "de")
             variables: Dictionary of template variables
-            
+
         Returns:
             Dictionary with "subject", "html", and "text" keys
         """
         if variables is None:
             variables = {}
-        
+
         # Add current year if not provided
         if "current_year" not in variables:
             variables["current_year"] = datetime.now().year
-        
+
         # Try to load language-specific template
         template_path = f"{template_name}/{language}.html"
         content_template = self._load_template(template_path)
-        
+
         # Fallback to English if language-specific template not found
         if not content_template and language != "en":
             msg = f"Template {template_name}/{language}.html not found, "
@@ -90,11 +95,11 @@ class TemplateEngine:
             logger.warning(msg)
             template_path = f"{template_name}/en.html"
             content_template = self._load_template(template_path)
-        
+
         if not content_template:
             msg = f"Template {template_name} not found for language {language}"
             raise ValueError(msg)
-        
+
         # Get subject from translations
         subject_key_map = {
             "verification": "email.verification_subject",
@@ -107,7 +112,7 @@ class TemplateEngine:
             "team/member_added": "email.team_member_added_subject",
             "project/created": "email.project_created_subject"
         }
-        
+
         subject_key = subject_key_map.get(template_name)
         if subject_key:
             try:
@@ -116,10 +121,10 @@ class TemplateEngine:
                 subject = "Email from Hackathon Dashboard"
         else:
             subject = "Email from Hackathon Dashboard"
-        
+
         # Render content
         rendered_content = self._render_template(content_template, variables)
-        
+
         # Get title from translations
         title_key_map = {
             "verification": "email.verification_title",
@@ -130,7 +135,7 @@ class TemplateEngine:
             "team/member_added": "email.team_member_added_title",
             "project/created": "email.project_created_title"
         }
-        
+
         title_key = title_key_map.get(template_name)
         if title_key:
             try:
@@ -139,7 +144,7 @@ class TemplateEngine:
                 title = self._get_title(template_name, language)
         else:
             title = self._get_title(template_name, language)
-        
+
         # Render full HTML using base template
         base_variables = {
             "subject": subject,
@@ -148,20 +153,20 @@ class TemplateEngine:
             "current_year": variables.get("current_year", datetime.now().year),
             "lang": language
         }
-        
+
         html_content = self._render_template(
             self.base_template, base_variables
         )
-        
+
         # Generate plain text version (simple conversion)
         text_content = self._html_to_text(rendered_content)
-        
+
         return {
             "subject": base_variables["subject"],
             "html": html_content,
             "text": text_content
         }
-    
+
     def _get_title(self, template_name: str, language: str) -> str:
         """Get email title based on template name and language."""
         titles = {
@@ -178,35 +183,35 @@ class TemplateEngine:
                 "de": "Willkommen beim Hackathon Hub!"
             }
         }
-        
+
         if template_name in titles and language in titles[template_name]:
             return titles[template_name][language]
-        
+
         # Fallback
         return {
             "verification": "Verify Your Email",
             "password_reset": "Reset Password",
             "newsletter_welcome": "Welcome"
         }.get(template_name, "Email from Hackathon Dashboard")
-    
+
     def _html_to_text(self, html: str) -> str:
         """Convert HTML to plain text (simplified)."""
         # Remove HTML tags
         text = re.sub(r'<[^>]+>', '', html)
-        
+
         # Replace common HTML entities
         text = text.replace('&nbsp;', ' ')
         text = text.replace('&', '&')
         text = text.replace('<', '<')
         text = text.replace('>', '>')
         text = text.replace('"', '"')
-        
+
         # Collapse multiple whitespace
         text = re.sub(r'\s+', ' ', text)
-        
+
         # Trim
         text = text.strip()
-        
+
         return text
 
 
