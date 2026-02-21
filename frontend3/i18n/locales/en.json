@@ -164,6 +164,18 @@
       "successMessage": "Please check your email to verify your account before logging in.",
       "passwordsDoNotMatch": "Passwords do not match",
       "passwordTooShort": "Password must be at least 8 characters"
+    },
+    "verifyEmail": {
+      "title": "Verify Your Email",
+      "subtitle": "Please wait while we verify your email address",
+      "verifying": "Verifying your email address...",
+      "successTitle": "Email Verified Successfully!",
+      "successMessage": "Your email address has been verified. You can now log in to your account.",
+      "errorTitle": "Verification Failed",
+      "noTokenTitle": "No Verification Token",
+      "noTokenMessage": "No verification token was provided. Please check your email for the verification link.",
+      "goToLogin": "Go to Login",
+      "registerAgain": "Register Again"
     }
   },
   "errors": {
