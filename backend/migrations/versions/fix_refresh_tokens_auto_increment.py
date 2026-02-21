@@ -46,7 +46,10 @@ def upgrade():
             if not result or not result[0]:
                 # Get current max id
                 max_id_result = bind.execute(
-                    text(f"SELECT COALESCE(MAX(id), 0) FROM {table_name}")
+                    text(
+                        f"SELECT COALESCE(MAX(id::integer), 0) "
+                        f"FROM {table_name}"
+                    )
                 ).fetchone()
                 max_id = max_id_result[0] if max_id_result else 0
                 next_id = max_id + 1
