@@ -1,6 +1,6 @@
 """Fix refresh_tokens auto-increment issue
 
-Revision ID: fix_refresh_tokens_auto_increment
+Revision ID: fix_refresh_tokens_auto_inc
 Revises: add_authentication_tables
 Create Date: 2026-02-21 13:28:01.746769
 
@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 
 # revision identifiers, used by Alembic.
-revision = 'fix_refresh_tokens_auto_increment'
+revision = 'fix_refresh_tokens_auto_inc'
 down_revision = 'add_authentication_tables'
 branch_labels = None
 depends_on = None
