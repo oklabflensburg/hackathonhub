@@ -126,7 +126,7 @@
             </div>
             <div class="text-center">
               <div class="text-xl font-bold text-gray-900 dark:text-white">{{ hackathon.projects }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projects') }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projectsLabel') }}</div>
             </div>
             <div class="text-center">
               <div class="text-xl font-bold text-gray-900 dark:text-white">{{ hackathon.duration }}</div>

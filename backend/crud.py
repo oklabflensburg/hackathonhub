@@ -93,6 +93,22 @@ def update_user_avatar(db: Session, user_id: int, avatar_url: str):
     return user
 
 
+def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
+    """Update user profile information"""
+    user = get_user(db, user_id)
+    if not user:
+        return None
+    
+    # Update only provided fields
+    update_data = user_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(user, field, value)
+    
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def verify_user_email(db: Session, user_id: int):
     user = get_user(db, user_id)
     if user:

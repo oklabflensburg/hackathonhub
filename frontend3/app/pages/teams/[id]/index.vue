@@ -33,7 +33,17 @@
           </span>
         </div>
         <p class="text-gray-600 dark:text-gray-400">
-           {{ t('teams.teamFor', { hackathon: team.hackathon?.name || t('common.unknownHackathon') }) }}
+          {{ t('teams.teamFor', { hackathon: '' }) }}
+          <NuxtLink 
+            v-if="team.hackathon"
+            :to="`/hackathons/${team.hackathon.id}`"
+            class="text-primary-600 dark:text-primary-400 hover:underline"
+          >
+            {{ team.hackathon.name }}
+          </NuxtLink>
+          <span v-else class="text-gray-500 dark:text-gray-400">
+            {{ t('common.unknownHackathon') }}
+          </span>
         </p>
       </div>
       
@@ -99,37 +109,53 @@
               class="flex items-center justify-between p-4 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
             >
               <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4 overflow-hidden">
-                  <img
-                    v-if="member.user?.avatar_url"
-                    :src="member.user.avatar_url"
-                    :alt="member.user?.name || member.user?.username || t('teams.unknownUser')"
-                    class="w-full h-full object-cover"
-                    @error="handleAvatarError"
-                  />
-                  <span
-                    v-else
-                    class="text-sm font-medium text-primary-600 dark:text-primary-400"
-                  >
-                    {{ (member.user?.name || member.user?.username || t('teams.unknownUserInitial')).charAt(0).toUpperCase() }}
-                  </span>
-                </div>
-                <div>
-                  <div class="flex items-center">
-                    <span class="font-medium text-gray-900 dark:text-white">
+                 <NuxtLink 
+                   v-if="member.user"
+                   :to="`/users/${member.user.id}`"
+                   class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4 overflow-hidden hover:opacity-90 transition-opacity"
+                 >
+                   <img
+                     v-if="member.user?.avatar_url"
+                     :src="member.user.avatar_url"
+                     :alt="member.user?.name || member.user?.username || t('teams.unknownUser')"
+                     class="w-full h-full object-cover"
+                     @error="handleAvatarError"
+                   />
+                   <span
+                     v-else
+                     class="text-sm font-medium text-primary-600 dark:text-primary-400"
+                   >
+                     {{ (member.user?.name || member.user?.username || t('teams.unknownUserInitial')).charAt(0).toUpperCase() }}
+                   </span>
+                 </NuxtLink>
+                 <div v-else class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4 overflow-hidden">
+                   <span class="text-sm font-medium text-primary-600 dark:text-primary-400">
+                     {{ t('teams.unknownUserInitial').charAt(0).toUpperCase() }}
+                   </span>
+                 </div>
+                 <div>
+                   <div class="flex items-center">
+                     <NuxtLink 
+                       v-if="member.user"
+                       :to="`/users/${member.user.id}`"
+                       class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
+                     >
                        {{ member.user?.name || member.user?.username || t('teams.unknownUser') }}
-                    </span>
-                    <span
-                      v-if="member.role === 'owner'"
-                      class="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full"
-                    >
-                      {{ t('teams.owner') }}
-                    </span>
-                  </div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ t('teams.joined') }} {{ formatDate(member.joined_at) }}
-                  </p>
-                </div>
+                     </NuxtLink>
+                     <span v-else class="font-medium text-gray-900 dark:text-white">
+                       {{ t('teams.unknownUser') }}
+                     </span>
+                     <span
+                       v-if="member.role === 'owner'"
+                       class="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full"
+                     >
+                       {{ t('teams.owner') }}
+                     </span>
+                   </div>
+                   <p class="text-sm text-gray-500 dark:text-gray-400">
+                     {{ t('teams.joined') }} {{ formatDate(member.joined_at) }}
+                   </p>
+                 </div>
               </div>
               
               <div v-if="isTeamOwner && member.user_id !== authStore.user?.id" class="flex items-center space-x-2">
@@ -201,7 +227,18 @@
             
             <div>
                <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.hackathon') }}</p>
-               <p class="font-medium text-gray-900 dark:text-white">{{ team.hackathon?.name || t('teams.unknown') }}</p>
+               <p class="font-medium text-gray-900 dark:text-white">
+                 <NuxtLink 
+                   v-if="team.hackathon"
+                   :to="`/hackathons/${team.hackathon.id}`"
+                   class="text-primary-600 dark:text-primary-400 hover:underline"
+                 >
+                   {{ team.hackathon.name }}
+                 </NuxtLink>
+                 <span v-else class="text-gray-500 dark:text-gray-400">
+                   {{ t('teams.unknown') }}
+                 </span>
+               </p>
             </div>
             
             <div>
@@ -216,27 +253,32 @@
                </p>
             </div>
             
-            <div v-if="team.creator">
-               <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.createdBy') }}</p>
-              <div class="flex items-center mt-1">
-                <div class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-2 overflow-hidden">
-                  <img
-                    v-if="team.creator.avatar_url"
-                    :src="team.creator.avatar_url"
-                    :alt="team.creator.username"
-                    class="w-full h-full object-cover"
-                    @error="handleAvatarError"
-                  />
-                  <span
-                    v-else
-                    class="text-xs font-medium text-primary-600 dark:text-primary-400"
-                  >
-                    {{ team.creator.username.charAt(0).toUpperCase() }}
-                  </span>
-                </div>
-                <span class="font-medium text-gray-900 dark:text-white">{{ team.creator.username }}</span>
-              </div>
-            </div>
+             <div v-if="team.creator">
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.createdBy') }}</p>
+               <div class="flex items-center mt-1">
+                 <NuxtLink 
+                   :to="`/users/${team.creator.id}`"
+                   class="flex items-center hover:opacity-90 transition-opacity"
+                 >
+                   <div class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-2 overflow-hidden">
+                     <img
+                       v-if="team.creator.avatar_url"
+                       :src="team.creator.avatar_url"
+                       :alt="team.creator.username"
+                       class="w-full h-full object-cover"
+                       @error="handleAvatarError"
+                     />
+                     <span
+                       v-else
+                       class="text-xs font-medium text-primary-600 dark:text-primary-400"
+                     >
+                       {{ team.creator.username.charAt(0).toUpperCase() }}
+                     </span>
+                   </div>
+                   <span class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">{{ team.creator.username }}</span>
+                 </NuxtLink>
+               </div>
+             </div>
           </div>
         </div>
 

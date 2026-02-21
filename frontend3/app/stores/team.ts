@@ -76,6 +76,7 @@ export interface CreateTeamData {
 export interface UpdateTeamData {
   name?: string
   description?: string
+  hackathon_id?: number
   max_members?: number
   is_open?: boolean
 }

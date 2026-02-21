@@ -15,6 +15,12 @@ export interface User {
   auth_method?: 'github' | 'google' | 'email'
   created_at: string
   last_login?: string
+  name?: string
+  bio?: string
+  location?: string
+  company?: string
+  updated_at?: string
+  is_admin?: boolean
   // Extended fields from /api/me (UserWithDetails)
   teams?: Array<{
     id: number

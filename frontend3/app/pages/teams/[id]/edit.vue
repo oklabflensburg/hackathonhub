@@ -56,6 +56,27 @@
           ></textarea>
         </div>
 
+        <!-- Hackathon -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Hackathon *
+          </label>
+          <select
+            v-model="form.hackathon_id"
+            class="w-full input"
+            required
+            :disabled="teamStore.isLoading || loadingHackathons"
+          >
+            <option value="" disabled>Select a hackathon</option>
+            <option v-for="hackathon in hackathons" :key="hackathon.id" :value="hackathon.id">
+              {{ hackathon.name }}
+            </option>
+          </select>
+          <p v-if="loadingHackathons" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Loading hackathons...
+          </p>
+        </div>
+
         <!-- Max Members -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -168,10 +189,13 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const team = ref<any>(null)
 const members = ref<any[]>([])
+const hackathons = ref<any[]>([])
+const loadingHackathons = ref(false)
 
 const form = ref({
   name: '',
   description: '',
+  hackathon_id: 0,
   max_members: 5,
   is_open: true
 })
@@ -179,22 +203,44 @@ const form = ref({
 // Computed
 const teamId = computed(() => Number(route.params.id))
 const formValid = computed(() => {
-  return form.value.name.trim() !== '' && form.value.max_members >= members.value.length
+  return form.value.name.trim() !== '' && 
+         form.value.hackathon_id > 0 && 
+         form.value.max_members >= members.value.length
 })
 
 // Methods
+async function fetchHackathons() {
+  loadingHackathons.value = true
+  try {
+    const response = await authStore.fetchWithAuth('/api/hackathons?limit=100')
+    if (!response.ok) {
+      throw new Error(`Failed to fetch hackathons: ${response.status}`)
+    }
+    const data = await response.json()
+    hackathons.value = data
+  } catch (err) {
+    console.error('Failed to fetch hackathons:', err)
+  } finally {
+    loadingHackathons.value = false
+  }
+}
+
 async function loadTeam() {
   loading.value = true
   error.value = null
   
   try {
-    team.value = await teamStore.fetchTeam(teamId.value)
+    // Fetch hackathons and team in parallel
+    const [_, teamData] = await Promise.all([fetchHackathons(), teamStore.fetchTeam(teamId.value)])
+    
+    team.value = teamData
     members.value = teamStore.teamMembers.get(teamId.value) || []
     
     // Initialize form
     form.value = {
       name: team.value.name,
       description: team.value.description || '',
+      hackathon_id: team.value.hackathon_id,
       max_members: team.value.max_members,
       is_open: team.value.is_open
     }
@@ -213,6 +259,7 @@ async function updateTeam() {
     const teamData = {
       name: form.value.name.trim(),
       description: form.value.description.trim(),
+      hackathon_id: form.value.hackathon_id,
       max_members: form.value.max_members,
       is_open: form.value.is_open
     }

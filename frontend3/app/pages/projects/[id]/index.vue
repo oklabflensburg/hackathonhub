@@ -31,20 +31,32 @@
           <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ project.title }}</h1>
             <div class="flex items-center space-x-4 mt-2">
-              <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                  <img
-                    v-if="project.owner?.avatar_url"
-                    :src="project.owner.avatar_url"
-                    :alt="project.owner.username"
-                    class="w-full h-full object-cover"
-                  />
-                  <span v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {{ project.owner?.username?.charAt(0)?.toUpperCase() || 'U' }}
-                  </span>
-                </div>
-                <span class="text-gray-600 dark:text-gray-400">{{ project.owner?.username || 'Unknown' }}</span>
-              </div>
+               <div class="flex items-center space-x-2">
+                 <NuxtLink 
+                   v-if="project.owner"
+                   :to="`/users/${project.owner.id}`"
+                   class="flex items-center space-x-2 hover:opacity-90 transition-opacity"
+                 >
+                   <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                     <img
+                       v-if="project.owner?.avatar_url"
+                       :src="project.owner.avatar_url"
+                       :alt="project.owner.username"
+                       class="w-full h-full object-cover"
+                     />
+                     <span v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                       {{ project.owner?.username?.charAt(0)?.toUpperCase() || 'U' }}
+                     </span>
+                   </div>
+                   <span class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">{{ project.owner?.username || 'Unknown' }}</span>
+                 </NuxtLink>
+                 <div v-else class="flex items-center space-x-2">
+                   <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">U</span>
+                   </div>
+                   <span class="text-gray-600 dark:text-gray-400">Unknown</span>
+                 </div>
+               </div>
               <span class="text-gray-500 dark:text-gray-500">•</span>
               <span class="text-gray-600 dark:text-gray-400">{{ formatDate(project.created_at) }}</span>
             </div>

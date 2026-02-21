@@ -1797,6 +1797,108 @@ async def unsubscribe_from_newsletter(
         )
 
 
+@app.get("/api/users/me", response_model=schemas.User)
+async def get_current_user_profile(
+    current_user: schemas.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's own profile"""
+    return current_user
+
+
+@app.patch("/api/users/me", response_model=schemas.User)
+async def update_current_user_profile(
+    user_update: schemas.UserUpdate,
+    current_user: schemas.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update current user's profile"""
+    updated_user = crud.update_user(db, user_id=current_user.id, user_update=user_update)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated_user
+
+
+@app.get("/api/users/{user_id}", response_model=schemas.UserWithDetails)
+async def get_user_profile(
+    user_id: int,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(auth.oauth2_scheme)
+):
+    """Get public user profile by ID"""
+    # Get user from database
+    db_user = crud.get_user(db, user_id=user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Convert to UserWithDetails schema
+    user_with_details = schemas.UserWithDetails.from_orm(db_user)
+
+    # Get user's team memberships (only public teams)
+    team_memberships = db.query(models.TeamMember).filter(
+        models.TeamMember.user_id == db_user.id
+    ).all()
+
+    # Convert team memberships to schema
+    user_with_details.teams = []
+    for membership in team_memberships:
+        team_member_schema = schemas.TeamMember.from_orm(membership)
+        # Include team details
+        team = crud.get_team_with_details(db, team_id=membership.team_id)
+        if team:
+            team_member_schema.team = schemas.Team.from_orm(team)
+        user_with_details.teams.append(team_member_schema)
+
+    # Get user's public projects
+    user_projects = db.query(models.Project).filter(
+        models.Project.owner_id == db_user.id,
+        models.Project.is_public.is_(True)
+    ).all()
+    user_with_details.projects = [
+        schemas.Project.from_orm(project) for project in user_projects
+    ]
+
+    # Get user's votes (only if viewing own profile)
+    current_user_id = None
+    if token:
+        try:
+            # Try to get current user from token
+            current_user = await auth.get_current_user(token, db)
+            current_user_id = current_user.id
+        except HTTPException:
+            # Token is invalid, treat as anonymous
+            current_user_id = None
+    
+    if current_user_id == user_id:
+        user_votes = db.query(models.Vote).filter(
+            models.Vote.user_id == db_user.id
+        ).all()
+        user_with_details.votes = [
+            schemas.Vote.from_orm(vote) for vote in user_votes
+        ]
+    else:
+        user_with_details.votes = []
+
+    # Get user's comments (public comments only)
+    user_comments = db.query(models.Comment).filter(
+        models.Comment.user_id == db_user.id
+    ).all()
+    user_with_details.comments = [
+        schemas.Comment.from_orm(comment) for comment in user_comments
+    ]
+
+    # Get user's hackathon registrations (public only)
+    user_registrations = db.query(models.HackathonRegistration).filter(
+        models.HackathonRegistration.user_id == db_user.id
+    ).all()
+    user_with_details.hackathon_registrations = [
+        schemas.HackathonRegistration.from_orm(reg)
+        for reg in user_registrations
+    ]
+
+    return user_with_details
+
+
 @app.get("/api/me", response_model=schemas.UserWithDetails)
 async def get_current_user(
     db: Session = Depends(get_db),

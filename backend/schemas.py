@@ -36,6 +36,16 @@ class User(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    company: Optional[str] = None
+
+
 # Project schemas
 class ProjectBase(BaseModel):
     title: str
@@ -225,6 +235,7 @@ class Team(TeamBase):
     created_by: int
     created_at: datetime
     creator: Optional[User] = None
+    hackathon: Optional["Hackathon"] = None
     member_count: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -435,8 +446,6 @@ class EmailVerificationRequest(BaseModel):
 
 
 # Participant schemas
-
-
 class HackathonParticipant(BaseModel):
     id: int
     username: str

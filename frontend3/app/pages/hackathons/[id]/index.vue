@@ -102,6 +102,80 @@
                 </div>
               </div>
             </div>
+
+            <!-- Teams -->
+            <div class="mt-8">
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                {{ $t('hackathons.details.teams') || 'Teams' }}
+              </h2>
+              <div v-if="loadingTeams" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <p class="mt-2 text-gray-600 dark:text-gray-400">Loading teams...</p>
+              </div>
+              <div v-else-if="teamsError" class="text-center py-8">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 mb-4">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p class="text-gray-600 dark:text-gray-400">{{ teamsError }}</p>
+                <button @click="fetchTeams" class="mt-4 btn btn-outline">Try Again</button>
+              </div>
+              <div v-else-if="teams.length === 0" class="text-center py-8">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 mb-4">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p class="text-gray-600 dark:text-gray-400">No teams have been created for this hackathon yet.</p>
+                <NuxtLink v-if="authStore.isAuthenticated" to="/teams/create" class="mt-4 btn btn-primary">
+                  Create First Team
+                </NuxtLink>
+              </div>
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  v-for="team in teams"
+                  :key="team.id"
+                  class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+                >
+                  <div class="flex items-center justify-between mb-2">
+                    <NuxtLink 
+                      :to="`/teams/${team.id}`"
+                      class="text-lg font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:underline"
+                    >
+                      {{ team.name }}
+                    </NuxtLink>
+                    <span :class="[
+                      'px-2 py-1 text-xs font-medium rounded-full',
+                      team.is_open
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    ]">
+                      {{ team.is_open ? 'Open' : 'Closed' }}
+                    </span>
+                  </div>
+                  <p class="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
+                    {{ team.description || 'No description' }}
+                  </p>
+                  <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                    <span class="flex items-center">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {{ team.member_count || 0 }} / {{ team.max_members }} members
+                    </span>
+                    <span class="text-xs">
+                      Created {{ formatDate(team.created_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="teams.length > 0" class="mt-6 text-center">
+                <NuxtLink :to="`/teams?hackathon_id=${id}`" class="btn btn-outline">
+                  View All Teams
+                </NuxtLink>
+              </div>
+            </div>
           </div>
 
           <!-- Sidebar -->
@@ -325,6 +399,9 @@ const registrationLoading = ref(false)
 const isHackathonOwner = ref(false)
 const editing = ref(false)
 const editLoading = ref(false)
+const teams = ref<any[]>([])
+const loadingTeams = ref(false)
+const teamsError = ref<string | null>(null)
 const editForm = ref({
   name: '',
   description: '',
@@ -480,12 +557,38 @@ const fetchHackathon = async () => {
 
     // Check ownership after hackathon data is loaded
     checkHackathonOwnership()
+    
+    // Fetch teams for this hackathon
+    await fetchTeams()
   } catch (err) {
     console.error('Error fetching hackathon:', err)
     error.value = true
     uiStore.showError('Failed to load hackathon', 'Unable to load hackathon details. Please try again later.')
   } finally {
     loading.value = false
+  }
+}
+
+const fetchTeams = async () => {
+  try {
+    loadingTeams.value = true
+    teamsError.value = null
+
+    const config = useRuntimeConfig()
+    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    const response = await fetch(`${backendUrl}/api/hackathons/${id}/teams`)
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch teams: ${response.status}`)
+    }
+
+    const data = await response.json()
+    teams.value = data.teams || data
+  } catch (err) {
+    console.error('Error fetching teams:', err)
+    teamsError.value = 'Failed to load teams'
+  } finally {
+    loadingTeams.value = false
   }
 }
 
