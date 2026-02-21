@@ -6,12 +6,13 @@ The notification system provides automated email notifications for important use
 
 ## Architecture
 
-The notification system consists of three main components:
+The notification system consists of four main components:
 
 1. **Notification Service** (`notification_service.py`) - Core service for sending notifications
 2. **Email Templates** (`templates/emails/`) - HTML templates for different notification types
 3. **Template Engine** (`template_engine.py`) - Renders templates with i18n support
-4. **Integration** - Integrated into existing API endpoints
+4. **Push Notification Service** (`push_notification_service.py`) - Handles web push notifications
+5. **Integration** - Integrated into existing API endpoints
 
 ## Supported Notification Types
 
@@ -212,6 +213,32 @@ Notifications include links to the frontend. Set the frontend URL:
 ```bash
 FRONTEND_URL=http://localhost:3001
 ```
+
+### Push Notifications (VAPID Keys)
+For web push notifications to work, you need to configure VAPID (Voluntary Application Server Identification) keys. These keys are used to authenticate your server with push services.
+
+Add the following to your `.env` file:
+
+```bash
+# Push Notifications (VAPID keys for web push)
+# Generate using: python3 generate_vapid_keys.py
+VAPID_PRIVATE_KEY=your-vapid-private-key-here
+VAPID_PUBLIC_KEY=your-vapid-public-key-here
+```
+
+To generate VAPID keys:
+
+1. Run the key generation script:
+   ```bash
+   cd backend
+   python3 generate_vapid_keys.py
+   ```
+
+2. Copy the generated keys to your `.env` file
+
+3. Restart your application
+
+The push notification service will automatically load these keys from the environment. If keys are not configured, you'll see the warning: "VAPID keys not configured. Push notifications will not work."
 
 ## Error Handling
 
