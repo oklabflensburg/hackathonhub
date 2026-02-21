@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 
 import crud
 import models
-import schemas
 
 logger = logging.getLogger(__name__)
 
@@ -162,10 +161,9 @@ class PushNotificationService:
         try:
             # Get subscription details
             endpoint = subscription.endpoint
-            keys = subscription.keys
 
-            if not endpoint or not keys:
-                logger.error(f"Invalid subscription: missing endpoint or keys")
+            if not endpoint or not subscription.p256dh or not subscription.auth:
+                logger.error("Invalid subscription: missing endpoint or keys")
                 return False
 
             # Prepare headers

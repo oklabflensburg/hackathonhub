@@ -596,8 +596,8 @@ class UserNotification(UserNotificationBase):
 
 class PushSubscriptionBase(BaseModel):
     endpoint: str
-    p256dh_key: str
-    auth_key: str
+    p256dh: str
+    auth: str
     user_agent: Optional[str] = None
 
 

@@ -1451,9 +1451,17 @@ def create_push_subscription(
     # Check if subscription already exists
     existing = get_push_subscription(db, user_id, endpoint)
     
+    # Extract keys from the dictionary
+    p256dh = keys.get('p256dh') or keys.get('p256dh_key')
+    auth = keys.get('auth') or keys.get('auth_key')
+    
+    if not p256dh or not auth:
+        raise ValueError("Missing required keys: p256dh and auth")
+    
     if existing:
         # Update existing subscription
-        existing.keys = keys
+        existing.p256dh = p256dh
+        existing.auth = auth
         existing.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(existing)
@@ -1463,7 +1471,8 @@ def create_push_subscription(
         db_subscription = models.PushSubscription(
             user_id=user_id,
             endpoint=endpoint,
-            keys=keys
+            p256dh=p256dh,
+            auth=auth
         )
         db.add(db_subscription)
         db.commit()

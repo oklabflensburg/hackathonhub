@@ -446,8 +446,8 @@ class PushSubscription(Base):
     user_id = Column(Integer, ForeignKey(
         "users.id", ondelete="CASCADE"), nullable=False)
     endpoint = Column(Text, nullable=False)
-    p256dh_key = Column(Text, nullable=False)
-    auth_key = Column(Text, nullable=False)
+    p256dh = Column(Text, nullable=False)
+    auth = Column(Text, nullable=False)
     user_agent = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -16,9 +16,9 @@ from email_service import email_service
 import email_auth
 import google_oauth
 import file_upload
+
 from notification_service import notification_service
 from notification_preference_service import notification_preference_service
-from push_notification_service import push_notification_service
 
 from i18n.middleware import LocaleMiddleware
 from i18n.translations import get_translation
@@ -2267,12 +2267,13 @@ async def create_push_subscription(
 ):
     """Create or update a push subscription for the current user."""
     # Validate endpoint
-    if not subscription.endpoint or not subscription.keys:
-        raise HTTPException(status_code=400, detail="Endpoint and keys are required")
+    if not subscription.endpoint or not subscription.p256dh or not subscription.auth:
+        raise HTTPException(status_code=400, detail="Endpoint, p256dh, and auth are required")
     
     # Create or update subscription
     db_subscription = crud.create_push_subscription(
-        db, current_user.id, subscription.endpoint, subscription.keys
+        db, current_user.id, subscription.endpoint, 
+        {"p256dh": subscription.p256dh, "auth": subscription.auth}
     )
     
     return {"message": "Push subscription saved successfully", "id": db_subscription.id}
