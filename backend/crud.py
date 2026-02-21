@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func, desc, insert
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
+from datetime import datetime
 import models
 import schemas
 
@@ -77,7 +78,6 @@ def update_user_google_id(db: Session, user_id: int, google_id: str):
 
 
 def update_user_last_login(db: Session, user_id: int):
-    from datetime import datetime
     user = get_user(db, user_id)
     if user:
         user.last_login = datetime.utcnow()
@@ -163,7 +163,6 @@ def create_refresh_token(db: Session, user_id: int, token_id: str,
 
 
 def revoke_refresh_token(db: Session, token_id: str):
-    from datetime import datetime
     token = get_refresh_token(db, token_id)
     if token:
         token.revoked = True
@@ -174,7 +173,6 @@ def revoke_refresh_token(db: Session, token_id: str):
 
 
 def revoke_all_user_refresh_tokens(db: Session, user_id: int):
-    from datetime import datetime
     tokens = db.query(models.RefreshToken).filter(
         models.RefreshToken.user_id == user_id,
         models.RefreshToken.revoked.is_(False)
@@ -459,14 +457,12 @@ def get_hackathons(
 
 
 def get_upcoming_hackathons(db: Session, skip: int = 0, limit: int = 100):
-    from datetime import datetime
     return db.query(models.Hackathon).filter(
         models.Hackathon.start_date > datetime.utcnow()
     ).order_by(models.Hackathon.start_date).offset(skip).limit(limit).all()
 
 
 def get_active_hackathons(db: Session, skip: int = 0, limit: int = 100):
-    from datetime import datetime
     return db.query(models.Hackathon).filter(
         and_(
             models.Hackathon.start_date <= datetime.utcnow(),
@@ -942,8 +938,8 @@ def get_team_invitation(db: Session, invitation_id: int):
     ).first()
 
 
-def get_pending_invitations_for_user(db: Session, user_id: int):
-    from datetime import datetime
+def get_user_invitations(db: Session, user_id: int):
+    """Get all pending invitations for a user"""
     return db.query(models.TeamInvitation).filter(
         models.TeamInvitation.invited_user_id == user_id,
         models.TeamInvitation.status == 'pending',
