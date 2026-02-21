@@ -79,6 +79,29 @@ alembic upgrade head
 - Check credentials in `.env` file
 - Ensure database exists: `psql -h localhost -U hackathon_user -d hackathon_db`
 
+### "Multiple head revisions" error
+If you see `Multiple head revisions are present for given argument 'head'`:
+1. **Option 1: Apply all heads** (recommended):
+   ```bash
+   alembic upgrade heads
+   ```
+2. **Option 2: Create a merge migration**:
+   ```bash
+   # First, check current heads
+   alembic heads
+   # Then create merge migration (replace with actual revision IDs)
+   alembic merge -m "Merge branches" revision1 revision2
+   # Apply the merge
+   alembic upgrade head
+   ```
+3. **Option 3: If merge migration already exists** (merge_notification_and_refresh_fixes):
+   ```bash
+   # Apply both heads first
+   alembic upgrade heads
+   # Then upgrade to the merge
+   alembic upgrade head
+   ```
+
 ### Reverting to SQLite (for development)
 If you want to use SQLite instead:
 1. Update `.env`: `DATABASE_URL=sqlite:///./hackathon.db`

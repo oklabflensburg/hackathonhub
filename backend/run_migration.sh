@@ -23,27 +23,30 @@ if [ ! -d "migrations/versions" ]; then
     mkdir -p migrations/versions
 fi
 
-# Run the migration
-echo "Creating initial migration..."
-alembic revision --autogenerate -m "Initial migration"
-
-if [ $? -eq 0 ]; then
-    echo "✓ Migration created successfully."
-else
-    echo "✗ Failed to create migration. See error above."
-    exit 1
+# Check if this is initial setup (no versions directory or empty)
+if [ ! -d "migrations/versions" ] || [ -z "$(ls -A migrations/versions 2>/dev/null)" ]; then
+    echo "No migrations found. Creating initial migration..."
+    alembic revision --autogenerate -m "Initial migration"
+    
+    if [ $? -eq 0 ]; then
+        echo "✓ Migration created successfully."
+    else
+        echo "✗ Failed to create migration. See error above."
+        exit 1
+    fi
 fi
 
 echo ""
-echo "Applying migration..."
-alembic upgrade head
+echo "Applying migrations..."
+# Use 'heads' instead of 'head' to handle multiple head revisions
+alembic upgrade heads
 
 if [ $? -eq 0 ]; then
-    echo "✓ Migration applied successfully."
+    echo "✓ Migrations applied successfully."
     echo ""
     echo "Database is now ready!"
     echo "You can start the application with: uvicorn main:app --reload"
 else
-    echo "✗ Failed to apply migration. See error above."
+    echo "✗ Failed to apply migrations. See error above."
     exit 1
 fi
