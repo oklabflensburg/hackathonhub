@@ -4,26 +4,28 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy import TypeDecorator
 from database import Base
 
-# Use String for SQLite compatibility, INET for PostgreSQL
-# SQLite doesn't support INET type, so we use String as fallback
-# We'll use String for all databases to ensure compatibility
-# If you need PostgreSQL-specific INET features, you can conditionally
-# use INET based on DATABASE_URL environment variable
-import os
 
-# Check if we're using PostgreSQL
-database_url = os.getenv("DATABASE_URL", "")
-if database_url.startswith("postgresql://"):
-    try:
-        from sqlalchemy.dialects.postgresql import INET
-        IPAddressType = INET
-    except ImportError:
-        IPAddressType = String
-else:
-    # For SQLite and other databases, use String
-    IPAddressType = String
+# Custom IPAddressType that adapts to database dialect
+# Uses INET for PostgreSQL, String for other databases (SQLite, etc.)
+class IPAddressType(TypeDecorator):
+    """Custom type for IP addresses that adapts to database dialect."""
+    
+    impl = String
+    cache_ok = True
+    
+    def load_dialect_impl(self, dialect):
+        # For PostgreSQL, use INET type
+        if dialect.name == 'postgresql':
+            try:
+                from sqlalchemy.dialects.postgresql import INET
+                return dialect.type_descriptor(INET)
+            except ImportError:
+                pass
+        # For all other databases (SQLite, MySQL, etc.), use String
+        return dialect.type_descriptor(String)
 
 
 class User(Base):

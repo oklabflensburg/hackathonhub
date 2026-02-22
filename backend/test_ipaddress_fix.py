@@ -27,9 +27,11 @@ try:
     print(f"  DATABASE_URL: {database_url}")
     
     if database_url.startswith("postgresql://"):
-        print("  ✓ Using PostgreSQL - INET type should be available")
+        msg = "  ✓ Using PostgreSQL - IPAddressType will use INET"
+        print(msg)
     else:
-        print("  ✓ Using SQLite or other - String type should be used")
+        msg = "  ✓ Using SQLite or other - IPAddressType will use String"
+        print(msg)
         
 except Exception as e:
     print(f"  ✗ Error: {e}")
@@ -82,7 +84,8 @@ try:
     
     # Query it back
     print("  Querying refresh token...")
-    token_from_db = db.query(models.RefreshToken).filter_by(token_id="test_token_123").first()
+    token_from_db = db.query(models.RefreshToken).filter_by(
+        token_id="test_token_123").first()
     if token_from_db:
         print(f"  ✓ Token retrieved: IP={token_from_db.ip_address}")
     else:
@@ -101,5 +104,7 @@ print("IPADDRESS FIX TEST COMPLETE")
 print("=" * 60)
 
 print("\nSummary:")
-print("The IPAddressType fix should now work with SQLite.")
-print("If this test passes, the notification system tests should also work.")
+print("IPAddressType now dynamically adapts to database dialect:")
+print("- Uses INET for PostgreSQL")
+print("- Uses String for SQLite and other databases")
+print("This ensures compatibility across all database backends.")
