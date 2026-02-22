@@ -890,8 +890,7 @@ async def get_teams(
     skip: int = 0,
     limit: int = 100,
     is_open: Optional[bool] = Query(None),
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(auth.get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get teams with optional filters"""
     if hackathon_id:
@@ -922,8 +921,7 @@ async def get_teams(
 @app.get("/api/teams/{team_id}", response_model=schemas.TeamWithMembers)
 async def get_team(
     team_id: int,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(auth.get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get team details with members"""
     team = crud.get_team_with_details(db, team_id=team_id)
@@ -1039,8 +1037,7 @@ async def get_hackathon_teams(
     hackathon_id: int,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(auth.get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get teams for a specific hackathon"""
     # Check if hackathon exists
@@ -1074,23 +1071,13 @@ async def get_team_projects(
     team_id: int,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(auth.get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get all projects for a team"""
     # Check if team exists
     team = crud.get_team(db, team_id=team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
-
-    # Check if user is a team member
-    team_member = crud.get_team_member(
-        db, team_id=team_id, user_id=current_user.id)
-    if not team_member:
-        raise HTTPException(
-            status_code=403,
-            detail="Only team members can view team projects"
-        )
 
     # Get team projects
     projects = crud.get_projects_by_team(
@@ -1137,23 +1124,13 @@ async def get_user_teams_for_hackathon(
 @app.get("/api/teams/{team_id}/members", response_model=List[schemas.TeamMember])
 async def get_team_members(
     team_id: int,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(auth.get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get all members of a team"""
     # Check if team exists
     team = crud.get_team(db, team_id=team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
-
-    # Check if user is a team member
-    team_member = crud.get_team_member(
-        db, team_id=team_id, user_id=current_user.id)
-    if not team_member:
-        raise HTTPException(
-            status_code=403,
-            detail="Only team members can view team members"
-        )
 
     # Get team members with user details
     members = db.query(models.TeamMember).join(models.User).filter(
