@@ -173,6 +173,7 @@ export const useAuthStore = defineStore('auth', () => {
       uiStore.showError(errorMessage, 'Login Error')
 
       console.error('Email login error:', err)
+      throw err
     } finally {
       isLoading.value = false
     }
