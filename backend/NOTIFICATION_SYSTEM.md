@@ -306,3 +306,159 @@ Notification sent: team_invitation_sent to user@example.com
 # Failed notifications
 Failed to send notification: team_invitation_sent to user@example.com
 Error sending notification team_invitation_sent: [error details]
+```
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### 1. Emails Not Being Sent
+
+**Symptoms**: Notifications appear to succeed but no emails are received.
+
+**Diagnosis**:
+1. Run the diagnostic script:
+   ```bash
+   cd backend
+   python diagnose_notifications.py
+   ```
+
+2. Check for these common issues:
+   - **SMTP not configured**: Check `.env` file for SMTP credentials
+   - **Database schema mismatch**: Run diagnostic to check schema version
+   - **Email service returning false success**: Check email service logs
+
+**Solutions**:
+- **SMTP Configuration**: Ensure `SMTP_USER` and `SMTP_PASSWORD` are set in `.env`
+- **Production vs Development**: In production, emails fail if SMTP not configured
+- **Schema Mismatch**: Apply the `fix_notification_schema` migration
+
+#### 2. Database Schema Mismatch
+
+**Symptoms**: Notification preferences not working, errors in logs about missing columns.
+
+**Diagnosis**: Run diagnostic script to check schema version.
+
+**Solutions**:
+1. **Apply migration**:
+   ```bash
+   alembic upgrade head
+   ```
+
+2. **If migration fails**, check current schema:
+   ```sql
+   -- Check notification_types columns
+   PRAGMA table_info(notification_types);
+   
+   -- Check user_notification_preferences columns  
+   PRAGMA table_info(user_notification_preferences);
+   ```
+
+3. **Manual fix if needed**:
+   - Update `notification_types` table: rename `name` to `type_key`, add `category` and `default_channels`
+   - Recreate `user_notification_preferences` table with new schema
+
+#### 3. Notification Preferences Not Respected
+
+**Symptoms**: Notifications sent even when user has disabled them.
+
+**Diagnosis**:
+1. Check if notification types are initialized:
+   ```python
+   from notification_preference_service import notification_preference_service
+   notification_preference_service.initialize_notification_types(db)
+   ```
+
+2. Verify user preferences exist in database.
+
+**Solutions**:
+- Ensure notification types are initialized on startup
+- Check preference service is using correct schema
+- Verify `should_send_notification()` logic
+
+#### 4. Template Loading Errors
+
+**Symptoms**: Emails sent with empty content or template errors.
+
+**Diagnosis**: Check template engine logs for missing templates.
+
+**Solutions**:
+- Verify template files exist in `templates/emails/`
+- Check template paths match notification type mappings
+- Test template rendering:
+  ```python
+  from template_engine import template_engine
+  result = template_engine.render_email("team/invitation_sent", "en", {})
+  ```
+
+### Diagnostic Tools
+
+#### 1. Diagnostic Script
+A comprehensive diagnostic script is available:
+```bash
+cd backend
+python diagnose_notifications.py
+```
+
+This script tests:
+- Database connection and schema
+- SMTP configuration
+- Template loading
+- Notification services
+- Preference system
+
+#### 2. Manual Testing
+Test notification sending manually:
+```bash
+cd backend
+python test_notification_system.py
+```
+
+#### 3. Health Check Endpoint
+Add to your application (recommended):
+```python
+@app.get("/api/health/notifications")
+def health_notifications():
+    """Health check for notification system."""
+    # Test components and return status
+    pass
+```
+
+### Deployment Checklist
+
+Before deploying notification system fixes:
+
+- [ ] Run diagnostic script
+- [ ] Apply database migrations
+- [ ] Verify SMTP configuration
+- [ ] Test notification sending
+- [ ] Check application logs
+- [ ] Monitor error rates after deployment
+
+### Rollback Procedure
+
+If notification fixes cause issues:
+
+1. **Database rollback**:
+   ```bash
+   alembic downgrade -1
+   ```
+
+2. **Code rollback**: Revert email service changes
+3. **Configuration rollback**: Restore previous `.env` settings
+
+### Performance Monitoring
+
+Monitor these metrics after fixes:
+- Email delivery success rate
+- Notification processing time
+- Database query performance
+- Template rendering time
+
+### Support Contacts
+
+For persistent issues:
+- Database schema: Check migration logs
+- SMTP issues: Verify credentials with email provider
+- Template issues: Check template file permissions
+- Code issues: Review application logs

@@ -75,12 +75,23 @@ class EmailService:
         
         # Check if SMTP is configured
         if not self.smtp_user or not self.smtp_password:
-            logger.warning(
-                "SMTP not configured. Email would be sent to: %s", to_email
-            )
-            logger.warning("Subject: %s", subject)
-            logger.warning("Body: %s", body[:100] + "..." if len(body) > 100 else body)
-            return True  # Return success in development
+            environment = os.getenv("ENVIRONMENT", "development")
+            
+            if environment == "production":
+                logger.error(
+                    "SMTP not configured in production! Email would be sent to: %s", 
+                    to_email
+                )
+                logger.error("Subject: %s", subject)
+                return False  # Return failure in production
+            else:
+                logger.warning(
+                    "SMTP not configured in development. Email would be sent to: %s", 
+                    to_email
+                )
+                logger.warning("Subject: %s", subject)
+                logger.warning("Body preview: %s", body[:100] + "..." if len(body) > 100 else body)
+                return True  # Return success in development only
         
         try:
             # Create message

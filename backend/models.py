@@ -2,10 +2,18 @@ from sqlalchemy import (
     Column, Integer, String, Text, DateTime,
     ForeignKey, Boolean, UniqueConstraint, Float
 )
-from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
+
+# Use String for SQLite compatibility, INET for PostgreSQL
+# SQLite doesn't support INET type, so we use String as fallback
+try:
+    from sqlalchemy.dialects.postgresql import INET
+    IPAddressType = INET
+except ImportError:
+    # Fallback to String for SQLite and other databases
+    IPAddressType = String
 
 
 class User(Base):
@@ -361,7 +369,7 @@ class RefreshToken(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     token_id = Column(String(64), unique=True, nullable=False)  # jti from JWT
     device_info = Column(Text, nullable=True)
-    ip_address = Column(INET, nullable=True)
+    ip_address = Column(IPAddressType, nullable=True)
     user_agent = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=False)

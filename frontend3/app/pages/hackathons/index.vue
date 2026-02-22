@@ -73,7 +73,13 @@
       <div
         v-for="hackathon in filteredHackathons"
         :key="hackathon.id"
-        class="card-hover group"
+        class="card-hover group relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        role="link"
+        :aria-label="`View details for ${hackathon.name}`"
+        tabindex="0"
+        @click="navigateToHackathon(hackathon.id)"
+        @keydown.enter="navigateToHackathon(hackathon.id)"
+        @keydown.space="navigateToHackathon(hackathon.id)"
       >
         <!-- Hackathon Image -->
         <div class="relative h-48 mb-4 rounded-xl overflow-hidden">
@@ -162,6 +168,7 @@
             <NuxtLink
               :to="`/hackathons/${hackathon.id}`"
               class="btn btn-primary px-4 py-2 text-sm"
+              @click.stop
             >
                {{ $t('hackathons.viewDetails') }}
             </NuxtLink>
@@ -249,13 +256,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from '#imports'
+import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
 
 const route = useRoute()
+const router = useRouter()
 const config = useRuntimeConfig()
 const searchQuery = ref('')
 const activeFilter = ref('all')
@@ -463,6 +471,11 @@ const filteredHackathons = computed(() => {
 const resetFilters = () => {
   searchQuery.value = ''
   activeFilter.value = 'all'
+}
+
+// Navigate to hackathon detail page
+const navigateToHackathon = (hackathonId: number) => {
+  router.push(`/hackathons/${hackathonId}`)
 }
 
 </script>
