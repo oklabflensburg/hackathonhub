@@ -19,6 +19,27 @@
           </svg>
           <span class="text-sm text-red-600 dark:text-red-400">{{ authStore.error }}</span>
         </div>
+        <div v-if="isEmailVerificationError" class="mt-3">
+          <button
+            @click="resendVerificationEmail"
+            :disabled="resendLoading"
+            class="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span v-if="resendLoading" class="flex items-center">
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ t('auth.verifyEmail.sending') }}
+            </span>
+            <span v-else>
+              {{ t('auth.verifyEmail.resendVerification') }}
+            </span>
+          </button>
+          <div v-if="resendSuccess" class="mt-2 text-sm text-green-600 dark:text-green-400">
+            {{ t('auth.verifyEmail.verificationEmailSent') }}
+          </div>
+        </div>
       </div>
 
       <!-- OAuth Buttons -->
@@ -145,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useI18n } from 'vue-i18n'
 import { authMiddleware } from '~/middleware/auth'
@@ -160,6 +181,13 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const rememberMe = ref(false)
+const resendLoading = ref(false)
+const resendSuccess = ref(false)
+
+// Computed property to check if error is email verification error
+const isEmailVerificationError = computed(() => {
+  return authStore.error?.includes('Email not verified')
+})
 
 // Redirect authenticated users away from login page
 onMounted(() => {
@@ -171,6 +199,20 @@ onMounted(() => {
     navigateTo('/')
   }
 })
+
+const resendVerificationEmail = async () => {
+  if (!email.value) return
+  resendLoading.value = true
+  resendSuccess.value = false
+  try {
+    await authStore.resendVerificationEmail(email.value)
+    resendSuccess.value = true
+  } catch (error) {
+    console.error('Failed to resend verification email:', error)
+  } finally {
+    resendLoading.value = false
+  }
+}
 
 const loginWithGitHub = () => {
   authStore.loginWithGitHub()

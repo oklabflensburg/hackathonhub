@@ -128,22 +128,23 @@ async def create_project(
     """Create a new hackathon project"""
     # Create project
     try:
-        db_project = crud.create_project(db=db, project=project, 
+        db_project = crud.create_project(db=db, project=project,
                                          user_id=current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     # Send notification email about project creation
     try:
         # Get language from request headers or default to English
         from i18n.middleware import get_locale_from_request
         language = get_locale_from_request() or "en"
-        
+
         # Log project creation
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"Project created: {db_project.id} by user {current_user.id}")
-        
+        logger.info(
+            f"Project created: {db_project.id} by user {current_user.id}")
+
         # Notify team members if project has a team
         if db_project.team_id:
             # Get team members (excluding the project creator)
@@ -151,9 +152,9 @@ async def create_project(
                 models.TeamMember.team_id == db_project.team_id,
                 models.TeamMember.user_id != current_user.id
             ).all()
-            
+
             recipient_ids = [member.user_id for member in team_members]
-            
+
             if recipient_ids:
                 notification_service.send_project_created_notification(
                     db=db,
@@ -166,7 +167,7 @@ async def create_project(
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Failed to send project creation notification: {e}")
-    
+
     return db_project
 
 
@@ -1170,7 +1171,7 @@ async def add_team_member(
     current_user: schemas.User = Depends(auth.get_current_user)
 ):
     """Add a user to a team
-    
+
     Rules:
     1. Team owners can add any user to their team
     2. Users can join open teams themselves (if team.is_open is True)
@@ -1199,7 +1200,7 @@ async def add_team_member(
     # Check permissions
     current_user_member = crud.get_team_member(
         db, team_id=team_id, user_id=current_user.id)
-    
+
     # Case 1: Current user is adding themselves to an open team
     if team_member.user_id == current_user.id:
         if not team.is_open:
@@ -1243,7 +1244,7 @@ async def add_team_member(
             # Get language from request headers or default to English
             from i18n.middleware import get_locale_from_request
             language = get_locale_from_request() or "en"
-            
+
             notification_service.send_team_member_added_notification(
                 db=db,
                 team_id=team_id,
@@ -1495,7 +1496,7 @@ async def create_team_invitation(
         # Get language from request headers or default to English
         from i18n.middleware import get_locale_from_request
         language = get_locale_from_request() or "en"
-        
+
         notification_service.send_team_invitation_notification(
             db=db,
             invitation_id=db_invitation.id,
@@ -1567,7 +1568,7 @@ async def accept_invitation(
         # Get language from request headers or default to English
         from i18n.middleware import get_locale_from_request
         language = get_locale_from_request() or "en"
-        
+
         notification_service.send_team_invitation_accepted_notification(
             db=db,
             invitation_id=invitation_id,
@@ -1807,7 +1808,7 @@ async def forgot_password(
     try:
         # Call forgot_password function
         email_auth.forgot_password(db, email_data.email)
-        
+
         # Always return success (security best practice)
         return {
             "message": "If an account with that email exists, "
@@ -1832,7 +1833,7 @@ async def reset_password(
         success = email_auth.reset_password(
             db, reset_data.token, reset_data.new_password
         )
-        
+
         if success:
             return {
                 "message": "Password has been reset successfully. "
@@ -1872,6 +1873,37 @@ async def verify_email(
             status_code=500,
             detail=f"Email verification failed: {str(e)}"
         )
+
+
+@app.post("/api/auth/resend-verification")
+async def resend_verification(
+    email_data: schemas.EmailResendRequest,
+    db: Session = Depends(get_db)
+):
+    """Resend verification email to user"""
+    try:
+        from email_verification import resend_verification_email
+        success = resend_verification_email(db, email_data.email)
+        if success:
+            return {
+                "message": "Verification email has been resent. "
+                           "Please check your inbox."
+            }
+        else:
+            # User not found or already verified
+            # Return success anyway to avoid email enumeration
+            return {
+                "message": "If an account with that email exists "
+                           "and is not verified, a verification "
+                           "email has been sent."
+            }
+    except Exception:
+        # Still return success to avoid email enumeration
+        return {
+            "message": "If an account with that email exists "
+                       "and is not verified, a verification "
+                       "email has been sent."
+        }
 
 
 @app.get("/api/auth/google")
@@ -2046,7 +2078,8 @@ async def update_current_user_profile(
     db: Session = Depends(get_db)
 ):
     """Update current user's profile"""
-    updated_user = crud.update_user(db, user_id=current_user.id, user_update=user_update)
+    updated_user = crud.update_user(
+        db, user_id=current_user.id, user_update=user_update)
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return updated_user
@@ -2054,7 +2087,8 @@ async def update_current_user_profile(
 
 @app.get("/api/users", response_model=List[schemas.User])
 async def search_users(
-    username: Optional[str] = Query(None, description="Search query for username (case-insensitive partial match)"),
+    username: Optional[str] = Query(
+        None, description="Search query for username (case-insensitive partial match)"),
     limit: int = Query(10, description="Maximum number of results to return"),
     db: Session = Depends(get_db)
 ):
@@ -2112,7 +2146,7 @@ async def get_user_profile(
         except HTTPException:
             # Token is invalid, treat as anonymous
             current_user_id = None
-    
+
     if current_user_id == user_id:
         user_votes = db.query(models.Vote).filter(
             models.Vote.user_id == db_user.id
@@ -2244,13 +2278,13 @@ async def mark_notification_as_read(
 ):
     """Mark a notification as read."""
     notification = crud.mark_notification_as_read(db, notification_id)
-    
+
     if not notification:
         raise HTTPException(status_code=404, detail="Notification not found")
-    
+
     if notification.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
-    
+
     return {"message": "Notification marked as read", "notification_id": notification_id}
 
 
@@ -2270,7 +2304,8 @@ async def get_notification_preferences(
     current_user: schemas.User = Depends(auth.get_current_user)
 ):
     """Get notification preferences for the current user."""
-    preferences = notification_preference_service.get_user_preferences(db, current_user.id)
+    preferences = notification_preference_service.get_user_preferences(
+        db, current_user.id)
     return preferences
 
 
@@ -2296,11 +2331,12 @@ async def update_notification_preferences(
     success = notification_preference_service.update_user_preferences(
         db, current_user.id, preferences
     )
-    
+
     if success:
         return {"message": "Notification preferences updated successfully"}
     else:
-        raise HTTPException(status_code=500, detail="Failed to update preferences")
+        raise HTTPException(
+            status_code=500, detail="Failed to update preferences")
 
 
 @app.post("/api/notification-preferences/{notification_type}/{channel}")
@@ -2314,11 +2350,11 @@ async def update_notification_preference(
     """Update a specific notification preference."""
     if channel not in ["email", "push", "in_app"]:
         raise HTTPException(status_code=400, detail="Invalid channel")
-    
+
     preference = crud.update_user_notification_preference(
         db, current_user.id, notification_type, channel, enabled
     )
-    
+
     if preference:
         return {"message": "Preference updated successfully", "enabled": enabled}
     else:
@@ -2350,14 +2386,15 @@ async def create_push_subscription(
     """Create or update a push subscription for the current user."""
     # Validate endpoint
     if not subscription.endpoint or not subscription.p256dh or not subscription.auth:
-        raise HTTPException(status_code=400, detail="Endpoint, p256dh, and auth are required")
-    
+        raise HTTPException(
+            status_code=400, detail="Endpoint, p256dh, and auth are required")
+
     # Create or update subscription
     db_subscription = crud.create_push_subscription(
-        db, current_user.id, subscription.endpoint, 
+        db, current_user.id, subscription.endpoint,
         {"p256dh": subscription.p256dh, "auth": subscription.auth}
     )
-    
+
     return {"message": "Push subscription saved successfully", "id": db_subscription.id}
 
 
@@ -2369,7 +2406,7 @@ async def delete_push_subscription(
 ):
     """Delete a push subscription for the current user."""
     subscription = crud.delete_push_subscription(db, current_user.id, endpoint)
-    
+
     if subscription:
         return {"message": "Push subscription deleted successfully"}
     else:
@@ -2381,13 +2418,13 @@ async def get_vapid_public_key():
     """Get VAPID public key for web push notifications."""
     import os
     vapid_public_key = os.environ.get("VAPID_PUBLIC_KEY")
-    
+
     if not vapid_public_key:
         raise HTTPException(
             status_code=501,
             detail="Push notifications not configured. VAPID public key not set."
         )
-    
+
     return {"public_key": vapid_public_key}
 
 

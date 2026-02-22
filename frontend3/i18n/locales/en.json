@@ -204,7 +204,10 @@
       "noTokenTitle": "No Verification Token",
       "noTokenMessage": "No verification token was provided. Please check your email for the verification link.",
       "goToLogin": "Go to Login",
-      "registerAgain": "Register Again"
+      "registerAgain": "Register Again",
+      "resendVerification": "Resend verification email",
+      "sending": "Sending...",
+      "verificationEmailSent": "Verification email sent! Please check your inbox."
     }
   },
   "errors": {

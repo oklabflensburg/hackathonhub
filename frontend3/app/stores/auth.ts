@@ -241,6 +241,47 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function resendVerificationEmail(userEmail: string) {
+    const previousError = error.value
+    error.value = null
+
+    try {
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+
+      const response = await fetch(`${backendUrl}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: userEmail
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to resend verification email')
+      }
+
+      const data = await response.json()
+      // Show success notification
+      const uiStore = useUIStore()
+      uiStore.showSuccess(data.message, 'Verification Email Sent')
+      return data
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to resend verification email'
+      error.value = errorMessage
+
+      // Also show notification for better visibility
+      const uiStore = useUIStore()
+      uiStore.showError(errorMessage, 'Resend Failed')
+
+      console.error('Resend verification error:', err)
+      throw err
+    }
+  }
+
   async function handleAuthResponse(authData: any) {
     token.value = authData.access_token
     refreshToken.value = authData.refresh_token
@@ -588,6 +629,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithGoogle,
     loginWithEmail,
     registerWithEmail,
+    resendVerificationEmail,
     logout,
     initializeAuth,
     refreshUser,

@@ -205,7 +205,10 @@
       "noTokenTitle": "Kein Verifizierungs-Token",
       "noTokenMessage": "Es wurde kein Verifizierungs-Token bereitgestellt. Bitte überprüfen Sie Ihre E-Mail auf den Verifizierungslink.",
       "goToLogin": "Zum Login",
-      "registerAgain": "Erneut registrieren"
+      "registerAgain": "Erneut registrieren",
+      "resendVerification": "Verifizierungs-E-Mail erneut senden",
+      "sending": "Wird gesendet...",
+      "verificationEmailSent": "Verifizierungs-E-Mail gesendet! Bitte überprüfen Sie Ihren Posteingang."
     }
   },
   "errors": {
