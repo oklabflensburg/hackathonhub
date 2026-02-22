@@ -71,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value.username.charAt(0).toUpperCase()
   })
 
-  async function loginWithGitHub(redirectUrl?: string, userId?: number) {
+  async function loginWithGitHub(redirectUrl?: string) {
     isLoading.value = true
     error.value = null
 
@@ -90,11 +90,14 @@ export const useAuthStore = defineStore('auth', () => {
       if (redirectUrl) {
         url.searchParams.append('redirect_url', redirectUrl)
       }
-      if (userId) {
-        url.searchParams.append('user_id', userId.toString())
+
+      // Prepare headers with Authorization if user is authenticated
+      const headers: HeadersInit = {}
+      if (token.value) {
+        headers['Authorization'] = `Bearer ${token.value}`
       }
 
-      const response = await fetch(url.toString())
+      const response = await fetch(url.toString(), { headers })
       if (!response.ok) {
         throw new Error('Failed to get GitHub authorization URL')
       }
@@ -396,7 +399,7 @@ export const useAuthStore = defineStore('auth', () => {
     // This helps ensure UI updates properly after logout
     const uiStore = useUIStore()
     // You could add a method to reset UI state if needed
-    
+
     // Clear team store
     try {
       const teamStore = useTeamStore()
@@ -479,7 +482,7 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = userData
         const preferences = usePreferencesStore()
         preferences.auth.setUser(userData)
-        
+
         // Initialize team store with user's teams
         try {
           const teamStore = useTeamStore()
@@ -516,7 +519,7 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = userData
         const preferences = usePreferencesStore()
         preferences.auth.setUser(userData)
-        
+
         // Initialize team store with user's teams
         try {
           const teamStore = useTeamStore()

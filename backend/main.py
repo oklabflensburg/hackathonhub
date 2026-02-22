@@ -1659,7 +1659,8 @@ async def cancel_invitation(
 @app.get("/api/auth/github")
 async def github_auth(
     redirect_url: str = Query(None),
-    user_id: int = Query(None, description="Optional user ID for account linking")
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
 ):
     """Initiate GitHub OAuth flow"""
     client_id = os.getenv("GITHUB_CLIENT_ID")
@@ -1690,9 +1691,18 @@ async def github_auth(
     state_data = {}
     if redirect_url:
         state_data["redirect_url"] = redirect_url
-    if user_id:
-        state_data["user_id"] = user_id
-    
+
+    # Get current user from Authorization header
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            token = authorization.replace("Bearer ", "")
+            current_user = await auth.get_current_user(token, db)
+            if current_user:
+                state_data["user_id"] = current_user.id
+        except Exception:
+            # If token is invalid, proceed without user ID (normal login/registration)
+            pass
+
     # Add state parameter if we have any state data
     if state_data:
         import json
@@ -1713,25 +1723,25 @@ async def github_callback(
     """Handle GitHub OAuth callback and redirect to frontend"""
     try:
         from github_oauth import authenticate_with_github
-        
+
         # Parse state if provided
         current_user_id = None
         redirect_url_from_state = None
-        
+
         if state:
             import json
             import urllib.parse
             try:
                 decoded_state = urllib.parse.unquote(state)
                 state_data = json.loads(decoded_state)
-                
+
                 # Extract redirect_url and user_id from state
                 redirect_url_from_state = state_data.get("redirect_url")
                 current_user_id = state_data.get("user_id")
             except (json.JSONDecodeError, TypeError):
                 # If state is not JSON, treat it as plain redirect URL (backward compatibility)
                 redirect_url_from_state = urllib.parse.unquote(state)
-        
+
         result = await authenticate_with_github(code, db, current_user_id)
 
         # Redirect to frontend with token in query parameter
@@ -1773,7 +1783,7 @@ async def github_callback(
             except (json.JSONDecodeError, TypeError):
                 # If state is not JSON, treat it as plain redirect URL
                 error_redirect_url = urllib.parse.unquote(state)
-        
+
         # Use redirect URL from state for error redirect if available
         if error_redirect_url and error_redirect_url.startswith('/'):
             redirect_url = (
