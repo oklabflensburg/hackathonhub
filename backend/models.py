@@ -8,11 +8,21 @@ from database import Base
 
 # Use String for SQLite compatibility, INET for PostgreSQL
 # SQLite doesn't support INET type, so we use String as fallback
-try:
-    from sqlalchemy.dialects.postgresql import INET
-    IPAddressType = INET
-except ImportError:
-    # Fallback to String for SQLite and other databases
+# We'll use String for all databases to ensure compatibility
+# If you need PostgreSQL-specific INET features, you can conditionally
+# use INET based on DATABASE_URL environment variable
+import os
+
+# Check if we're using PostgreSQL
+database_url = os.getenv("DATABASE_URL", "")
+if database_url.startswith("postgresql://"):
+    try:
+        from sqlalchemy.dialects.postgresql import INET
+        IPAddressType = INET
+    except ImportError:
+        IPAddressType = String
+else:
+    # For SQLite and other databases, use String
     IPAddressType = String
 
 
