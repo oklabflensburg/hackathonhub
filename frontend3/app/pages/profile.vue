@@ -645,7 +645,13 @@ const removeAvatar = async () => {
 }
 
 const connectGitHub = () => {
-  authStore.loginWithGitHub('/profile')
+  if (user.value?.id) {
+    // Pass user ID for account linking
+    authStore.loginWithGitHub('/profile', user.value.id)
+  } else {
+    // Not logged in, just normal GitHub login
+    authStore.loginWithGitHub('/profile')
+  }
 }
 
 const handleLogout = () => {
@@ -702,8 +708,30 @@ const saveProfile = async () => {
   }
 }
 
+const checkGitHubOAuthError = () => {
+  if (typeof window === 'undefined') return
+  
+  const urlParams = new URLSearchParams(window.location.search)
+  const error = urlParams.get('error')
+  
+  if (error && error.includes('github_account_already_linked')) {
+    // Extract the actual error message (everything after the colon)
+    const errorMessage = error.split(':').slice(1).join(':').trim()
+    
+    uiStore.showError(
+      'GitHub Account Already Linked',
+      errorMessage || 'This GitHub account is already associated with another user. Please use a different GitHub account or contact support.'
+    )
+    
+    // Clean up URL parameters
+    const newUrl = window.location.pathname
+    window.history.replaceState({}, '', newUrl)
+  }
+}
+
 onMounted(() => {
   fetchUserProfile()
   fetchUserStats()
+  checkGitHubOAuthError()
 })
 </script>

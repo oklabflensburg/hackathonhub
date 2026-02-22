@@ -71,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value.username.charAt(0).toUpperCase()
   })
 
-  async function loginWithGitHub(redirectUrl?: string) {
+  async function loginWithGitHub(redirectUrl?: string, userId?: number) {
     isLoading.value = true
     error.value = null
 
@@ -89,6 +89,9 @@ export const useAuthStore = defineStore('auth', () => {
       const url = new URL(`${backendUrl}/api/auth/github`)
       if (redirectUrl) {
         url.searchParams.append('redirect_url', redirectUrl)
+      }
+      if (userId) {
+        url.searchParams.append('user_id', userId.toString())
       }
 
       const response = await fetch(url.toString())
