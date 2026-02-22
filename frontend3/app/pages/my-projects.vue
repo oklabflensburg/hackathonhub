@@ -4,8 +4,8 @@
     <div class="mb-8">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">My Projects</h1>
-          <p class="text-gray-600 dark:text-gray-400">View and manage all projects you've submitted</p>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ $t('projects.myProjects.title') }}</h1>
+          <p class="text-gray-600 dark:text-gray-400">{{ $t('projects.myProjects.subtitle') }}</p>
         </div>
         <NuxtLink
           to="/create"
@@ -14,7 +14,7 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          Submit New Project
+          {{ $t('projects.myProjects.submitNewProject') }}
         </NuxtLink>
       </div>
 
@@ -35,10 +35,10 @@
           v-model="sortBy"
           class="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         >
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="votes">Most Votes</option>
-          <option value="comments">Most Comments</option>
+          <option value="newest">{{ $t('projects.sortOptions.newest') }}</option>
+          <option value="oldest">{{ $t('projects.sortOptions.oldest') }}</option>
+          <option value="votes">{{ $t('projects.sortOptions.votes') }}</option>
+          <option value="comments">{{ $t('projects.sortOptions.comments') }}</option>
         </select>
       </div>
 
@@ -49,7 +49,7 @@
             <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Filtering by tags:</span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('projects.filteringByTags') }}</span>
           </div>
           <button
             @click="clearAllTags"
@@ -58,7 +58,7 @@
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-            Clear all
+            {{ $t('projects.clearAll') }}
           </button>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -91,8 +91,8 @@
       <svg class="w-24 h-24 text-gray-400 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No projects yet</h3>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">You haven't submitted any projects to hackathons yet.</p>
+      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{{ $t('projects.myProjects.noProjectsYet') }}</h3>
+      <p class="text-gray-600 dark:text-gray-400 mb-6">{{ $t('projects.myProjects.noProjectsDescription') }}</p>
       <NuxtLink 
         to="/create" 
         class="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -100,7 +100,7 @@
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
-        Submit Your First Project
+        {{ $t('projects.myProjects.submitYourFirstProject') }}
       </NuxtLink>
     </div>
 
@@ -126,12 +126,12 @@
             <div>
               <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ project.name }}</h3>
               <div class="flex items-center space-x-2">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Submitted to:</span>
+                 <span class="text-sm text-gray-500 dark:text-gray-400">{{ $t('projects.myProjects.submittedTo') }}</span>
                 <NuxtLink 
                   :to="`/hackathons/${project.hackathon_id}`"
                   class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
                 >
-                  {{ project.hackathon_name || 'Hackathon' }}
+                   {{ project.hackathon_name || $t('projects.myProjects.hackathon') }}
                 </NuxtLink>
               </div>
             </div>
@@ -155,7 +155,7 @@
           <div class="space-y-4">
             <!-- Tech Stack -->
             <div v-if="project.technologiesArray && project.technologiesArray.length > 0">
-              <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Technologies</h4>
+               <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{{ $t('projects.detail.technologies') }}</h4>
               <div class="flex flex-wrap gap-2">
                 <button
                   v-for="tech in project.technologiesArray.slice(0, 3)"
@@ -167,7 +167,7 @@
                       ? 'bg-primary-500 text-white shadow-sm'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   ]"
-                  :title="selectedTags.includes(tech) ? 'Click to remove filter' : 'Click to filter by this tag'"
+                   :title="selectedTags.includes(tech) ? $t('projects.myProjects.clickToRemoveFilter') : $t('projects.myProjects.clickToFilterByTag')"
                 >
                   {{ tech }}
                   <span v-if="selectedTags.includes(tech)" class="ml-1">✓</span>
@@ -183,18 +183,18 @@
 
             <!-- Stats -->
             <div class="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div class="text-center">
-                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.vote_count || 0 }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Votes</p>
-              </div>
-              <div class="text-center">
-                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.comment_count || 0 }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Comments</p>
-              </div>
-              <div class="text-center">
-                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.view_count || 0 }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Views</p>
-              </div>
+               <div class="text-center">
+                 <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.vote_count || 0 }}</p>
+                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.projects.votes') }}</p>
+               </div>
+               <div class="text-center">
+                 <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.comment_count || 0 }}</p>
+                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.projects.comments') }}</p>
+               </div>
+               <div class="text-center">
+                 <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.view_count || 0 }}</p>
+                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.projects.views') }}</p>
+               </div>
             </div>
           </div>
         </div>
@@ -210,14 +210,14 @@
                 :to="`/projects/${project.id}`"
                 class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
               >
-                View Details
+                 {{ $t('common.viewDetails') }}
               </NuxtLink>
               <button 
                 v-if="project.status === 'pending'"
                 @click="handleEdit(project)"
                 class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
               >
-                Edit
+                 {{ $t('common.edit') }}
               </button>
             </div>
           </div>
@@ -233,17 +233,17 @@
           :disabled="currentPage === 1"
           class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Previous
+          {{ $t('common.previous') }}
         </button>
         <span class="px-4 py-2 text-gray-700 dark:text-gray-300">
-          Page {{ currentPage }} of {{ totalPages }}
+           {{ $t('projects.myProjects.pageInfo', { currentPage, totalPages }) }}
         </span>
         <button 
           @click="nextPage"
           :disabled="currentPage === totalPages"
           class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Next
+          {{ $t('common.next') }}
         </button>
       </div>
     </div>
@@ -255,9 +255,11 @@ import { ref, onMounted, computed } from 'vue'
 import { format } from 'date-fns'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
+import { useI18n } from 'vue-i18n'
 
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const { t } = useI18n()
 const loading = ref(true)
 const projects = ref<any[]>([])
 const currentPage = ref(1)
@@ -274,7 +276,7 @@ const totalPages = computed(() => {
 })
 
 const formatDate = (dateString: string) => {
-  if (!dateString) return 'N/A'
+  if (!dateString) return t('projects.myProjects.notAvailable')
   try {
     return format(new Date(dateString), 'MMM dd, yyyy')
   } catch {

@@ -530,8 +530,10 @@
     "clearAll": "Clear all",
     "sortOptions": {
       "newest": "Newest First",
+      "oldest": "Oldest First",
+      "votes": "Most Votes",
+      "comments": "Most Comments",
       "popular": "Most Popular",
-      "votes": "Top Voted",
       "recent": "Recently Updated"
     },
     "projectStatus": {
@@ -600,6 +602,20 @@
       "failed": "Failed to delete project",
       "error": "An error occurred while deleting the project",
       "success": "Project deleted successfully!"
+    },
+    "myProjects": {
+      "title": "My Projects",
+      "subtitle": "View and manage all projects you've submitted",
+      "submitNewProject": "Submit New Project",
+      "submitYourFirstProject": "Submit Your First Project",
+      "noProjectsYet": "No projects yet",
+      "noProjectsDescription": "You haven't submitted any projects to hackathons yet.",
+      "submittedTo": "Submitted to:",
+      "hackathon": "Hackathon",
+      "clickToRemoveFilter": "Click to remove filter",
+      "clickToFilterByTag": "Click to filter by this tag",
+      "pageInfo": "Page {currentPage} of {totalPages}",
+      "notAvailable": "N/A"
     }
   },
   "teams": {
