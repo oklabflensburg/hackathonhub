@@ -127,7 +127,11 @@ async def create_project(
 ):
     """Create a new hackathon project"""
     # Create project
-    db_project = crud.create_project(db=db, project=project, user_id=current_user.id)
+    try:
+        db_project = crud.create_project(db=db, project=project, 
+                                         user_id=current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     
     # Send notification email about project creation
     try:
@@ -211,8 +215,22 @@ async def update_project(
 
     # Check if user is the owner
     if project.owner_id != current_user.id:
+        # Check if user is a team member of the project's team
+        # (if project has a team)
+        if project.team_id:
+            team_member = crud.get_team_member(
+                db, team_id=project.team_id, user_id=current_user.id
+            )
+            if not team_member:
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        "Only the project owner or team members "
+                        "can update this project"
+                    )
+                )
         # Check if user is a team member of the project's hackathon
-        if project.hackathon_id:
+        elif project.hackathon_id:
             # Check if user is a team member in any team for this hackathon
             team_member = db.query(models.TeamMember).join(models.Team).filter(
                 models.TeamMember.user_id == current_user.id,
@@ -1031,6 +1049,71 @@ async def get_hackathon_teams(
 
     teams = crud.get_teams_by_hackathon(
         db, hackathon_id=hackathon_id, skip=skip, limit=limit)
+
+    # Convert to TeamWithMembers schema
+    result = []
+    for team in teams:
+        team_with_members = schemas.TeamWithMembers.from_orm(team)
+        # Get members count
+        member_count = db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team.id
+        ).count()
+        team_with_members.member_count = member_count
+        result.append(team_with_members)
+
+    return result
+
+
+# ============================================================================
+# Team Projects Endpoints
+# ============================================================================
+
+@app.get("/api/teams/{team_id}/projects", response_model=List[schemas.Project])
+async def get_team_projects(
+    team_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get all projects for a team"""
+    # Check if team exists
+    team = crud.get_team(db, team_id=team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check if user is a team member
+    team_member = crud.get_team_member(
+        db, team_id=team_id, user_id=current_user.id)
+    if not team_member:
+        raise HTTPException(
+            status_code=403,
+            detail="Only team members can view team projects"
+        )
+
+    # Get team projects
+    projects = crud.get_projects_by_team(
+        db, team_id=team_id, skip=skip, limit=limit)
+
+    return projects
+
+
+@app.get("/api/users/me/teams/{hackathon_id}",
+         response_model=List[schemas.TeamWithMembers])
+async def get_user_teams_for_hackathon(
+    hackathon_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    """Get teams that the current user belongs to for a specific hackathon"""
+    # Check if hackathon exists
+    hackathon = crud.get_hackathon(db, hackathon_id=hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+
+    # Get user's teams for this hackathon
+    teams = crud.get_teams_by_user_and_hackathon(
+        db, user_id=current_user.id, hackathon_id=hackathon_id)
 
     # Convert to TeamWithMembers schema
     result = []

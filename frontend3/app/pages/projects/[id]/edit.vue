@@ -25,17 +25,17 @@
 
     <!-- Edit Form -->
     <div v-else-if="project" class="space-y-8">
-      <!-- Page Header -->
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Project</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-2">
-          Update your project details
-        </p>
-      </div>
+       <!-- Page Header -->
+       <div>
+         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $t('projects.edit.title') }}</h1>
+         <p class="text-gray-600 dark:text-gray-400 mt-2">
+           {{ $t('projects.edit.subtitle') }}
+         </p>
+       </div>
 
-      <!-- Form -->
-      <div class="card">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Edit Project</h2>
+       <!-- Form -->
+       <div class="card">
+         <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">{{ $t('projects.edit.formTitle') }}</h2>
         
         <form @submit.prevent="submitForm" class="space-y-6">
           <!-- Project Title -->
@@ -62,20 +62,34 @@
             ></textarea>
           </div>
 
-          <!-- Hackathon Selection -->
-          <div>
-            <label class="label">Hackathon</label>
-            <div v-if="hackathonsLoading" class="input flex items-center">
-              <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-600 mr-2"></div>
-              <span class="text-gray-500">Loading hackathons...</span>
-            </div>
-            <select v-else v-model="form.hackathon_id" class="input">
-              <option :value="null">No hackathon</option>
-              <option v-for="hackathon in hackathons" :key="hackathon.id" :value="hackathon.id">
-                {{ hackathon.name }}
-              </option>
-            </select>
-          </div>
+           <!-- Hackathon Selection -->
+           <div>
+             <label class="label">Hackathon</label>
+             <div v-if="hackathonsLoading" class="input flex items-center">
+               <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-600 mr-2"></div>
+               <span class="text-gray-500">Loading hackathons...</span>
+             </div>
+             <select v-else v-model="form.hackathon_id" class="input">
+               <option :value="null">No hackathon</option>
+               <option v-for="hackathon in hackathons" :key="hackathon.id" :value="hackathon.id">
+                 {{ hackathon.name }}
+               </option>
+             </select>
+           </div>
+
+           <!-- Team Selection -->
+           <div>
+             <label class="label">{{ $t('create.projectForm.fields.team') }}</label>
+             <TeamSelection
+               v-model:team-id="form.team_id"
+               :hackathon-id="form.hackathon_id"
+               :initial-team-id="project?.team_id"
+               :disabled="!form.hackathon_id"
+             />
+             <p v-if="form.team_id" class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+               {{ $t('create.projectForm.fields.teamSelectedHelp') }}
+             </p>
+           </div>
 
            <!-- Tech Stack -->
            <div>
@@ -114,9 +128,12 @@
              </div>
             </div>
 
-           <!-- Team Members -->
-           <div>
+           <!-- Team Members (only shown when no team is selected) -->
+           <div v-if="showTeamMembers">
              <label class="label">Team Members</label>
+             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+               {{ $t('create.projectForm.teamMembersHelp') }}
+             </p>
              <div class="space-y-3">
                <div
                  v-for="(member, index) in teamMembers"
@@ -157,6 +174,21 @@
                </svg>
                Add Team Member
              </button>
+           </div>
+           
+           <!-- Team Selected Info -->
+           <div v-if="form.team_id" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+             <div class="flex items-center space-x-3">
+               <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
+                 <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                 </svg>
+               </div>
+               <div>
+                 <h4 class="font-medium text-gray-900 dark:text-white">{{ $t('create.projectForm.fields.teamSelected') }}</h4>
+                 <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('create.projectForm.fields.teamSelectedHelp') }}</p>
+               </div>
+             </div>
            </div>
 
            <!-- Repository URL -->
@@ -293,11 +325,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { uploadFile, createPreviewUrl, validateFile } from '~/utils/fileUpload'
+import TeamSelection from '~/components/TeamSelection.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -325,13 +358,19 @@ const form = ref({
   status: 'active',
   is_public: true,
   image_path: '',
-  hackathon_id: null as number | null
+  hackathon_id: null as number | null,
+  team_id: null as number | null
 })
 
 // Computed property to convert technologies string to array for UI
 const techStackArray = computed(() => {
   if (!form.value.technologies) return []
   return form.value.technologies.split(',').map(tech => tech.trim()).filter(tech => tech.length > 0)
+})
+
+// Computed property to conditionally show team members
+const showTeamMembers = computed(() => {
+  return !form.value.team_id
 })
 
 // Methods for tech stack management
@@ -450,7 +489,8 @@ const fetchProject = async () => {
       status: data.status || 'active',
       is_public: data.is_public !== false,
       image_path: data.image_path || '',
-      hackathon_id: data.hackathon_id || null
+      hackathon_id: data.hackathon_id || null,
+      team_id: data.team_id || null
     }
 
     // Initialize team members from API data if available, otherwise start with one empty member
@@ -518,6 +558,7 @@ const submitForm = async () => {
     if (form.value.is_public !== undefined) payload.is_public = form.value.is_public
     if (form.value.image_path !== undefined) payload.image_path = form.value.image_path || null
     if (form.value.hackathon_id !== undefined) payload.hackathon_id = form.value.hackathon_id
+    if (form.value.team_id !== undefined) payload.team_id = form.value.team_id
     
     // Use fetchWithAuth for automatic token refresh
     const response = await authStore.fetchWithAuth(`${backendUrl}/api/projects/${projectId}`, {

@@ -268,13 +268,72 @@ def get_projects_by_hackathon(db: Session, hackathon_id: int, skip: int = 0, lim
     ).offset(skip).limit(limit).all()
 
 
+def get_projects_by_team(db: Session, team_id: int,
+                         skip: int = 0, limit: int = 100):
+    return db.query(models.Project).filter(
+        models.Project.team_id == team_id
+    ).offset(skip).limit(limit).all()
+
+
+def get_teams_by_user_and_hackathon(db: Session, user_id: int,
+                                    hackathon_id: int):
+    """Get teams that a user belongs to for a specific hackathon"""
+    return db.query(models.Team).join(
+        models.TeamMember,
+        models.Team.id == models.TeamMember.team_id
+    ).filter(
+        models.TeamMember.user_id == user_id,
+        models.Team.hackathon_id == hackathon_id
+    ).all()
+
+
+def validate_user_team_membership(db: Session, user_id: int,
+                                  team_id: int) -> bool:
+    """Check if user is a member of the specified team"""
+    team_member = db.query(models.TeamMember).filter(
+        models.TeamMember.team_id == team_id,
+        models.TeamMember.user_id == user_id
+    ).first()
+    return team_member is not None
+
+
+def validate_team_hackathon_consistency(db: Session, team_id: int,
+                                        hackathon_id: int) -> bool:
+    """Check if team belongs to the specified hackathon"""
+    team = db.query(models.Team).filter(
+        models.Team.id == team_id,
+        models.Team.hackathon_id == hackathon_id
+    ).first()
+    return team is not None
+
+
 def get_projects_sorted_by_votes(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Project).order_by(
         desc(models.Project.vote_score)
     ).offset(skip).limit(limit).all()
 
 
-def create_project(db: Session, project: schemas.ProjectCreate, user_id: int):
+def create_project(db: Session, project: schemas.ProjectCreate,
+                   user_id: int):
+    # Validate team membership if team_id is provided
+    if project.team_id:
+        # Check if user is a member of the team
+        if not validate_user_team_membership(db, user_id,
+                                             project.team_id):
+            raise ValueError(
+                f"User {user_id} is not a member of team {project.team_id}"
+            )
+
+        # Check team-hackathon consistency if hackathon_id is also provided
+        if project.hackathon_id:
+            if not validate_team_hackathon_consistency(
+                db, project.team_id, project.hackathon_id
+            ):
+                raise ValueError(
+                    f"Team {project.team_id} does not belong to "
+                    f"hackathon {project.hackathon_id}"
+                )
+
     db_project = models.Project(
         **project.dict(),
         owner_id=user_id
@@ -1318,8 +1377,9 @@ def create_user_notification_preference(
 ):
     """Create or update a user's notification preference."""
     # Check if preference already exists
-    existing = get_user_notification_preference(db, user_id, notification_type, channel)
-    
+    existing = get_user_notification_preference(
+        db, user_id, notification_type, channel)
+
     if existing:
         # Update existing preference
         existing.enabled = enabled
@@ -1348,7 +1408,8 @@ def update_user_notification_preference(
     enabled: bool
 ):
     """Update a user's notification preference."""
-    preference = get_user_notification_preference(db, user_id, notification_type, channel)
+    preference = get_user_notification_preference(
+        db, user_id, notification_type, channel)
     if preference:
         preference.enabled = enabled
         db.commit()
@@ -1367,10 +1428,10 @@ def get_user_notifications(
     query = db.query(models.UserNotification).filter(
         models.UserNotification.user_id == user_id
     )
-    
+
     if unread_only:
         query = query.filter(models.UserNotification.read_at.is_(None))
-    
+
     return query.order_by(models.UserNotification.created_at.desc()).offset(skip).limit(limit).all()
 
 
@@ -1403,12 +1464,12 @@ def mark_notification_as_read(db: Session, notification_id: int):
     notification = db.query(models.UserNotification).filter(
         models.UserNotification.id == notification_id
     ).first()
-    
+
     if notification and notification.read_at is None:
         notification.read_at = datetime.utcnow()
         db.commit()
         db.refresh(notification)
-    
+
     return notification
 
 
@@ -1418,17 +1479,29 @@ def mark_all_notifications_as_read(db: Session, user_id: int):
         models.UserNotification.user_id == user_id,
         models.UserNotification.read_at.is_(None)
     ).all()
-    
+
     for notification in notifications:
         notification.read_at = datetime.utcnow()
-    
+
     db.commit()
     return len(notifications)
 
 
 def get_push_subscription(db: Session, user_id: int, endpoint: str):
     """Get a push subscription for a user."""
-    return db.query(models.PushSubscription).filter(
+    # Temporarily exclude user_agent column until migration is applied
+    from sqlalchemy.orm import load_only
+    return db.query(models.PushSubscription).options(
+        load_only(
+            models.PushSubscription.id,
+            models.PushSubscription.user_id,
+            models.PushSubscription.endpoint,
+            models.PushSubscription.p256dh,
+            models.PushSubscription.auth,
+            models.PushSubscription.created_at,
+            models.PushSubscription.updated_at
+        )
+    ).filter(
         models.PushSubscription.user_id == user_id,
         models.PushSubscription.endpoint == endpoint
     ).first()
@@ -1436,7 +1509,19 @@ def get_push_subscription(db: Session, user_id: int, endpoint: str):
 
 def get_user_push_subscriptions(db: Session, user_id: int):
     """Get all push subscriptions for a user."""
-    return db.query(models.PushSubscription).filter(
+    # Temporarily exclude user_agent column until migration is applied
+    from sqlalchemy.orm import load_only
+    return db.query(models.PushSubscription).options(
+        load_only(
+            models.PushSubscription.id,
+            models.PushSubscription.user_id,
+            models.PushSubscription.endpoint,
+            models.PushSubscription.p256dh,
+            models.PushSubscription.auth,
+            models.PushSubscription.created_at,
+            models.PushSubscription.updated_at
+        )
+    ).filter(
         models.PushSubscription.user_id == user_id
     ).all()
 
@@ -1450,21 +1535,22 @@ def create_push_subscription(
     """Create a new push subscription."""
     # Check if subscription already exists
     existing = get_push_subscription(db, user_id, endpoint)
-    
+
     # Extract keys from the dictionary
     p256dh = keys.get('p256dh') or keys.get('p256dh_key')
     auth = keys.get('auth') or keys.get('auth_key')
-    
+
     if not p256dh or not auth:
         raise ValueError("Missing required keys: p256dh and auth")
-    
+
     if existing:
         # Update existing subscription
         existing.p256dh = p256dh
         existing.auth = auth
         existing.updated_at = datetime.utcnow()
         db.commit()
-        db.refresh(existing)
+        # Don't refresh to avoid querying missing user_agent column
+        # db.refresh(existing)
         return existing
     else:
         # Create new subscription
@@ -1476,7 +1562,8 @@ def create_push_subscription(
         )
         db.add(db_subscription)
         db.commit()
-        db.refresh(db_subscription)
+        # Don't refresh to avoid querying missing user_agent column
+        # db.refresh(db_subscription)
         return db_subscription
 
 

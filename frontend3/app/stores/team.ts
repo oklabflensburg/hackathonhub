@@ -565,6 +565,65 @@ export const useTeamStore = defineStore('team', () => {
     }
   }
 
+  // Team Projects methods
+  async function fetchTeamProjects(teamId: number, skip: number = 0, limit: number = 100) {
+    try {
+      const response = await fetchWithAuth(
+        `/api/teams/${teamId}/projects?skip=${skip}&limit=${limit}`
+      )
+      
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('You must be a team member to view team projects')
+        }
+        throw new Error(`Failed to fetch team projects: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch team projects'
+      uiStore.showError(errorMsg, 'Team Projects Error')
+      throw err
+    }
+  }
+
+  async function fetchUserTeamsForHackathon(hackathonId: number) {
+    try {
+      const response = await fetchWithAuth(`/api/users/me/teams/${hackathonId}`)
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Hackathon not found')
+        }
+        throw new Error(`Failed to fetch user teams for hackathon: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      // Update teams list with these teams
+      data.forEach((team: Team) => {
+        const index = teams.value.findIndex(t => t.id === team.id)
+        if (index !== -1) {
+          teams.value[index] = team
+        } else {
+          teams.value.push(team)
+        }
+        
+        // Fetch members for each team
+        fetchTeamMembers(team.id).catch(() => {
+          // Silently fail - members will be fetched when needed
+        })
+      })
+      
+      return data
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch user teams for hackathon'
+      uiStore.showError(errorMsg, 'Teams Error')
+      throw err
+    }
+  }
+
   // Initialize store with user's teams from auth store
   function initializeFromUser(user: any) {
     if (user?.teams) {
@@ -620,6 +679,8 @@ export const useTeamStore = defineStore('team', () => {
     declineInvitation,
     inviteToTeam,
     fetchHackathonTeams,
+    fetchTeamProjects,
+    fetchUserTeamsForHackathon,
     initializeFromUser,
     clear
   }

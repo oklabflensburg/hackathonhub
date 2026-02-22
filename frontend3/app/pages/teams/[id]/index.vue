@@ -257,11 +257,104 @@
                 {{ t('teams.inviteUsernameHelp') }}
               </p>
             </div>
-          </div>
-        </div>
-      </div>
+           </div>
+         </div>
 
-      <!-- Right Column: Team Stats & Info -->
+         <!-- Team Projects -->
+         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-6">
+           <div class="flex items-center justify-between mb-6">
+             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('teams.teamProjects') }}</h3>
+             <div class="text-sm text-gray-600 dark:text-gray-400">
+               {{ projects.length }} {{ t('teams.projects') }}
+             </div>
+           </div>
+
+           <div v-if="projectsLoading" class="text-center py-8">
+             <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+             <p class="mt-2 text-gray-600 dark:text-gray-400">{{ t('teams.loadingProjects') }}</p>
+           </div>
+
+           <div v-else-if="projects.length === 0" class="text-center py-8">
+             <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 mb-4">
+               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+               </svg>
+             </div>
+             <p class="text-gray-600 dark:text-gray-400">{{ t('teams.noProjectsYet') }}</p>
+             <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+               {{ t('teams.createProjectForTeam') }}
+             </p>
+             <NuxtLink 
+               v-if="isTeamMember && team.hackathon"
+               :to="`/create?hackathon=${team.hackathon.id}&team=${teamId}`"
+               class="inline-block mt-4 btn btn-primary"
+             >
+               {{ t('teams.createProject') }}
+             </NuxtLink>
+           </div>
+
+           <div v-else class="space-y-4">
+             <div
+               v-for="project in projects"
+               :key="project.id"
+               class="p-4 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+             >
+               <div class="flex items-start justify-between">
+                 <div class="flex-1">
+                   <div class="flex items-center mb-2">
+                     <NuxtLink 
+                       :to="`/projects/${project.id}`"
+                       class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
+                     >
+                       {{ project.name }}
+                     </NuxtLink>
+                     <span
+                       v-if="project.hackathon"
+                       class="ml-2 px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-full"
+                     >
+                       {{ project.hackathon.name }}
+                     </span>
+                   </div>
+                   <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                     {{ project.description }}
+                   </p>
+                   <div class="flex flex-wrap gap-2 mb-3">
+                     <span
+                       v-for="tech in project.tech_stack?.slice(0, 3)"
+                       :key="tech"
+                       class="px-2 py-1 text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 rounded-full"
+                     >
+                       {{ tech }}
+                     </span>
+                     <span
+                       v-if="project.tech_stack && project.tech_stack.length > 3"
+                       class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-full"
+                     >
+                       +{{ project.tech_stack.length - 3 }}
+                     </span>
+                   </div>
+                   <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                     </svg>
+                     {{ formatDate(project.created_at) }}
+                   </div>
+                 </div>
+                 <div class="ml-4">
+                   <NuxtLink 
+                     :to="`/projects/${project.id}`"
+                     class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
+                   >
+                     {{ t('teams.viewProject') }}
+                   </NuxtLink>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
+
+       <!-- Right Column: Team Stats & Info -->
       <div>
         <!-- Team Stats -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
@@ -381,6 +474,8 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const team = ref<any>(null)
 const members = ref<any[]>([])
+const projects = ref<any[]>([])
+const projectsLoading = ref(false)
 const inviteUsername = ref('')
 const inviting = ref(false)
 const userSuggestions = ref<any[]>([])
@@ -421,11 +516,28 @@ async function loadTeam() {
   try {
     team.value = await teamStore.fetchTeam(teamId.value)
     members.value = teamStore.teamMembers.get(teamId.value) || []
+    
+    // Load team projects
+    await loadTeamProjects()
   } catch (err) {
     error.value = err instanceof Error ? err.message : t('teams.failedToLoadTeam')
     console.error('Failed to load team:', err)
   } finally {
     loading.value = false
+  }
+}
+
+async function loadTeamProjects() {
+  if (!teamId.value) return
+  
+  projectsLoading.value = true
+  try {
+    projects.value = await teamStore.fetchTeamProjects(teamId.value, 0, 10)
+  } catch (err) {
+    console.error('Failed to load team projects:', err)
+    projects.value = []
+  } finally {
+    projectsLoading.value = false
   }
 }
 

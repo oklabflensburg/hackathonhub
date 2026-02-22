@@ -571,7 +571,26 @@
       "description": "Description",
       "technologies": "Technologies",
       "links": "Links",
-      "comments": "Comments"
+      "comments": "Comments",
+      "team": "Team",
+      "teamProject": "Team Project",
+      "teamMembersCount": "{count} members",
+      "viewTeam": "View Team",
+      "deleteProject": "Delete Project"
+    },
+    "edit": {
+      "title": "Edit Project",
+      "subtitle": "Update your project details",
+      "formTitle": "Edit Project"
+    },
+    "delete": {
+      "confirm": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
+      "authRequired": "Please log in to delete projects.",
+      "sessionExpired": "Session expired. Please log in again.",
+      "notAuthorized": "You are not authorized to delete this project.",
+      "failed": "Failed to delete project",
+      "error": "An error occurred while deleting the project",
+      "success": "Project deleted successfully!"
     }
   },
   "teams": {
@@ -715,7 +734,22 @@
     "invitationAcceptedSuccess": "Invitation accepted! You are now a member of the team.",
     "invitationDeclinedSuccess": "Invitation declined",
     "mustBeLoggedInToViewInvitations": "You must be logged in to view invitations",
-    "browseTeams": "Browse teams"
+    "browseTeams": "Browse teams",
+    "teamProjects": "Team Projects",
+    "projects": "projects",
+    "loadingProjects": "Loading projects...",
+    "noProjectsYet": "No projects yet",
+    "createProjectForTeam": "Create a project for this team to showcase your work",
+    "createProject": "Create Project",
+    "viewProject": "View Project",
+    "loadingTeams": "Loading teams...",
+    "selectTeamForProject": "Select Team for Project",
+    "noTeamIndividualProject": "No team - Individual project",
+    "teamSelectionHelp": "Select a team to create a team project, or leave empty for an individual project",
+    "noTeamsForHackathon": "No teams for this hackathon",
+    "createTeamToCollaborate": "Create a team to collaborate with others on projects",
+    "createNewTeam": "Create New Team",
+    "viewTeamDetails": "View team details"
   },
   "myVotes": {
     "title": "My Votes",
@@ -773,6 +807,8 @@
         "selectHackathon": "Select a hackathon",
         "loadingHackathons": "Loading hackathons...",
         "errorLoadingHackathons": "Error loading hackathons",
+        "team": "Team",
+        "selectTeam": "Select team",
         "retry": "Retry",
         "techStack": "Tech Stack",
         "techPlaceholder": "Add a technology (e.g., React, Python)",
@@ -782,9 +818,12 @@
         "liveDemoUrl": "Live Demo URL",
         "demoPlaceholder": "https://demo.example.com",
         "teamMembers": "Team Members",
+        "teamMembersHelp": "Add team members manually if you're not creating this project for an existing team",
         "memberNamePlaceholder": "Team member name",
         "emailPlaceholder": "Email address",
         "addTeamMember": "Add Team Member",
+        "teamSelected": "Team Selected",
+        "teamSelectedHelp": "This project will be associated with your selected team. Team members will be automatically assigned from the team.",
         "projectImage": "Project Image",
         "clickToUpload": "Click to upload project image",
         "imageRequirements": "PNG, JPG, GIF up to 5MB",

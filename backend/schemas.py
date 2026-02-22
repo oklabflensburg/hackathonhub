@@ -481,6 +481,11 @@ class FileUploadResponse(BaseModel):
 class TeamWithMembers(Team):
     members: List[TeamMember] = []
 
+
+class TeamWithProjects(TeamWithMembers):
+    projects: List[Project] = []
+    project_count: int = 0
+
 # Project with details
 
 
