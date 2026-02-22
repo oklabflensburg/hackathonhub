@@ -672,7 +672,7 @@
       "comments": "Kommentare",
       "team": "Team",
       "teamProject": "Team-Projekt",
-      "teamMembersCount": "{count} Mitglieder",
+      "teamMembersCount": "{count} Mitglied | {count} Mitglieder",
       "viewTeam": "Team ansehen",
       "deleteProject": "Projekt löschen"
     },
@@ -709,6 +709,7 @@
     "team": "Team",
     "teams": "Teams",
     "members": "Mitglieder",
+    "memberCount": "{count} Mitglied | {count} Mitglieder",
     "moreTeamMembers": "Weitere Teammitglieder",
     "createTeam": "Team erstellen",
     "createTeamDescription": "Erstelle ein neues Team für einen Hackathon",

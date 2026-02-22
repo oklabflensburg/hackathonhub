@@ -188,7 +188,7 @@
         <div v-if="project.team && project.team.length > 0" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
            <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ $t('projects.team.team') }}</span>
-            <span class="text-xs text-gray-500 dark:text-gray-400">{{ project.team.length }} {{ $t('projects.team.members') }}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $t('projects.detail.teamMembersCount', { count: project.team.length }) }}</span>
           </div>
           <div class="flex -space-x-2">
             <div

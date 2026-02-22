@@ -585,7 +585,7 @@
       "comments": "Comments",
       "team": "Team",
       "teamProject": "Team Project",
-      "teamMembersCount": "{count} members",
+      "teamMembersCount": "{count} member | {count} members",
       "viewTeam": "View Team",
       "deleteProject": "Delete Project"
     },
@@ -622,6 +622,7 @@
     "team": "Team",
     "teams": "Teams",
     "members": "Members",
+    "memberCount": "{count} member | {count} members",
     "moreTeamMembers": "More team members",
     "createTeam": "Create Team",
     "createTeamDescription": "Create a new team for a hackathon",
