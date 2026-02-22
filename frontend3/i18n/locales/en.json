@@ -351,6 +351,7 @@
     "githubAccount": "GitHub Account",
     "notConnected": "Not connected",
     "connected": "Connected",
+    "connectGitHub": "Connect with GitHub",
     "accountType": "Account Type",
     "administrator": "Administrator",
     "standardUser": "Standard User",

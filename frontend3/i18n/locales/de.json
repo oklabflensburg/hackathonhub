@@ -352,6 +352,7 @@
     "githubAccount": "GitHub-Konto",
     "notConnected": "Nicht verbunden",
     "connected": "Verbunden",
+    "connectGitHub": "Mit GitHub verbinden",
     "accountType": "Kontotyp",
     "administrator": "Administrator",
     "standardUser": "Standardbenutzer",
