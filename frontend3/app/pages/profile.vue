@@ -137,7 +137,7 @@
 
                   <!-- GitHub Connection in Edit Mode -->
                   <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">GitHub Connection</h4>
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">{{ $t('profile.githubConnection') }}</h4>
                     <div class="flex items-center justify-between">
                       <div class="flex items-center space-x-3">
                         <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
@@ -146,11 +146,10 @@
                         </svg>
                         <div>
                           <p class="text-sm font-medium text-gray-900 dark:text-white">
-                            {{ user?.github_id ? 'Connected to GitHub' : 'Not connected to GitHub' }}
+                            {{ user?.github_id ? $t('profile.connectedToGitHub') : $t('profile.notConnectedToGitHub') }}
                           </p>
                           <p class="text-xs text-gray-500 dark:text-gray-400">
-                            {{ user?.github_id ? `Connected as ${user.username}` : 'Connect your GitHub account to link
-                            your identity' }}
+                            {{ user?.github_id ? $t('profile.connectedAs', { username: user.username }) : $t('profile.connectGitHubToLinkIdentity') }}
                           </p>
                         </div>
                       </div>
