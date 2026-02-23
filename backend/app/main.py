@@ -3,11 +3,10 @@ Main FastAPI application entry point.
 """
 import importlib
 import logging
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import engine

@@ -23,7 +23,7 @@ vote_repository = VoteRepository()
 comment_repository = CommentRepository()
 
 
-@router.get("/", response_model=List[Project])
+@router.get("", response_model=List[Project])
 async def get_projects(
     skip: int = 0,
     limit: int = 100,
@@ -46,7 +46,7 @@ async def get_project(
     return project
 
 
-@router.post("/", response_model=Project)
+@router.post("", response_model=Project)
 async def create_project(
     project: ProjectCreate,
     db: Session = Depends(get_db),
@@ -126,20 +126,21 @@ async def delete_project(
 @router.post("/{project_id}/vote")
 async def vote_for_project(
     project_id: int,
-    vote_type: str = Body(..., embed=True),  # "upvote" or "downvote" from JSON body
+    # "upvote" or "downvote" from JSON body
+    vote_type: str = Body(..., embed=True),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
     """Vote for a project."""
     # Normalize vote type
     vote_type = vote_type.lower().strip()
-    
+
     # Map 'up'/'down' to 'upvote'/'downvote' for compatibility
     if vote_type == 'up':
         vote_type = 'upvote'
     elif vote_type == 'down':
         vote_type = 'downvote'
-    
+
     # Validate vote type
     if vote_type not in ["upvote", "downvote"]:
         raise HTTPException(
@@ -226,12 +227,12 @@ async def increment_project_view(
     project = project_repository.get(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     # Increment view count
     project.view_count = (project.view_count or 0) + 1
     db.commit()
     db.refresh(project)
-    
+
     return {
         "message": "View count incremented",
         "view_count": project.view_count
@@ -259,10 +260,10 @@ async def remove_vote(
 
     # Delete the vote
     vote_repository.delete(db, id=existing_vote.id)
-    
+
     # Update vote counts
     vote_repository.update_vote_counts(db, project_id)
-    
+
     # Get updated project stats
     project = project_repository.get(db, project_id)
     db.refresh(project)  # Ensure we have latest values
@@ -336,8 +337,8 @@ async def create_project_comment(
     comment_data = comment.model_dump()
     comment_data["user_id"] = current_user.id
     comment_data["project_id"] = project_id
-    
+
     # Create the comment
     new_comment = comment_repository.create(db, obj_in=comment_data)
-    
+
     return Comment.from_orm(new_comment)

@@ -7,7 +7,9 @@ from typing import List
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
-from app.domain.schemas.hackathon import Hackathon, HackathonCreate, HackathonUpdate
+from app.domain.schemas.hackathon import (
+    Hackathon, HackathonCreate, HackathonUpdate
+)
 from app.repositories.hackathon_repository import (
     HackathonRepository,
     HackathonRegistrationRepository
@@ -18,7 +20,7 @@ hackathon_repository = HackathonRepository()
 registration_repository = HackathonRegistrationRepository()
 
 
-@router.get("/", response_model=List[Hackathon])
+@router.get("", response_model=List[Hackathon])
 async def get_hackathons(
     skip: int = 0,
     limit: int = 100,
@@ -43,7 +45,7 @@ async def get_hackathon(
     return hackathon
 
 
-@router.post("/", response_model=Hackathon)
+@router.post("", response_model=Hackathon)
 async def create_hackathon(
     hackathon: HackathonCreate,
     db: Session = Depends(get_db),
@@ -67,14 +69,14 @@ async def update_hackathon(
     hackathon = hackathon_repository.get(db, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    
+
     # Check ownership
     if hackathon.owner_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="Not authorized to update this hackathon"
         )
-    
+
     updated_hackathon = hackathon_repository.update(
         db, db_obj=hackathon, obj_in=hackathon_update.dict(exclude_unset=True)
     )
@@ -91,20 +93,20 @@ async def delete_hackathon(
     hackathon = hackathon_repository.get(db, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    
+
     # Check ownership
     if hackathon.owner_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="Not authorized to delete this hackathon"
         )
-    
+
     success = hackathon_repository.delete(db, id=hackathon_id)
     if not success:
         raise HTTPException(
             status_code=500, detail="Failed to delete hackathon"
         )
-    
+
     return {"message": "Hackathon deleted successfully"}
 
 
@@ -119,14 +121,14 @@ async def register_for_hackathon(
     hackathon = hackathon_repository.get(db, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    
+
     # Check if registration is open
     if not hackathon.registration_open:
         raise HTTPException(
             status_code=400,
             detail="Registration is closed for this hackathon"
         )
-    
+
     # Check if user is already registered
     if registration_repository.is_user_registered(
         db, current_user.id, hackathon_id
@@ -135,7 +137,7 @@ async def register_for_hackathon(
             status_code=400,
             detail="Already registered for this hackathon"
         )
-    
+
     # Register user
     try:
         registration = registration_repository.register_user(
@@ -160,13 +162,13 @@ async def get_hackathon_projects(
     hackathon = hackathon_repository.get(db, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    
+
     # Import Project model and query projects
     from app.domain.models.project import Project
     projects = db.query(Project).filter(
         Project.hackathon_id == hackathon_id
     ).all()
-    
+
     # Convert to simple dict representation
     project_list = []
     for project in projects:
@@ -177,7 +179,7 @@ async def get_hackathon_projects(
             "team_id": project.team_id,
             "created_at": project.created_at
         })
-    
+
     return {"projects": project_list, "hackathon_id": hackathon_id}
 
 
@@ -191,13 +193,13 @@ async def get_hackathon_teams(
     hackathon = hackathon_repository.get(db, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    
+
     # Import Team model and query teams
     from app.domain.models.team import Team
     teams = db.query(Team).filter(
         Team.hackathon_id == hackathon_id
     ).all()
-    
+
     # Convert to simple dict representation
     team_list = []
     for team in teams:
@@ -208,5 +210,5 @@ async def get_hackathon_teams(
             "owner_id": team.created_by,
             "created_at": team.created_at
         })
-    
+
     return {"teams": team_list, "hackathon_id": hackathon_id}
