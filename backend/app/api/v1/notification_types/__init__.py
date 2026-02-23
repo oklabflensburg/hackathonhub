@@ -1,0 +1,1 @@
+"""Notification types API module."""

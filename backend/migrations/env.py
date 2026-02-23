@@ -8,9 +8,9 @@ from sqlalchemy import engine_from_config, pool
 # Add the backend directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import your models
-from database import Base  # noqa: E402
-import models  # noqa: F401, E402 - This ensures models are registered
+# Import your models from the refactored app
+from app.domain.models.base import Base  # noqa: E402
+import app.domain.models  # noqa: F401, E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

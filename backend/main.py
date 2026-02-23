@@ -1,3 +1,7 @@
+"""
+Legacy main.py - kept for backward compatibility.
+This file imports from the new modular structure.
+"""
 from fastapi import FastAPI, Depends, HTTPException, Header, Query, Request, Body
 from fastapi import File, UploadFile
 from sqlalchemy.orm import Session
@@ -7,21 +11,28 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
 
-from database import get_db
-import models
-import schemas
-import crud
-import auth
-from email_service import email_service
-import email_auth
-import google_oauth
-import file_upload
+# Import from new modular structure
+from app.core.database import get_db
+from app.domain import models
+from app.domain import schemas
+from app.core import auth
+from app.services.email_service import email_service
+from app.services.email_auth_service import email_auth
+from app.services.google_oauth_service import google_oauth
+from app.services.github_oauth_service import github_oauth
+from app.utils.file_upload import file_upload
 
-from notification_service import notification_service
-from notification_preference_service import notification_preference_service
+from app.services.notification_service import notification_service
+from app.services.notification_preference_service import notification_preference_service
 
-from i18n.middleware import LocaleMiddleware
-from i18n.translations import get_translation
+from app.i18n.middleware import LocaleMiddleware
+from app.i18n.translations import get_translation
+
+# Note: crud.py functions are now in repositories
+# Import repositories as needed
+from app.repositories import user_repository, project_repository
+from app.repositories import hackathon_repository, team_repository
+from app.repositories import notification_repository
 
 # Load environment variables
 load_dotenv()
@@ -1699,7 +1710,7 @@ async def github_callback(
 ):
     """Handle GitHub OAuth callback and redirect to frontend"""
     try:
-        from github_oauth import authenticate_with_github
+        # Use the global github_oauth service instance
 
         # Parse state if provided
         current_user_id = None
@@ -1719,7 +1730,8 @@ async def github_callback(
                 # If state is not JSON, treat it as plain redirect URL (backward compatibility)
                 redirect_url_from_state = urllib.parse.unquote(state)
 
-        result = await authenticate_with_github(code, db, current_user_id)
+        result = await github_oauth.authenticate_with_github(
+            code, db, current_user_id)
 
         # Redirect to frontend with token in query parameter
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")

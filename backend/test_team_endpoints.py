@@ -9,9 +9,9 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi.testclient import TestClient
-from main import app
-import models
-from database import SessionLocal, engine
+from app.main import app
+from app.domain.models.team import Team, TeamMember, TeamInvitation
+from app.core.database import SessionLocal, engine
 
 # Create test client
 client = TestClient(app)

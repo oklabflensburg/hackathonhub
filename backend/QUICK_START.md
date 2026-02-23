@@ -25,7 +25,7 @@ alembic upgrade head
 
 ## Step 3: Start the application
 ```bash
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 ## Alternative: Use setup script
