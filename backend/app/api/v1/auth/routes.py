@@ -27,7 +27,7 @@ async def login(
 ):
     """
     Login endpoint that accepts JSON.
-    
+
     JSON format: {"email": "...", "password": "..."}
     """
     try:
@@ -74,7 +74,7 @@ async def login_json(
 ):
     """
     JSON-based login endpoint (alias for /login).
-    
+
     Accepts email and password in JSON format.
     """
     try:

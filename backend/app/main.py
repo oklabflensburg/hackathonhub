@@ -1,6 +1,8 @@
 """
 Main FastAPI application entry point.
 """
+import importlib
+import logging
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -20,11 +22,28 @@ from app.api.v1.teams.routes import router as teams_router
 from app.api.v1.notifications.routes import router as notifications_router
 from app.api.v1.me.routes import router as me_router
 from app.api.v1.comments.routes import router as comments_router
-from app.api.v1.uploads.routes import router as uploads_router
 from app.api.v1.newsletter.routes import router as newsletter_router
-from app.api.v1.notification_types.routes import router as notification_types_router
+from app.api.v1.notification_types.routes import (
+    router as notification_types_router
+)
 from app.api.v1.compatibility.routes import router as compatibility_router
 from app.api.v1.push.routes import router as push_router
+
+logger = logging.getLogger(__name__)
+
+# Uploads router is optional for backward compatibility
+# Try to import dynamically to avoid breaking if module doesn't exist
+UPLOADS_AVAILABLE = False
+uploads_router = None
+try:
+    # Try to import the uploads module
+    uploads_module = importlib.import_module('app.api.v1.uploads.routes')
+    uploads_router = uploads_module.router
+    UPLOADS_AVAILABLE = True
+except ImportError:
+    logger.warning(
+        "Uploads module not available. File upload functionality disabled."
+    )
 
 
 # Create FastAPI app
@@ -67,7 +86,9 @@ app.include_router(
 )
 app.include_router(me_router, prefix="/api", tags=["me"])
 app.include_router(comments_router, prefix="/api/comments", tags=["comments"])
-app.include_router(uploads_router, prefix="/api", tags=["uploads"])
+# Include uploads router only if available
+if UPLOADS_AVAILABLE:
+    app.include_router(uploads_router, prefix="/api", tags=["uploads"])
 app.include_router(
     newsletter_router, prefix="/api/newsletter", tags=["newsletter"]
 )
@@ -88,9 +109,8 @@ app.include_router(
 )
 
 # Debug: verify router inclusion
-import logging
-logger = logging.getLogger(__name__)
 logger.debug(f"Push router included: {push_router}")
+
 
 @app.get("/")
 async def root():
