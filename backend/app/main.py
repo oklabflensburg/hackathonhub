@@ -55,6 +55,16 @@ app = FastAPI(
     redoc_url="/redoc" if settings.DEBUG else None,
 )
 
+# Configure CORS
+if settings.CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
 # Mount static files for uploaded images
 upload_dir = Path(settings.UPLOAD_DIR)
 upload_dir.mkdir(parents=True, exist_ok=True)
