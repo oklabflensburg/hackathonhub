@@ -42,12 +42,12 @@ async def get_hackathon(
     hackathon = hackathon_repository.get(db, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    
+
     # Increment view count
     hackathon.view_count = (hackathon.view_count or 0) + 1
     db.commit()
     db.refresh(hackathon)
-    
+
     return hackathon
 
 
@@ -255,7 +255,7 @@ async def get_hackathon_teams(
         member_count = db.query(TeamMember).filter(
             TeamMember.team_id == team.id
         ).count()
-        
+
         team_list.append({
             "id": team.id,
             "name": team.name,

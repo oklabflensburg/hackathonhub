@@ -1,9 +1,16 @@
 """
 User-related Pydantic schemas.
 """
+from __future__ import annotations
+
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from app.domain.schemas.team import TeamMember
+    from app.domain.schemas.project import Project, Vote, Comment
+    from app.domain.schemas.hackathon import HackathonRegistration
 
 
 class UserBase(BaseModel):

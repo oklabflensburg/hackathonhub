@@ -24,9 +24,9 @@ async def subscribe_to_newsletter(
         result = newsletter_service.subscribe(
             db, email=request.email, source=request.source
         )
-        
+
         subscription = result["subscription"]
-        
+
         return {
             "message": "Successfully subscribed to newsletter",
             "email": subscription.email,
@@ -51,15 +51,15 @@ async def unsubscribe_from_newsletter(
 ):
     """Unsubscribe from newsletter"""
     result = newsletter_service.unsubscribe(db, email=request.email)
-    
+
     if not result:
         raise HTTPException(
             status_code=404,
             detail="Email not found in newsletter subscriptions"
         )
-    
+
     subscription = result["subscription"]
-    
+
     return {
         "message": "Successfully unsubscribed from newsletter",
         "email": subscription.email,

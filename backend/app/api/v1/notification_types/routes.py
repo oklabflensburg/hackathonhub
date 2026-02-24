@@ -13,16 +13,16 @@ router = APIRouter()
 type_repository = NotificationTypeRepository()
 
 
-@router.get("/")
+@router.get("")
 async def get_notification_types(db: Session = Depends(get_db)):
     """Get all notification types."""
     try:
         notification_types = type_repository.get_all(db)
-        
+
         # If no notification types exist, return empty list
         if not notification_types:
             return []
-            
+
         return notification_types
     except Exception:
         # Log error and return empty list
