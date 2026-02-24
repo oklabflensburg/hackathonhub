@@ -24,7 +24,7 @@ class Project(Base):
     is_public = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     image_path = Column(String)  # Path to uploaded image file
     upvote_count = Column(Integer, default=0)
     downvote_count = Column(Integer, default=0)

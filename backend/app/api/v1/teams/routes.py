@@ -12,19 +12,22 @@ from app.domain.schemas.team import (
     TeamMember, TeamMemberCreate,
     TeamInvitation, TeamInvitationCreate
 )
+from app.domain.schemas.project import Project
 from app.repositories.team_repository import (
     TeamRepository,
     TeamMemberRepository,
     TeamInvitationRepository
 )
+from app.repositories.project_repository import ProjectRepository
 
 router = APIRouter()
 team_repository = TeamRepository()
 team_member_repository = TeamMemberRepository()
 team_invitation_repository = TeamInvitationRepository()
+project_repository = ProjectRepository()
 
 
-@router.get("/", response_model=List[Team])
+@router.get("", response_model=List[Team])
 async def get_teams(
     skip: int = 0,
     limit: int = 100,
@@ -55,7 +58,7 @@ async def get_team(
     return team
 
 
-@router.post("/", response_model=Team)
+@router.post("", response_model=Team)
 async def create_team(
     team: TeamCreate,
     db: Session = Depends(get_db),
@@ -146,6 +149,25 @@ async def get_team_members(
     
     members = team_member_repository.get_team_members(db, team_id)
     return members
+
+
+@router.get("/{team_id}/projects", response_model=List[Project])
+async def get_team_projects(
+    team_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get projects belonging to a team."""
+    # Check if team exists
+    team = team_repository.get(db, team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    projects = project_repository.get_by_team(
+        db, team_id, skip=skip, limit=limit
+    )
+    return projects
 
 
 @router.post("/{team_id}/members", response_model=TeamMember)

@@ -45,7 +45,7 @@ class ProjectUpdate(BaseModel):
 
 class Project(ProjectBase):
     id: int
-    owner_id: int
+    owner_id: Optional[int] = None
     team_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
