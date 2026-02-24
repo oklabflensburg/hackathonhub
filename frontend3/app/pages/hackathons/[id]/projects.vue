@@ -322,12 +322,85 @@ const filteredProjects = computed(() => {
   )
 })
 
-const voteForProject = (projectId: number) => {
+const voteForProject = async (projectId: number) => {
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    uiStore.showWarning(t('votes.pleaseLogin'), t('common.authenticationRequired'))
+    return
+  }
+
   const displayProjects = transformedProjects.value
   const project = displayProjects.find(p => p.id === projectId)
-  if (project) {
-    project.hasVoted = !project.hasVoted
-    project.votes += project.hasVoted ? 1 : -1
+  if (!project) return
+
+  try {
+    // Determine vote type based on current state
+    // Since this is a simple toggle vote (like/unlike), we'll use 'upvote' for like
+    const voteType = project.hasVoted ? 'remove' : 'upvote'
+    
+    if (voteType === 'remove') {
+      // Remove vote
+      const response = await authStore.fetchWithAuth(`/api/projects/${projectId}/vote`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        project.hasVoted = false
+        project.votes -= 1
+        uiStore.showSuccess(t('votes.voteRemoved'))
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || t('votes.failedToVote'))
+      }
+    } else {
+      // Add upvote
+      const response = await authStore.fetchWithAuth(`/api/projects/${projectId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ vote_type: 'upvote' })
+      })
+      
+      if (response.ok) {
+        project.hasVoted = true
+        project.votes += 1
+        uiStore.showSuccess(t('votes.upvotedSuccessfully'))
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || t('votes.failedToVote'))
+      }
+    }
+    
+    // Refresh project stats from API to ensure consistency
+    await fetchProjectVoteStats(projectId)
+  } catch (error) {
+    console.error('Error voting for project:', error)
+    uiStore.showError(
+      error instanceof Error ? error.message : t('votes.failedToVote'),
+      t('common.error')
+    )
+  }
+}
+
+// Helper function to fetch updated vote stats for a project
+const fetchProjectVoteStats = async (projectId: number) => {
+  try {
+    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    const response = await fetch(`${backendUrl}/api/projects/${projectId}/vote-stats`)
+    
+    if (response.ok) {
+      const stats = await response.json()
+      const displayProjects = transformedProjects.value
+      const project = displayProjects.find(p => p.id === projectId)
+      if (project) {
+        project.votes = stats.upvotes || stats.total_score || 0
+        // Note: We don't have hasVoted info from public endpoint
+        // Would need user-specific endpoint to get user's vote status
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch vote stats:', err)
   }
 }
 

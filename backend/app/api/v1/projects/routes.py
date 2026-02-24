@@ -3,7 +3,7 @@ Project API routes.
 """
 from fastapi import APIRouter, Depends, Body, Request
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
@@ -32,11 +32,14 @@ comment_repository = CommentRepository()
 async def get_projects(
     skip: int = 0,
     limit: int = 100,
+    user: Optional[int] = None,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
-    """Get all projects."""
-    projects = project_service.get_projects(db, skip=skip, limit=limit)
+    """Get all projects, optionally filtered by user."""
+    projects = project_service.get_projects(
+        db, skip=skip, limit=limit, user_id=user
+    )
     return projects
 
 

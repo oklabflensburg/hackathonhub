@@ -24,12 +24,18 @@ class ProjectService:
         self.user_repo = UserRepository()
 
     def get_projects(
-        self, db: Session, skip: int = 0, limit: int = 100
+        self, db: Session, skip: int = 0, limit: int = 100,
+        user_id: Optional[int] = None
     ) -> List[ProjectSchema]:
-        """Get all public projects."""
-        projects = self.project_repo.get_public_projects(
-            db, skip=skip, limit=limit
-        )
+        """Get all public projects, optionally filtered by user."""
+        if user_id is not None:
+            projects = self.project_repo.get_by_owner(
+                db, owner_id=user_id, skip=skip, limit=limit
+            )
+        else:
+            projects = self.project_repo.get_public_projects(
+                db, skip=skip, limit=limit
+            )
         return [ProjectSchema.model_validate(p) for p in projects]
 
     def get_project(

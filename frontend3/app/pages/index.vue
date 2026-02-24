@@ -68,22 +68,42 @@
     <div v-if="!loading && !error">
       <!-- Stats Section -->
       <section class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-        <div class="card text-center">
+        <NuxtLink 
+          to="/hackathons"
+          class="card text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          role="link"
+          tabindex="0"
+        >
           <div class="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">{{ stats.activeHackathons }}</div>
           <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.activeHackathons') }}</div>
-        </div>
-        <div class="card text-center">
+        </NuxtLink>
+        <NuxtLink 
+          to="/projects"
+          class="card text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          role="link"
+          tabindex="0"
+        >
           <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">{{ stats.projectsSubmitted }}</div>
           <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.projectsSubmitted') }}</div>
-        </div>
-        <div class="card text-center">
+        </NuxtLink>
+        <NuxtLink 
+          to="/projects?sort=votes"
+          class="card text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          role="link"
+          tabindex="0"
+        >
           <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">{{ stats.totalVotes }}</div>
           <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.totalVotes') }}</div>
-        </div>
-        <div class="card text-center">
+        </NuxtLink>
+        <NuxtLink 
+          to="/users"
+          class="card text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          role="link"
+          tabindex="0"
+        >
           <div class="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">{{ stats.activeParticipants }}</div>
           <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.activeParticipants') }}</div>
-        </div>
+        </NuxtLink>
       </section>
 
       <!-- Featured Hackathons -->
@@ -95,14 +115,24 @@
           </NuxtLink>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div v-for="hackathon in featuredHackathons" :key="hackathon.id" class="card-hover">
+          <div 
+            v-for="hackathon in featuredHackathons" 
+            :key="hackathon.id" 
+            class="card-hover group relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            role="link"
+            :aria-label="`View details for ${hackathon.name}`"
+            tabindex="0"
+            @click="navigateToHackathon(hackathon.id)"
+            @keydown.enter="navigateToHackathon(hackathon.id)"
+            @keydown.space="navigateToHackathon(hackathon.id)"
+          >
             <!-- Hackathon Image -->
             <div class="w-full overflow-hidden rounded-t-lg mb-4 aspect-ratio-16-9">
-              <img :src="hackathon.imageUrl" :alt="hackathon.name" class="img-cover" />
+              <img :src="hackathon.imageUrl" :alt="hackathon.name" class="img-cover group-hover:scale-105 transition-transform duration-300" />
             </div>
             <div class="flex items-start justify-between mb-4">
               <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400">
                   {{ hackathon.name }}
                 </h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400">{{ hackathon.organization }}</p>
@@ -129,10 +159,9 @@
                   {{ hackathon.participants }}
                 </span>
               </div>
-              <NuxtLink :to="`/hackathons/${hackathon.id}`"
-                class="text-primary-600 dark:text-primary-400 hover:underline font-medium">
+              <span class="text-primary-600 dark:text-primary-400 font-medium">
                 {{ t('common.viewDetails') }}
-              </NuxtLink>
+              </span>
             </div>
           </div>
         </div>
@@ -147,33 +176,47 @@
           </NuxtLink>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div v-for="project in topProjects" :key="project.id" class="card-hover">
-            <NuxtLink :to="'/projects/' + project.id" class="block">
-              <!-- Project Image -->
-              <div class="relative w-full mb-4 overflow-hidden rounded-lg aspect-ratio-4-3">
-                <img :src="project.imageUrl" :alt="project.name"
-                  class="img-cover transition-transform duration-300 hover:scale-105" />
-                <div class="absolute top-2 right-2">
-                  <span class="badge badge-success">{{ project.hackathon }}</span>
-                </div>
+          <div 
+            v-for="project in topProjects" 
+            :key="project.id" 
+            class="card-hover group relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            role="link"
+            :aria-label="`View details for ${project.name}`"
+            tabindex="0"
+            @click="handleProjectCardClick(project.id, $event)"
+            @keydown.enter="navigateToProject(project.id)"
+            @keydown.space="navigateToProject(project.id)"
+          >
+            <!-- Project Image -->
+            <div class="relative w-full mb-4 overflow-hidden rounded-lg aspect-ratio-4-3">
+              <img :src="project.imageUrl" :alt="project.name"
+                class="img-cover transition-transform duration-300 group-hover:scale-105" />
+              <div class="absolute top-2 right-2">
+                <span class="badge badge-success">{{ project.hackathon }}</span>
               </div>
+            </div>
 
-              <div class="flex items-start justify-between mb-3">
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                    {{ project.name }}
-                  </h3>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('common.by') }} {{ project.author }}</p>
-                </div>
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400">
+                  {{ project.name }}
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('common.by') }} {{ project.author }}</p>
               </div>
-              <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">
-                {{ project.description }}
-              </p>
-            </NuxtLink>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">
+              {{ project.description }}
+            </p>
 
-            <div class="flex items-center justify-between">
-              <VoteButtons :project-id="project.id" :initial-upvotes="project.upvotes"
-                :initial-downvotes="project.downvotes" :initial-user-vote="project.userVote" />
+            <!-- Vote buttons need to stop event propagation -->
+            <div class="flex items-center justify-between" @click.stop>
+              <VoteButtons 
+                :project-id="project.id" 
+                :initial-upvotes="project.upvotes"
+                :initial-downvotes="project.downvotes" 
+                :initial-user-vote="project.userVote"
+                class="vote-button"
+              />
               <div class="flex items-center space-x-2">
                 <span class="text-sm text-gray-500 dark:text-gray-400">
                   {{ project.tech.join(', ') }}
@@ -211,10 +254,12 @@ import { useUIStore } from '~/stores/ui'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder, generateHackathonPlaceholder } from '~/utils/placeholderImages'
+import { useRouter } from '#imports'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const router = useRouter()
 const config = useRuntimeConfig()
 const apiUrl = config.public.apiUrl
 
@@ -222,6 +267,30 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const loginWithGitHub = () => {
   authStore.loginWithGitHub()
+}
+
+// Navigation functions for clickable cards
+const navigateToHackathon = (hackathonId: number) => {
+  router.push(`/hackathons/${hackathonId}`)
+}
+
+const navigateToProject = (projectId: number) => {
+  router.push(`/projects/${projectId}`)
+}
+
+
+
+// Handle project card click (with vote button exception)
+const handleProjectCardClick = (projectId: number, event: MouseEvent) => {
+  // Check if click originated from vote buttons
+  const target = event.target as HTMLElement
+  const isVoteButton = target.closest('.vote-button') || 
+                      target.closest('[data-vote-button]') ||
+                      target.closest('button')
+  
+  if (!isVoteButton) {
+    navigateToProject(projectId)
+  }
 }
 
 // Use Nuxt's useAsyncData for SSR-compatible data fetching

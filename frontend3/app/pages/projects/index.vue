@@ -285,6 +285,11 @@ watch(() => route.query.q, (newQ) => {
   }
 })
 
+// Watch for user parameter changes to refetch projects
+watch(() => route.query.user, () => {
+  fetchProjects()
+})
+
 // Watch for search query changes to refetch projects
 watch(searchQuery, () => {
   fetchProjects()
@@ -301,6 +306,15 @@ const fetchProjects = async () => {
     params.append('limit', '24')
     if (searchQuery.value) {
       params.append('search', searchQuery.value)
+    }
+    // Add user filter if present in URL
+    if (route.query.user) {
+      const userParam = Array.isArray(route.query.user) 
+        ? route.query.user[0] 
+        : route.query.user
+      if (userParam) {
+        params.append('user', userParam as string)
+      }
     }
     
     const response = await fetch(`${apiUrl}/api/projects?${params.toString()}`)
@@ -412,7 +426,20 @@ const loadMore = async () => {
     const skip = projects.value.length
     const limit = 12 // Load 12 more projects
     
-    const response = await fetch(`${apiUrl}/api/projects?skip=${skip}&limit=${limit}`)
+    // Build query parameters including user filter if present
+    const params = new URLSearchParams()
+    params.append('skip', skip.toString())
+    params.append('limit', limit.toString())
+    if (route.query.user) {
+      const userParam = Array.isArray(route.query.user)
+        ? route.query.user[0]
+        : route.query.user
+      if (userParam) {
+        params.append('user', userParam as string)
+      }
+    }
+    
+    const response = await fetch(`${apiUrl}/api/projects?${params.toString()}`)
     if (!response.ok) {
       throw new Error(`${t('projects.errors.failedToLoadMore')}: ${response.status}`)
     }
