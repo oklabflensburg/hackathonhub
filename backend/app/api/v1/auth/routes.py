@@ -451,8 +451,11 @@ async def verify_email(
 ):
     """Verify email address using verification token"""
     try:
-        from app.services.email_verification_service import verify_email_token
-        user = verify_email_token(db, request.token)
+        from app.services.email_verification_service import (
+            EmailVerificationService
+        )
+        verification_service = EmailVerificationService()
+        user = verification_service.verify_email_token(db, request.token)
         return {
             "message": "Email verified successfully",
             "user": user
@@ -476,9 +479,12 @@ async def resend_verification(
     """Resend verification email to user"""
     try:
         from app.services.email_verification_service import (
-            resend_verification_email
+            EmailVerificationService
         )
-        success = resend_verification_email(db, request.email)
+        verification_service = EmailVerificationService()
+        success = verification_service.resend_verification_email(
+            db, request.email
+        )
         if success:
             return {
                 "message": "Verification email has been resent. "
