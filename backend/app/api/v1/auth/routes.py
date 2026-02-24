@@ -62,12 +62,10 @@ async def login(
         )
 
     # Extract tokens from auth result
-    tokens = auth_result.get("tokens", {})
-
     return TokenWithRefresh(
-        access_token=tokens.get("access_token", ""),
-        refresh_token=tokens.get("refresh_token", ""),
-        token_type="bearer"
+        access_token=auth_result.get("access_token", ""),
+        refresh_token=auth_result.get("refresh_token", ""),
+        token_type=auth_result.get("token_type", "bearer")
     )
 
 
@@ -104,12 +102,10 @@ async def login_json(
         )
 
     # Extract tokens from auth result
-    tokens = auth_result.get("tokens", {})
-
     return TokenWithRefresh(
-        access_token=tokens.get("access_token", ""),
-        refresh_token=tokens.get("refresh_token", ""),
-        token_type="bearer"
+        access_token=auth_result.get("access_token", ""),
+        refresh_token=auth_result.get("refresh_token", ""),
+        token_type=auth_result.get("token_type", "bearer")
     )
 
 
