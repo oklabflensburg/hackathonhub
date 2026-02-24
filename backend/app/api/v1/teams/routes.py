@@ -301,13 +301,13 @@ async def create_team_invitation(
 
     # Check if target user is already a team member
     existing_member = team_member_repository.get_by_team_and_user(
-        db, team_id, invitation.user_id)
+        db, team_id, invitation.invited_user_id)
     if existing_member:
         raise_bad_request(locale, "already_member", entity="team")
 
     # Check if invitation already exists
     existing_invitation = team_invitation_repository.get_by_team_and_user(
-        db, team_id, invitation.user_id)
+        db, team_id, invitation.invited_user_id)
     if existing_invitation:
         raise_bad_request(locale, "invitation_exists", entity="team")
 
@@ -335,7 +335,7 @@ async def accept_team_invitation(
         raise_not_found(locale, "invitation")
 
     # Verify invitation is for current user
-    if invitation.user_id != current_user.id:
+    if invitation.invited_user_id != current_user.id:
         raise_forbidden(
             locale, "accept_others_invitation", entity="invitation"
         )
@@ -382,7 +382,7 @@ async def decline_team_invitation(
         raise_not_found(locale, "invitation")
 
     # Verify invitation is for current user
-    if invitation.user_id != current_user.id:
+    if invitation.invited_user_id != current_user.id:
         raise_forbidden(
             locale, "decline_others_invitation", entity="invitation"
         )

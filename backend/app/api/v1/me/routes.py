@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.domain import schemas, models
 from app.repositories.user_repository import UserRepository
+from app.repositories.team_repository import TeamInvitationRepository
 from app.i18n.dependencies import get_locale
 from app.i18n.helpers import raise_not_found
 
@@ -98,7 +99,7 @@ async def get_user_votes(
     user_votes = db.query(models.Vote).filter(
         models.Vote.user_id == current_user.id
     ).all()
-    
+
     return [schemas.Vote.from_orm(vote) for vote in user_votes]
 
 
@@ -114,6 +115,22 @@ async def get_user_registrations(
     user_registrations = db.query(models.HackathonRegistration).filter(
         models.HackathonRegistration.user_id == current_user.id
     ).all()
-    
+
     return [schemas.HackathonRegistration.from_orm(reg)
             for reg in user_registrations]
+
+
+@router.get("/me/invitations", response_model=List[schemas.TeamInvitation])
+async def get_user_invitations(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+    locale: str = Depends(get_locale)
+):
+    """Get current user's pending team invitations."""
+    # Initialize repository
+    invitation_repo = TeamInvitationRepository()
+
+    # Get user's pending invitations
+    invitations = invitation_repo.get_user_invitations(db, current_user.id)
+
+    return invitations
