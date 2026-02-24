@@ -26,6 +26,7 @@ class Hackathon(Base):
     image_url = Column(String)  # URL to hackathon banner/image
     banner_path = Column(String)  # Path to uploaded banner file
     participant_count = Column(Integer, default=0)  # Registered participants
+    view_count = Column(Integer, default=0)  # Page views
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     max_participants = Column(Integer, nullable=True)  # Optional limit

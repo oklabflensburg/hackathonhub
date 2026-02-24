@@ -1,52 +1,67 @@
-from fastapi import APIRouter, Header, Depends
+from fastapi import APIRouter, Header, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
-from datetime import datetime
 
 from app.core.database import get_db
+from app.domain.schemas.newsletter import (
+    NewsletterSubscribeRequest,
+    NewsletterUnsubscribeRequest
+)
+from app.services.newsletter_service import newsletter_service
 
 router = APIRouter()
 
 
 @router.post("/subscribe")
 async def subscribe_to_newsletter(
-    email: str,
-    source: str = "website",
+    request: NewsletterSubscribeRequest,
     idempotency_key: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     """Subscribe to newsletter with atomic duplicate prevention"""
-    # Placeholder implementation - returns success message
-    # In a real implementation, this would:
-    # 1. Check if email already subscribed
-    # 2. Create newsletter subscription record
-    # 3. Send welcome email
-    
-    # For now, just return success
-    return {
-        "message": "Successfully subscribed to newsletter",
-        "email": email,
-        "already_subscribed": False,
-        "subscribed_at": datetime.utcnow().isoformat(),
-        "welcome_email_sent": False
-    }
+    try:
+        # Use the newsletter service to handle subscription
+        result = newsletter_service.subscribe(
+            db, email=request.email, source=request.source
+        )
+        
+        subscription = result["subscription"]
+        
+        return {
+            "message": "Successfully subscribed to newsletter",
+            "email": subscription.email,
+            "source": subscription.source,
+            "already_subscribed": result["already_subscribed"],
+            "subscribed_at": result["subscribed_at"],
+            "welcome_email_sent": result["welcome_email_sent"]
+        }
+    except Exception as e:
+        # Log the error and return a generic error message
+        # In production, you'd want more specific error handling
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to subscribe to newsletter: {str(e)}"
+        )
 
 
 @router.post("/unsubscribe")
 async def unsubscribe_from_newsletter(
-    email: str,
+    request: NewsletterUnsubscribeRequest,
     db: Session = Depends(get_db)
 ):
     """Unsubscribe from newsletter"""
-    # Placeholder implementation - returns success message
-    # In a real implementation, this would:
-    # 1. Find newsletter subscription by email
-    # 2. Mark as unsubscribed
-    # 3. Return success
+    result = newsletter_service.unsubscribe(db, email=request.email)
     
-    # For now, just return success
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Email not found in newsletter subscriptions"
+        )
+    
+    subscription = result["subscription"]
+    
     return {
         "message": "Successfully unsubscribed from newsletter",
-        "email": email,
-        "unsubscribed_at": datetime.utcnow().isoformat()
+        "email": subscription.email,
+        "unsubscribed_at": result["unsubscribed_at"]
     }

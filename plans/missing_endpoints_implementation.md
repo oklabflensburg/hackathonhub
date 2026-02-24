@@ -41,8 +41,8 @@ During the refactoring from monolithic `backend/main.py` to modular architecture
 | Endpoint | Method | Description | Status |
 |----------|--------|-------------|--------|
 | `/api/upload` | POST | File upload endpoint | **MISSING** |
-| `/api/newsletter/subscribe` | POST | Subscribe to newsletter | **MISSING** |
-| `/api/newsletter/unsubscribe` | POST | Unsubscribe from newsletter | **MISSING** |
+| `/api/newsletter/subscribe` | POST | Subscribe to newsletter | **IMPLEMENTED** (Fixed 422 error - now accepts JSON body) |
+| `/api/newsletter/unsubscribe` | POST | Unsubscribe from newsletter | **IMPLEMENTED** (Fixed 422 error - now accepts JSON body) |
 
 ## Priority Classification
 

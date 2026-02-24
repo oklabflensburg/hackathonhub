@@ -1,6 +1,7 @@
 """
 Enhanced notification service for sending multi-channel notifications.
 """
+import json
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
@@ -67,11 +68,12 @@ class NotificationService:
         try:
             notification_data = {
                 "user_id": user_id,
-                "type": notification_type,
+                "notification_type": notification_type,
                 "title": title,
                 "message": message,
-                "data": data or {},
-                "read": False,
+                "data": json.dumps(data or {}) if data else None,
+                "channels_sent": "in_app",
+                "read_at": None,  # Not read yet
                 "created_at": datetime.utcnow()
             }
             self.notification_repo.create(db, obj_in=notification_data)
@@ -213,12 +215,14 @@ class NotificationService:
         unread_only: bool = False
     ) -> List[UserNotification]:
         """Get notifications for a user."""
-        filters = {"user_id": user_id}
-        if unread_only:
-            filters["read"] = False
-
-        return self.notification_repo.filter(
-            db, skip=skip, limit=limit, **filters
+        # Use the repository's get_user_notifications method which
+        # handles unread filtering correctly
+        return self.notification_repo.get_user_notifications(
+            db,
+            user_id=user_id,
+            skip=skip,
+            limit=limit,
+            unread_only=unread_only
         )
 
     def mark_notification_as_read(
@@ -227,20 +231,20 @@ class NotificationService:
         """Mark a notification as read."""
         notification = self.notification_repo.get(db, notification_id)
         if notification and notification.user_id == user_id:
-            notification.read = True
+            notification.read_at = datetime.utcnow()
             db.commit()
             return True
         return False
 
     def mark_all_notifications_as_read(self, db: Session, user_id: int) -> int:
         """Mark all notifications as read for a user."""
-        notifications = self.notification_repo.filter(
-            db, user_id=user_id, read=False
-        )
+        # Get all unread notifications for the user
+        all_notifications = self.notification_repo.filter(db, user_id=user_id)
         count = 0
-        for notification in notifications:
-            notification.read = True
-            count += 1
+        for notification in all_notifications:
+            if notification.read_at is None:
+                notification.read_at = datetime.utcnow()
+                count += 1
         if count > 0:
             db.commit()
         return count

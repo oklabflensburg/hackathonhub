@@ -138,3 +138,22 @@ if settings.DEBUG:
     async def startup_event():
         """Create database tables on startup in debug mode."""
         Base.metadata.create_all(bind=engine)
+
+
+# Initialize notification types (should run in all environments)
+@app.on_event("startup")
+async def initialize_notification_types():
+    """Initialize notification types in the database."""
+    from app.services.notification_preference_service import (
+        notification_preference_service
+    )
+    from app.core.database import SessionLocal
+    
+    db = SessionLocal()
+    try:
+        notification_preference_service.initialize_notification_types(db)
+        logger.info("Notification types initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize notification types: {e}")
+    finally:
+        db.close()

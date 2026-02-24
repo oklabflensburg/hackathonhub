@@ -22,6 +22,10 @@ from .notification import (
     UserNotificationPreference, UserNotificationPreferenceCreate,
     PushSubscription, PushSubscriptionCreate
 )
+from .newsletter import (
+    NewsletterSubscription, NewsletterSubscriptionCreate,
+    NewsletterSubscribeRequest, NewsletterUnsubscribeRequest
+)
 
 __all__ = [
     "User",
@@ -57,6 +61,10 @@ __all__ = [
     "VoteCreate",
     "Comment",
     "CommentCreate",
+    "NewsletterSubscription",
+    "NewsletterSubscriptionCreate",
+    "NewsletterSubscribeRequest",
+    "NewsletterUnsubscribeRequest",
 ]
 
 # Rebuild models with forward refs once all schemas are imported.

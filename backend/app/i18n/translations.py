@@ -72,6 +72,21 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "cannot_remove_yourself": (
                 "Cannot remove yourself from team. Use leave team instead."
             ),
+            "validation_remove_self": (
+                "Cannot remove yourself from team. Use leave team instead."
+            ),
+            "validation_already_member": (
+                "User is already a member of this team"
+            ),
+            "validation_invitation_exists": (
+                "Invitation already exists for this user"
+            ),
+            "validation_vote_type_invalid": "Invalid vote type",
+            "validation_vote_type_must_be": (
+                "Vote type must be '{option1}' or '{option2}'"
+            ),
+            "validation_registration": "Registration failed",
+            "validation_email_verification": "Email verification failed",
             "only_owner_can_remove_another_owner": (
                 "Only team owner can remove another owner"
             ),
@@ -269,6 +284,24 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
                 "Kann sich nicht selbst entfernen. "
                 "Verwende stattdessen 'Team verlassen'."
             ),
+            "validation_remove_self": (
+                "Kann sich nicht selbst entfernen. "
+                "Verwende stattdessen 'Team verlassen'."
+            ),
+            "validation_already_member": (
+                "Benutzer ist bereits Mitglied dieses Teams"
+            ),
+            "validation_invitation_exists": (
+                "Einladung für diesen Benutzer existiert bereits"
+            ),
+            "validation_vote_type_invalid": "Ungültiger Stimmentyp",
+            "validation_vote_type_must_be": (
+                "Stimmentyp muss '{option1}' oder '{option2}' sein"
+            ),
+            "validation_registration": "Registrierung fehlgeschlagen",
+            "validation_email_verification": (
+                "E-Mail-Verifizierung fehlgeschlagen"
+            ),
             "only_owner_can_remove_another_owner": (
                 "Nur Team-Besitzer kann einen anderen Besitzer entfernen"
             ),
@@ -444,9 +477,10 @@ def get_translation(key: str, locale: str = "en", **kwargs) -> str:
                 try:
                     return generic_translation.format(**kwargs_with_action)
                 except KeyError:
-                    # If formatting fails, return generic translation without action
+                    # If formatting fails, return generic translation
+                    # without action
                     return generic_translation
-        
+
         # For unauthorized_{reason} keys, fall back to generic "unauthorized"
         if subkey.startswith("unauthorized_") and category == "errors":
             generic_translation = TRANSLATIONS[locale].get(
@@ -459,16 +493,17 @@ def get_translation(key: str, locale: str = "en", **kwargs) -> str:
                 try:
                     return generic_translation.format(**kwargs_with_reason)
                 except KeyError:
-                    # If formatting fails, return generic translation without reason
+                    # If formatting fails, return generic translation
+                    # without reason
                     return generic_translation
-        
+
         # Fallback to English if translation not found
         if locale != "en":
             try:
                 return get_translation(key, "en", **kwargs)
             except KeyError:
                 pass
-        
+
         raise KeyError(f"Translation key not found: {key}")
 
     # Format the translation with provided arguments

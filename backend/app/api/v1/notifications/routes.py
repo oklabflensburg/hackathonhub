@@ -72,11 +72,11 @@ async def create_notification(
     # Create notification data with user_id
     notification_data = notification.model_dump()
     notification_data["user_id"] = current_user.id
-    
+
     # Create notification using repository
     db_notification = notification_repository.create(
         db, obj_in=notification_data)
-    
+
     return db_notification
 
 
@@ -139,10 +139,31 @@ async def update_notification_preference(
     preference = preference_repository.get(db, preference_id)
     if not preference or preference.user_id != current_user.id:
         raise_not_found(locale, "preference")
-    
+
     updated_preference = preference_repository.update(
         db, db_obj=preference, obj_in=preference_update.dict()
     )
+    return updated_preference
+
+
+@router.post("/preferences/{notification_type}/{channel}")
+async def update_notification_preference_by_type(
+    notification_type: str,
+    channel: str,
+    preference_update: UserNotificationPreferenceCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Update or create a notification preference by type and channel."""
+    # Use the repository's update_or_create_preference method
+    updated_preference = preference_repository.update_or_create_preference(
+        db=db,
+        user_id=current_user.id,
+        notification_type=notification_type,
+        channel=channel,
+        enabled=preference_update.enabled
+    )
+
     return updated_preference
 
 
@@ -175,7 +196,7 @@ async def create_push_subscription(
             db, db_obj=existing, obj_in=subscription.dict()
         )
         return updated_subscription
-    
+
     # Create new subscription
     subscription_data = subscription.dict()
     subscription_data["user_id"] = current_user.id
@@ -196,9 +217,9 @@ async def delete_push_subscription(
     subscription = push_subscription_repository.get(db, subscription_id)
     if not subscription or subscription.user_id != current_user.id:
         raise_not_found(locale, "subscription")
-    
+
     success = push_subscription_repository.delete(db, id=subscription_id)
     if not success:
         raise_internal_server_error(locale, "subscription_deletion")
-    
+
     return {"message": "Subscription deleted successfully"}

@@ -185,7 +185,7 @@ export const useNotificationStore = defineStore('notification', () => {
     if (!authStore.isAuthenticated) return
 
     try {
-      const response = await authStore.authenticatedFetch('/api/notification-preferences')
+      const response = await authStore.authenticatedFetch('/api/notifications/preferences')
       
       if (response.ok) {
         const data = await response.json()
@@ -204,7 +204,7 @@ export const useNotificationStore = defineStore('notification', () => {
     if (!authStore.isAuthenticated) return
 
     try {
-      const response = await authStore.authenticatedFetch(`/api/notification-preferences/${notificationType}/${channel}`, {
+      const response = await authStore.authenticatedFetch(`/api/notifications/preferences/${notificationType}/${channel}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -230,7 +230,7 @@ export const useNotificationStore = defineStore('notification', () => {
     if (!authStore.isAuthenticated) return
 
     try {
-      const response = await authStore.authenticatedFetch('/api/notification-preferences', {
+      const response = await authStore.authenticatedFetch('/api/notifications/preferences', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'

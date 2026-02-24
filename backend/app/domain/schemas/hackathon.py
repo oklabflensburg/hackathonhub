@@ -21,6 +21,7 @@ class HackathonBase(BaseModel):
     image_url: Optional[str] = None
     banner_path: Optional[str] = None
     participant_count: int = 0
+    view_count: int = 0
     project_count: int = 0
     is_active: bool = True
     max_participants: Optional[int] = None
@@ -47,6 +48,7 @@ class HackathonUpdate(BaseModel):
     image_url: Optional[str] = None
     banner_path: Optional[str] = None
     participant_count: Optional[int] = None
+    view_count: Optional[int] = None
     project_count: Optional[int] = None
     is_active: Optional[bool] = None
     max_participants: Optional[int] = None

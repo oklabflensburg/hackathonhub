@@ -223,6 +223,10 @@
                   <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.participant_count || 0 }}</span>
                 </div>
                 <div class="flex justify-between items-center">
+                  <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.views') }}</span>
+                  <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.view_count || 0 }}</span>
+                </div>
+                <div class="flex justify-between items-center">
                   <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.projects') }}</span>
                   <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.project_count || 0 }}</span>
                 </div>
@@ -583,6 +587,7 @@ const fetchHackathon = async () => {
       longitude: apiData.longitude || null,
       status,
       participant_count: apiData.participant_count || 0,
+      view_count: apiData.view_count || 0,
       project_count: Math.floor((apiData.participant_count || 0) / 3), // Estimate projects
       registration_deadline: apiData.registration_deadline || apiData.start_date,
       prizes: prizes,
