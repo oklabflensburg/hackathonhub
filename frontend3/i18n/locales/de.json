@@ -50,7 +50,7 @@
     "next": "Weiter",
     "previous": "Zurück",
     "close": "Schließen",
-    "open": "Öffnen",
+    "open": "Offen",
     "closed": "Geschlossen",
     "yes": "Ja",
     "no": "Nein",
@@ -955,6 +955,8 @@
         "clickToUpload": "Klicken, um Projektbild hochzuladen",
         "imageRequirements": "PNG, JPG, GIF bis zu 5MB",
         "imageUploaded": "Bild erfolgreich hochgeladen",
+        "uploading": "Wird hochgeladen...",
+        "uploadingProgress": "Bild wird hochgeladen...",
         "removeImage": "Bild entfernen"
       },
       "buttons": {
@@ -992,6 +994,8 @@
         "clickToUpload": "Klicken, um Hackathon-Bild hochzuladen",
         "imageRequirements": "PNG, JPG, GIF bis zu 5MB",
         "imageUploaded": "Bild erfolgreich hochgeladen",
+        "uploading": "Wird hochgeladen...",
+        "uploadingProgress": "Bild wird hochgeladen...",
         "removeImage": "Bild entfernen"
       },
       "buttons": {

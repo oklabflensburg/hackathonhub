@@ -39,7 +39,7 @@ class FileService:
                 if not project:
                     raise_not_found(locale, "project")
                 # Check if user has permission to upload to project
-                if user_id and project.created_by != user_id:
+                if user_id and project.owner_id != user_id:
                     # Could add more complex permission logic here
                     pass
             elif file_type == "hackathon":

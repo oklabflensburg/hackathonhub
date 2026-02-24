@@ -90,7 +90,7 @@ async def update_project(
     from app.repositories.project_repository import ProjectRepository
     project_repo = ProjectRepository()
     db_project = project_repo.get(db, project_id)
-    if db_project.created_by != current_user.id:
+    if db_project.owner_id != current_user.id:
         raise_forbidden(locale, "update", entity="project")
 
     updated_project = project_service.update_project(
@@ -117,7 +117,7 @@ async def delete_project(
     if not project:
         raise_not_found(locale, "project")
 
-    if project.created_by != current_user.id:
+    if project.owner_id != current_user.id:
         raise_forbidden(locale, "delete", entity="project")
 
     success = project_service.delete_project(db, project_id)

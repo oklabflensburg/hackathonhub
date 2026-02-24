@@ -171,6 +171,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
+import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -245,25 +246,6 @@ const transformProject = (apiProject: any) => {
     apiProject.technologies.split(',').map((t: string) => t.trim()).filter(Boolean) :
     []
 
-  // Generate a simple SVG placeholder if no image provided
-  const generatePlaceholderImage = (projectId: number, projectName: string) => {
-    // Simple color based on project ID
-    const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#a8edea']
-    const color = colors[projectId % colors.length] || '#667eea'
-
-    // Get first letter of project name
-    const firstLetter = projectName.charAt(0).toUpperCase() || 'P'
-
-    // Simple SVG
-    const svg = `<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="${color}" />
-      <text x="50%" y="50%" font-family="Arial" font-size="120" font-weight="bold" 
-            fill="white" text-anchor="middle" dy=".35em" opacity="0.8">${firstLetter}</text>
-    </svg>`
-
-    return 'data:image/svg+xml;base64,' + btoa(svg)
-  }
-
   const projectName = apiProject.title || apiProject.name || 'Untitled Project'
 
   // Use real API data for counts
@@ -299,7 +281,10 @@ const transformProject = (apiProject: any) => {
     }
   } else {
     // Use placeholder only when no real image
-    imageUrl = generatePlaceholderImage(apiProject.id || 0, projectName)
+    imageUrl = generateProjectPlaceholder({
+      id: apiProject.id || 0,
+      title: projectName
+    })
   }
 
   return {

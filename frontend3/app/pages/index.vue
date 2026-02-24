@@ -210,6 +210,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { generateProjectPlaceholder, generateHackathonPlaceholder } from '~/utils/placeholderImages'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -245,7 +246,7 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
       // Transform hackathons data
       const featuredHackathons = hackathonsData.slice(0, 3).map((hackathon: any) => {
         // Handle hackathon image URL
-        let imageUrl = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80'
+        let imageUrl = ''
         const imageSource = hackathon.image_url || hackathon.banner_path
         if (imageSource) {
           if (imageSource.startsWith('http')) {
@@ -258,6 +259,12 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
             // Assume it's a relative path without leading slash
             imageUrl = `${apiUrl}/${imageSource}`
           }
+        } else {
+          // Generate placeholder image for hackathon
+          imageUrl = generateHackathonPlaceholder({
+            id: hackathon.id,
+            name: hackathon.name
+          })
         }
 
         return {
@@ -276,7 +283,7 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
       // Transform projects data and sort by vote score
       const transformedProjects = projectsData.map((project: any) => {
         // Handle project image URL
-        let imageUrl = 'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=800&q=80'
+        let imageUrl = ''
         if (project.image_path) {
           if (project.image_path.startsWith('http')) {
             // Already a full URL
@@ -288,6 +295,12 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
             // Assume it's a relative path without leading slash
             imageUrl = `${apiUrl}/${project.image_path}`
           }
+        } else {
+          // Generate placeholder image for project
+          imageUrl = generateProjectPlaceholder({
+            id: project.id,
+            title: project.title
+          })
         }
 
         return {

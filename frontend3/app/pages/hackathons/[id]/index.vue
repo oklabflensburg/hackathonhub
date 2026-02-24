@@ -558,6 +558,20 @@ const fetchHackathon = async () => {
       ]
     }
 
+    // Transform image URL to use backend API URL if needed
+    let image_url = apiData.image_url || null
+    if (image_url) {
+      if (image_url.startsWith('http')) {
+        // Already a full URL, keep as is
+      } else if (image_url.startsWith('/')) {
+        // Relative path, prepend backend URL
+        image_url = `${backendUrl}${image_url}`
+      } else {
+        // Assume it's a relative path without leading slash
+        image_url = `${backendUrl}/${image_url}`
+      }
+    }
+
     hackathon.value = {
       id: apiData.id,
       name: apiData.name,
@@ -575,7 +589,7 @@ const fetchHackathon = async () => {
       rules: apiData.rules || `1. All code must be written during the hackathon period.\n2. Teams can have 1-4 members.\n3. Use of third-party APIs and libraries is allowed.\n4. Projects must be submitted by the deadline.\n5. Be respectful to all participants and organizers.`,
       organizers: organizers,
       owner_id: apiData.owner_id || null,  // Include owner_id from API
-      image_url: apiData.image_url || null,  // Include image_url from API
+      image_url: image_url,  // Use transformed image URL
       prize_pool: apiData.prize_pool || null  // Include prize_pool from API
     }
 
@@ -775,6 +789,20 @@ const editHackathon = async () => {
     // Open edit mode
     editing.value = true
 
+    // Transform image URL to use backend API URL if needed
+    let image_url = apiData.image_url || ''
+    if (image_url) {
+      if (image_url.startsWith('http')) {
+        // Already a full URL, keep as is
+      } else if (image_url.startsWith('/')) {
+        // Relative path, prepend backend URL
+        image_url = `${backendUrl}${image_url}`
+      } else {
+        // Assume it's a relative path without leading slash
+        image_url = `${backendUrl}/${image_url}`
+      }
+    }
+
     // Initialize edit form with fresh API data
     editForm.value = {
       name: apiData.name,
@@ -782,7 +810,7 @@ const editHackathon = async () => {
       start_date: formatDateForInput(apiData.start_date),
       end_date: formatDateForInput(apiData.end_date),
       location: apiData.location || '',
-      image_url: apiData.image_url || '',
+      image_url: image_url,
       prizes: prizes || [],
       rules: apiData.rules || '',
       organizers: organizers || [],

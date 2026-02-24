@@ -582,6 +582,7 @@ import { useVotingStore } from '~/stores/voting'
 import { useUIStore } from '~/stores/ui'
 import VoteButtons from '~/components/VoteButtons.vue'
 import { useI18n } from 'vue-i18n'
+import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
 const route = useRoute()
 const router = useRouter()
@@ -611,7 +612,13 @@ const projectTechnologies = computed(() => {
 })
 
 const projectImage = computed(() => {
-  if (!project.value?.image_path) return 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80'
+  if (!project.value?.image_path) {
+    // Generate a placeholder image based on project ID and title
+    return generateProjectPlaceholder({
+      id: project.value?.id || 0,
+      title: project.value?.title || 'Project'
+    })
+  }
   return project.value.image_path
 })
 

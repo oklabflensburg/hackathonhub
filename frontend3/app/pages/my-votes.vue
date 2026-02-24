@@ -116,7 +116,7 @@
           <div class="md:w-1/3 lg:w-1/4">
             <div class="relative h-48 md:h-full overflow-hidden">
               <img
-                :src="vote.project_image || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80'"
+                :src="getProjectImageUrl(vote)"
                 :alt="vote.project_name"
                 class="w-full h-full object-cover"
               />
@@ -280,6 +280,7 @@ import { format } from 'date-fns'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
+import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
 const authStore = useAuthStore()
 const uiStore = useUIStore()
@@ -300,6 +301,17 @@ const formatDate = (dateString: string) => {
   } catch {
     return dateString
   }
+}
+
+const getProjectImageUrl = (vote: any) => {
+  if (vote.project_image) {
+    return vote.project_image
+  }
+  // Generate placeholder image for project
+  return generateProjectPlaceholder({
+    id: vote.project_id || 0,
+    title: vote.project_name || 'Project'
+  })
 }
 
 const fetchMyVotes = async () => {

@@ -258,6 +258,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
+import { generateHackathonPlaceholder } from '~/utils/placeholderImages'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -376,13 +377,26 @@ const fetchHackathons = async (page: number = 1) => {
       if (desc.includes('sustainability') || desc.includes('climate')) tags.push('Sustainability')
       if (tags.length === 0) tags.push('General', 'Technology')
       
+      // Transform image URL to use backend API URL if needed
+      let image = h.image_url ? h.image_url : generateHackathonPlaceholder({
+        id: h.id,
+        name: h.name
+      })
+      if (image && !image.startsWith('http')) {
+        if (image.startsWith('/')) {
+          image = `${config.public.apiUrl}${image}`
+        } else {
+          image = `${config.public.apiUrl}/${image}`
+        }
+      }
+      
       return {
         id: h.id,
         name: h.name,
         organization,
         status,
         description: h.description || 'No description available',
-        image: h.image_url || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
+        image: image,
         prize: h.prize_pool || null, // Use real prize pool from API, null if empty
         participants: h.participant_count ? `${h.participant_count}+` : '0+',
         projects: h.project_count || Math.floor((h.participant_count || 0) / 3) || 0, // Use real project count or estimate

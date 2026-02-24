@@ -254,6 +254,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from '#imports'
 import { useUIStore } from '~/stores/ui'
+import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -324,7 +325,10 @@ const fetchProjects = async () => {
               project.status === 'finalist' ? 'Finalist' : 'Submitted',
        description: project.description || t('common.noDescription'),
        tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
-       image: project.image_path || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
+        image: project.image_path ? project.image_path : generateProjectPlaceholder({
+          id: project.id,
+          title: project.title
+        }),
        demo: project.live_url || null,
        github: project.repository_url || null,
        views: project.view_count || 0,
@@ -431,7 +435,10 @@ const loadMore = async () => {
               project.status === 'finalist' ? 'Finalist' : 'Submitted',
        description: project.description || t('common.noDescription'),
       tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
-      image: project.image_path || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
+        image: project.image_path ? project.image_path : generateProjectPlaceholder({
+          id: project.id,
+          title: project.title
+        }),
       demo: project.live_url || null,
       github: project.repository_url || null,
       views: project.view_count || 0,

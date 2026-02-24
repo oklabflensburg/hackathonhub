@@ -868,6 +868,8 @@
         "clickToUpload": "Click to upload project image",
         "imageRequirements": "PNG, JPG, GIF up to 5MB",
         "imageUploaded": "Image uploaded successfully",
+        "uploading": "Uploading...",
+        "uploadingProgress": "Uploading image...",
         "removeImage": "Remove image"
       },
       "buttons": {
@@ -905,6 +907,8 @@
         "clickToUpload": "Click to upload hackathon image",
         "imageRequirements": "PNG, JPG, GIF up to 5MB",
         "imageUploaded": "Image uploaded successfully",
+        "uploading": "Uploading...",
+        "uploadingProgress": "Uploading image...",
         "removeImage": "Remove image"
       },
        "buttons": {
