@@ -15,6 +15,7 @@ from app.repositories.user_repository import (
 )
 from app.domain.schemas.user import TokenData, User
 from app.core.database import get_db
+from app.i18n.helpers import raise_i18n_http_exception
 
 load_dotenv()
 
@@ -99,7 +100,7 @@ def create_tokens(user_id: int, username: str):
     }
 
 
-def verify_refresh_token(token: str, db: Session):
+def verify_refresh_token(token: str, db: Session, locale: str = "en"):
     """Verify a refresh token and return user info"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -107,13 +108,20 @@ def verify_refresh_token(token: str, db: Session):
         # Check token type
         token_type = payload.get("type")
         if token_type != "refresh":
-            raise HTTPException(status_code=401, detail="Invalid token type")
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.invalid_token_type"
+            )
 
         # Check token ID (jti)
         token_id = payload.get("jti")
         if not token_id:
-            raise HTTPException(
-                status_code=401, detail="Invalid refresh token")
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.invalid_refresh_token"
+            )
 
         # Check if token is revoked in database
         refresh_token_repository = RefreshTokenRepository()
@@ -121,22 +129,31 @@ def verify_refresh_token(token: str, db: Session):
             db, token_id
         )
         if not refresh_token:
-            raise HTTPException(
-                status_code=401, detail="Refresh token revoked or expired")
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.refresh_token_revoked_or_expired"
+            )
 
         # Check expiration
         exp = payload.get("exp")
         if exp and datetime.utcnow().timestamp() > exp:
-            raise HTTPException(
-                status_code=401, detail="Refresh token expired")
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.refresh_token_revoked_or_expired"
+            )
 
         # Get user info
         username = payload.get("sub")
         user_id = payload.get("user_id")
 
         if not username or not user_id:
-            raise HTTPException(
-                status_code=401, detail="Invalid token payload")
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.invalid_token_payload"
+            )
 
         return {
             "username": username,
@@ -144,19 +161,27 @@ def verify_refresh_token(token: str, db: Session):
             "token_id": token_id
         }
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.invalid_refresh_token"
+        )
 
 
-def refresh_tokens(refresh_token: str, db: Session):
+def refresh_tokens(refresh_token: str, db: Session, locale: str = "en"):
     """Refresh access token using a valid refresh token"""
     # Verify the refresh token
-    token_info = verify_refresh_token(refresh_token, db)
+    token_info = verify_refresh_token(refresh_token, db, locale)
 
     # Get user from database
     user_repository = UserRepository()
     user = user_repository.get(db, token_info["user_id"])
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.user_not_found"
+        )
 
     # Revoke the old refresh token
     refresh_token_repository = RefreshTokenRepository()
@@ -184,21 +209,17 @@ def refresh_tokens(refresh_token: str, db: Session):
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    locale: str = "en"
 ):
     """Get current user from access token"""
     if not token:
-        raise HTTPException(
+        raise_i18n_http_exception(
+            locale=locale,
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
+            translation_key="errors.not_authenticated",
+            headers={"WWW-Authenticate": "Bearer"}
         )
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
 
     try:
         # Decode token to check type
@@ -207,9 +228,20 @@ async def get_current_user(
 
         # Only accept access tokens
         if token_type != "access":
-            raise credentials_exception
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.could_not_validate_credentials",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
 
         # Use existing verify_token for backward compatibility
+        # Create a credentials exception for verify_token
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
         token_data = verify_token(token, credentials_exception)
 
         # Try to find user by username (stored in token sub field)
@@ -221,10 +253,20 @@ async def get_current_user(
             user = user_repository.get_by_email(
                 db, email=token_data.username)
             if user is None:
-                raise credentials_exception
+                raise_i18n_http_exception(
+                    locale=locale,
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    translation_key="errors.could_not_validate_credentials",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
         return user
     except JWTError:
-        raise credentials_exception
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.could_not_validate_credentials",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
 
 async def get_current_active_user(

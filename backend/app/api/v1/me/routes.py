@@ -1,7 +1,7 @@
 """
 Current user (me) API routes.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -9,6 +9,8 @@ from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.domain import schemas, models
 from app.repositories.user_repository import UserRepository
+from app.i18n.dependencies import get_locale
+from app.i18n.helpers import raise_not_found
 
 router = APIRouter()
 
@@ -16,7 +18,8 @@ router = APIRouter()
 @router.get("/me", response_model=schemas.UserWithDetails)
 async def get_current_user(
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Get current authenticated user with details
     including team memberships."""
@@ -24,7 +27,7 @@ async def get_current_user(
     user_repo = UserRepository()
     db_user = user_repo.get(db, id=current_user.id)
     if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise_not_found(locale, "user")
 
     # Convert to User schema first (avoids relationship errors)
     user_schema = schemas.User.from_orm(db_user)
@@ -87,7 +90,8 @@ async def get_current_user(
 @router.get("/me/votes", response_model=List[schemas.Vote])
 async def get_user_votes(
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Get current user's votes."""
     # Get user's votes

@@ -4,9 +4,10 @@ File upload utility for handling file uploads in the application.
 import os
 import uuid
 from pathlib import Path
-from fastapi import UploadFile, HTTPException
+from fastapi import UploadFile, status
 import shutil
-from typing import Optional
+
+from app.i18n.helpers import raise_i18n_http_exception
 
 
 class FileUploadService:
@@ -52,7 +53,7 @@ class FileUploadService:
         except (OSError, IOError):
             return False
 
-    def validate_file(self, file: UploadFile) -> None:
+    def validate_file(self, file: UploadFile, locale: str = "en") -> None:
         """Validate file size and type"""
         # Check file size
         file.file.seek(0, 2)  # Seek to end
@@ -60,33 +61,40 @@ class FileUploadService:
         file.file.seek(0)  # Reset to beginning
 
         if file_size > self.max_file_size:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File too large. Max size is {self.max_file_size // (1024*1024)}MB"
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                translation_key="errors.file_too_large",
+                max_size=self.max_file_size // (1024 * 1024)
             )
 
         # Check file extension
         file_extension = Path(file.filename).suffix.lower()
         if file_extension not in self.allowed_extensions:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File type not allowed. Allowed types: {', '.join(self.allowed_extensions)}"
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                translation_key="errors.file_type_not_allowed",
+                types=", ".join(self.allowed_extensions)
             )
 
     async def save_upload_file(
         self,
         file: UploadFile,
-        file_type: str = "project"
+        file_type: str = "project",
+        locale: str = "en"
     ) -> str:
         """Save uploaded file and return the file path"""
         # Validate file
-        self.validate_file(file)
+        self.validate_file(file, locale)
 
         # Get directory for file type
         if file_type not in self.type_to_dir:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type. Allowed types: {', '.join(self.type_to_dir.keys())}"
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                translation_key="errors.invalid_file_type",
+                allowed_types=", ".join(self.type_to_dir.keys())
             )
 
         type_dir = self.type_to_dir[file_type]
@@ -103,9 +111,11 @@ class FileUploadService:
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to save file: {str(e)}"
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                translation_key="errors.failed_to_save_file",
+                error=str(e)
             )
 
         # Return relative path

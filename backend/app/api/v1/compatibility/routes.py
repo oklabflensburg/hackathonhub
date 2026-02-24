@@ -1,19 +1,22 @@
 """
 Compatibility API routes for frontend that expects certain endpoints at root level.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.domain.schemas.notification import (
-    UserNotificationPreference, PushSubscription, UserNotificationPreferenceCreate
+    UserNotificationPreference, PushSubscription,
+    UserNotificationPreferenceCreate
 )
 from app.repositories.notification_repository import (
     NotificationPreferenceRepository,
     PushSubscriptionRepository
 )
+from app.i18n.dependencies import get_locale
+from app.i18n.helpers import raise_i18n_http_exception
 
 router = APIRouter()
 preference_repository = NotificationPreferenceRepository()
@@ -26,7 +29,8 @@ push_subscription_repository = PushSubscriptionRepository()
 )
 async def get_notification_preferences(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Get user notification preferences (compatibility endpoint)."""
     try:
@@ -46,7 +50,8 @@ async def get_notification_preferences(
 async def update_notification_preferences(
     preferences: List[UserNotificationPreferenceCreate],
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Update user notification preferences (compatibility endpoint)."""
     try:
@@ -63,16 +68,19 @@ async def update_notification_preferences(
             updated.append(updated_pref)
         return updated
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update notification preferences: {str(e)}"
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            translation_key="errors.server_error",
+            error=str(e)
         )
 
 
 @router.get("/push-subscriptions", response_model=List[PushSubscription])
 async def get_push_subscriptions(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Get user push subscriptions (compatibility endpoint)."""
     try:

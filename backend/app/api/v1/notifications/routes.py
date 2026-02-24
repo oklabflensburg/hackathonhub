@@ -1,7 +1,7 @@
 """
 Notification API routes.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -16,6 +16,11 @@ from app.repositories.notification_repository import (
     NotificationRepository,
     NotificationPreferenceRepository,
     PushSubscriptionRepository
+)
+from app.i18n.dependencies import get_locale
+from app.i18n.helpers import (
+    raise_not_found,
+    raise_internal_server_error
 )
 
 router = APIRouter()
@@ -47,12 +52,13 @@ async def get_notifications(
 async def get_notification(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Get a specific notification by ID."""
     notification = notification_repository.get(db, notification_id)
     if not notification or notification.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Notification not found")
+        raise_not_found(locale, "notification")
     return notification
 
 
@@ -78,17 +84,15 @@ async def create_notification(
 async def mark_notification_as_read(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Mark a notification as read."""
     success = notification_repository.mark_as_read(
         db, notification_id, current_user.id
     )
     if not success:
-        raise HTTPException(
-            status_code=404,
-            detail="Notification not found or already read"
-        )
+        raise_not_found(locale, "notification")
     return {
         "message": "Notification marked as read",
         "notification_id": notification_id
@@ -128,12 +132,13 @@ async def update_notification_preference(
     preference_id: int,
     preference_update: UserNotificationPreferenceCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Update a notification preference."""
     preference = preference_repository.get(db, preference_id)
     if not preference or preference.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Preference not found")
+        raise_not_found(locale, "preference")
     
     updated_preference = preference_repository.update(
         db, db_obj=preference, obj_in=preference_update.dict()
@@ -184,17 +189,16 @@ async def create_push_subscription(
 async def delete_push_subscription(
     subscription_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Delete a push subscription."""
     subscription = push_subscription_repository.get(db, subscription_id)
     if not subscription or subscription.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Subscription not found")
+        raise_not_found(locale, "subscription")
     
     success = push_subscription_repository.delete(db, id=subscription_id)
     if not success:
-        raise HTTPException(
-            status_code=500, detail="Failed to delete subscription"
-        )
+        raise_internal_server_error(locale, "subscription_deletion")
     
     return {"message": "Subscription deleted successfully"}

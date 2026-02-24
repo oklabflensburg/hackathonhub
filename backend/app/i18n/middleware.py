@@ -3,7 +3,6 @@ Middleware for language detection and localization in FastAPI.
 """
 
 from fastapi import Request
-from fastapi.middleware import Middleware
 
 
 def get_locale(request: Request) -> str:
@@ -50,20 +49,12 @@ class LocaleMiddleware:
         locale = get_locale(request)
         
         # Add locale to request state
-        scope["state"] = scope.get("state", {})
+        # Ensure scope["state"] is a dictionary
+        if "state" not in scope:
+            scope["state"] = {}
         scope["state"]["locale"] = locale
         
         await self.app(scope, receive, send)
-
-
-def create_i18n_middleware() -> Middleware:
-    """
-    Create i18n middleware for FastAPI.
-    
-    Returns:
-        FastAPI Middleware instance
-    """
-    return Middleware(LocaleMiddleware)
 
 
 def get_locale_from_request(request: Request) -> str:
@@ -76,4 +67,5 @@ def get_locale_from_request(request: Request) -> str:
     Returns:
         Language code
     """
-    return request.state.get("locale", "en")
+    # Access state using getattr since State objects use attribute access
+    return getattr(request.state, "locale", "en")

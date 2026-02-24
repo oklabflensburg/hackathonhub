@@ -1,7 +1,7 @@
 """
 Project API routes.
 """
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, Body, Request
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -14,6 +14,11 @@ from app.services.project_service import project_service
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.project_repository import VoteRepository
 from app.repositories.project_repository import CommentRepository
+from app.i18n.dependencies import get_locale
+from app.i18n.helpers import (
+    raise_not_found, raise_forbidden, raise_bad_request,
+    raise_internal_server_error
+)
 
 router = APIRouter()
 
@@ -27,7 +32,8 @@ comment_repository = CommentRepository()
 async def get_projects(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Get all projects."""
     projects = project_service.get_projects(db, skip=skip, limit=limit)
@@ -37,20 +43,24 @@ async def get_projects(
 @router.get("/{project_id}", response_model=Project)
 async def get_project(
     project_id: int,
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Get a specific project by ID."""
     project = project_service.get_project(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
     return project
 
 
 @router.post("", response_model=Project)
 async def create_project(
     project: ProjectCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Create a new project."""
     new_project = project_service.create_project(
@@ -63,15 +73,17 @@ async def create_project(
 async def update_project(
     project_id: int,
     project_update: ProjectUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Update a project."""
     # Note: The service should handle permission checking
     # For now, we'll check ownership here
     project = project_service.get_project(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
 
     # Check ownership (simplified - should be in service)
     # TODO: Move permission logic to service layer
@@ -79,26 +91,23 @@ async def update_project(
     project_repo = ProjectRepository()
     db_project = project_repo.get(db, project_id)
     if db_project.created_by != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to update this project"
-        )
+        raise_forbidden(locale, "update", entity="project")
 
     updated_project = project_service.update_project(
         db, project_id, project_update
     )
     if not updated_project:
-        raise HTTPException(
-            status_code=404, detail="Project not found or update failed"
-        )
+        raise_not_found(locale, "project")
     return updated_project
 
 
 @router.delete("/{project_id}")
 async def delete_project(
     project_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Delete a project."""
     # Check ownership first
@@ -106,19 +115,14 @@ async def delete_project(
     project_repo = ProjectRepository()
     project = project_repo.get(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
 
     if project.created_by != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to delete this project"
-        )
+        raise_forbidden(locale, "delete", entity="project")
 
     success = project_service.delete_project(db, project_id)
     if not success:
-        raise HTTPException(
-            status_code=500, detail="Failed to delete project"
-        )
+        raise_internal_server_error(locale, "delete", entity="project")
 
     return {"message": "Project deleted successfully"}
 
@@ -126,10 +130,12 @@ async def delete_project(
 @router.post("/{project_id}/vote")
 async def vote_for_project(
     project_id: int,
+    request: Request,
     # "upvote" or "downvote" from JSON body
     vote_type: str = Body(..., embed=True),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Vote for a project."""
     # Normalize vote type
@@ -143,15 +149,17 @@ async def vote_for_project(
 
     # Validate vote type
     if vote_type not in ["upvote", "downvote"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Vote type must be 'upvote' or 'downvote'"
+        raise_bad_request(
+            locale,
+            validation_key="vote_type_must_be",
+            option1="upvote",
+            option2="downvote"
         )
 
     # Check if project exists
     project = project_repository.get(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
 
     # Check if user already voted
     existing_vote = vote_repository.get_user_vote_for_project(
@@ -191,13 +199,15 @@ async def vote_for_project(
 @router.get("/{project_id}/vote-stats")
 async def get_project_vote_stats(
     project_id: int,
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Get vote statistics for a project (public endpoint)."""
     # Check if project exists
     project = project_repository.get(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
 
     # Note: user_vote will always be None for this public endpoint
     # The frontend should handle user-specific votes separately
@@ -220,13 +230,15 @@ async def get_project_vote_stats(
 @router.post("/{project_id}/view")
 async def increment_project_view(
     project_id: int,
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Increment view count for a project"""
     # Check if project exists
     project = project_repository.get(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
 
     # Increment view count
     project.view_count = (project.view_count or 0) + 1
@@ -242,21 +254,23 @@ async def increment_project_view(
 @router.delete("/{project_id}/vote")
 async def remove_vote(
     project_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Remove user's vote from a project."""
     # Check if project exists
     project = project_repository.get(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
 
     # Check if user has voted
     existing_vote = vote_repository.get_user_vote_for_project(
         db, current_user.id, project_id
     )
     if not existing_vote:
-        raise HTTPException(status_code=404, detail="Vote not found")
+        raise_not_found(locale, "vote")
 
     # Delete the vote
     vote_repository.delete(db, id=existing_vote.id)
@@ -283,15 +297,17 @@ async def remove_vote(
 @router.get("/{project_id}/comments")
 async def get_project_comments(
     project_id: int,
+    request: Request,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Get comments for a project."""
     # Check if project exists
     project = project_repository.get(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
 
     # Get comments
     comments = comment_repository.get_project_comments(
@@ -324,14 +340,16 @@ async def get_project_comments(
 async def create_project_comment(
     project_id: int,
     comment: CommentCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Create a comment on a project."""
     # Check if project exists
     project = project_repository.get(db, project_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise_not_found(locale, "project")
 
     # Create comment data with user ID
     comment_data = comment.model_dump()

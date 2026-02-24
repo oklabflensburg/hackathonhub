@@ -11,6 +11,7 @@ from pathlib import Path
 from app.core.config import settings
 from app.core.database import engine
 from app.domain.models.base import Base
+from app.i18n.middleware import LocaleMiddleware
 
 # Import routers
 from app.api.v1.auth.routes import router as auth_router
@@ -64,6 +65,9 @@ if settings.CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+# Add i18n middleware for language detection
+app.add_middleware(LocaleMiddleware)
+
 # Mount static files for uploaded images
 upload_dir = Path(settings.UPLOAD_DIR)
 upload_dir.mkdir(parents=True, exist_ok=True)
@@ -73,7 +77,9 @@ app.mount("/static/uploads",
 # Include routers
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(users_router, prefix="/api/users", tags=["users"])
-app.include_router(projects_router, prefix="/api/projects", tags=["projects"])
+app.include_router(
+    projects_router, prefix="/api/projects", tags=["projects"]
+)
 app.include_router(
     hackathons_router, prefix="/api/hackathons", tags=["hackathons"]
 )
@@ -84,7 +90,9 @@ app.include_router(
     tags=["notifications"]
 )
 app.include_router(me_router, prefix="/api", tags=["me"])
-app.include_router(comments_router, prefix="/api/comments", tags=["comments"])
+app.include_router(
+    comments_router, prefix="/api/comments", tags=["comments"]
+)
 # Include uploads router only if available
 if UPLOADS_AVAILABLE:
     app.include_router(uploads_router, prefix="/api", tags=["uploads"])

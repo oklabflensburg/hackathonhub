@@ -2,7 +2,7 @@
 File service layer for business logic operations related to files.
 """
 from typing import Optional, Dict, Any
-from fastapi import UploadFile, HTTPException
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.utils.file_upload import FileUploadService
@@ -10,6 +10,10 @@ from app.repositories.file_repository import FileRepository
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.hackathon_repository import HackathonRepository
 from app.repositories.user_repository import UserRepository
+from app.i18n.helpers import (
+    raise_not_found,
+    raise_forbidden
+)
 
 
 class FileService:
@@ -24,7 +28,8 @@ class FileService:
 
     async def upload_file(
         self, db: Session, file: UploadFile, file_type: str,
-        entity_id: Optional[int] = None, user_id: Optional[int] = None
+        entity_id: Optional[int] = None, user_id: Optional[int] = None,
+        locale: str = "en"
     ) -> Dict[str, Any]:
         """Upload a file with business logic validation."""
         # Business logic: validate entity exists and user has permission
@@ -32,9 +37,7 @@ class FileService:
             if file_type == "project":
                 project = self.project_repo.get(db, entity_id)
                 if not project:
-                    raise HTTPException(
-                        status_code=404, detail="Project not found"
-                    )
+                    raise_not_found(locale, "project")
                 # Check if user has permission to upload to project
                 if user_id and project.created_by != user_id:
                     # Could add more complex permission logic here
@@ -42,21 +45,14 @@ class FileService:
             elif file_type == "hackathon":
                 hackathon = self.hackathon_repo.get(db, entity_id)
                 if not hackathon:
-                    raise HTTPException(
-                        status_code=404, detail="Hackathon not found"
-                    )
+                    raise_not_found(locale, "hackathon")
             elif file_type == "avatar":
                 user = self.user_repo.get(db, entity_id)
                 if not user:
-                    raise HTTPException(
-                        status_code=404, detail="User not found"
-                    )
+                    raise_not_found(locale, "user")
                 # Check if user is uploading their own avatar
                 if user_id and user.id != user_id:
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Cannot upload avatar for another user"
-                    )
+                    raise_forbidden(locale, "avatar_upload")
 
         # Use the upload service to handle the actual upload
         upload_result = await self.upload_service.save_upload_file(

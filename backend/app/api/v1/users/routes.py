@@ -2,7 +2,7 @@
 User API routes.
 """
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -11,11 +11,15 @@ from app.domain.schemas.user import User, UserUpdate
 from app.domain.schemas.project import Project
 from app.services.user_service import UserService
 from app.domain.models.team import Team, TeamMember
+from app.i18n.dependencies import get_locale
+from app.i18n.helpers import (
+    raise_not_found, raise_forbidden
+)
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[User])
+@router.get("", response_model=list[User])
 async def get_users(
     skip: int = 0,
     limit: int = 100,
@@ -40,7 +44,8 @@ async def get_current_user_profile(
 async def update_current_user_profile(
     user_update: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Update current user's profile."""
     user_service = UserService()
@@ -48,7 +53,7 @@ async def update_current_user_profile(
         db, user_id=current_user.id, user_update=user_update
     )
     if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise_not_found(locale, "user")
     return updated_user
 
 
@@ -105,10 +110,10 @@ async def get_user_votes(
     """Get all votes by the current user with project details"""
     from app.repositories.vote_repository import VoteRepository
     from app.repositories.project_repository import ProjectRepository
-    
+
     vote_repository = VoteRepository()
     project_repository = ProjectRepository()
-    
+
     votes = vote_repository.get_by_user(db, user_id=current_user.id)
 
     # Enrich votes with project details
@@ -164,17 +169,18 @@ async def get_user_votes(
 async def get_user_teams_for_hackathon(
     hackathon_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Get teams that the current user belongs to for a specific hackathon"""
     # Check if hackathon exists
     from app.repositories.hackathon_repository import HackathonRepository
-    
+
     hackathon_repository = HackathonRepository()
-    
+
     hackathon = hackathon_repository.get(db, hackathon_id)
     if not hackathon:
-        raise HTTPException(status_code=404, detail="Hackathon not found")
+        raise_not_found(locale, "hackathon")
 
     # Get user's teams for this hackathon
     # We need to query teams through TeamMember join
@@ -187,14 +193,14 @@ async def get_user_teams_for_hackathon(
 
     # Convert to TeamWithMembers schema
     from app.domain.models.user import User as UserModel
-    
+
     result = []
     for team in teams:
         # Get members count
         member_count = db.query(TeamMember).filter(
             TeamMember.team_id == team.id
         ).count()
-        
+
         # Create team with members data
         team_data = {
             "id": team.id,
@@ -205,12 +211,12 @@ async def get_user_teams_for_hackathon(
             "member_count": member_count,
             "members": []
         }
-        
+
         # Get team members
         members = db.query(TeamMember).filter(
             TeamMember.team_id == team.id
         ).all()
-        
+
         for member in members:
             user = db.query(UserModel).filter(
                 UserModel.id == member.user_id
@@ -223,7 +229,7 @@ async def get_user_teams_for_hackathon(
                     "role": member.role,
                     "joined_at": member.joined_at
                 })
-        
+
         result.append(team_data)
 
     return result
@@ -233,32 +239,30 @@ async def get_user_teams_for_hackathon(
 async def get_user_teams(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Get all teams a user belongs to"""
     # Check if user exists
     from app.repositories.user_repository import UserRepository
     from app.repositories.team_repository import TeamMemberRepository
-    
+
     user_repository = UserRepository()
     team_member_repository = TeamMemberRepository()
-    
+
     user = user_repository.get(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise_not_found(locale, "user")
 
     # Users can only view their own teams unless they're an admin
     if current_user.id != user_id:
-        raise HTTPException(
-            status_code=403,
-            detail="You can only view your own teams"
-        )
+        raise_forbidden(locale, "view_teams", entity="user")
 
     # Get user's team memberships
     team_memberships = team_member_repository.get_user_teams(
         db, user_id=user_id
     )
-    
+
     # Get the actual teams
     teams = []
     for membership in team_memberships:
@@ -268,14 +272,14 @@ async def get_user_teams(
 
     # Convert to TeamWithMembers schema
     from app.domain.models.user import User as UserModel
-    
+
     result = []
     for team in teams:
         # Get members count
         member_count = db.query(TeamMember).filter(
             TeamMember.team_id == team.id
         ).count()
-        
+
         # Create team with members data
         team_data = {
             "id": team.id,
@@ -286,12 +290,12 @@ async def get_user_teams(
             "member_count": member_count,
             "members": []
         }
-        
+
         # Get team members
         members = db.query(TeamMember).filter(
             TeamMember.team_id == team.id
         ).all()
-        
+
         for member in members:
             user = db.query(UserModel).filter(
                 UserModel.id == member.user_id
@@ -304,7 +308,7 @@ async def get_user_teams(
                     "role": member.role,
                     "joined_at": member.joined_at
                 })
-        
+
         result.append(team_data)
 
     return result
@@ -313,13 +317,14 @@ async def get_user_teams(
 @router.get("/{user_id}", response_model=User)
 async def get_user(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Get a specific user by ID."""
     user_service = UserService(db)
     user = user_service.get_user(user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise_not_found(locale, "user")
     return user
 
 
@@ -327,51 +332,54 @@ async def get_user(
 async def update_user(
     user_id: int,
     user_update: UserUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Update a user."""
     user_service = UserService(db)
     user = user_service.update_user(user_id, user_update)
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise_not_found(locale, "user")
     return user
 
 
 @router.delete("/{user_id}")
 async def delete_user(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Delete a user."""
     user_service = UserService(db)
     success = user_service.delete_user(user_id)
     if not success:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise_not_found(locale, "user")
     return {"message": "User deleted successfully"}
 
 
 @router.get("/{user_id}/profile")
 async def get_user_profile(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """Get user profile with additional information."""
     user_service = UserService(db)
     user = user_service.get_user(user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    
+        raise_not_found(locale, "user")
+
     # Get user's projects
     from app.domain.models.project import Project
     projects = db.query(Project).filter(
         Project.owner_id == user_id
     ).limit(10).all()
-    
+
     # Get user's team memberships
     team_memberships = db.query(TeamMember).filter(
         TeamMember.user_id == user_id
     ).all()
-    
+
     # Get team details
     teams = []
     for membership in team_memberships:
@@ -383,13 +391,13 @@ async def get_user_profile(
                 "role": membership.role,
                 "joined_at": membership.joined_at
             })
-    
+
     # Get hackathon registrations
     from app.domain.models.hackathon import HackathonRegistration
     registrations = db.query(HackathonRegistration).filter(
         HackathonRegistration.user_id == user_id
     ).all()
-    
+
     hackathons = []
     for registration in registrations:
         from app.domain.models.hackathon import Hackathon
@@ -403,7 +411,7 @@ async def get_user_profile(
                 "registered_at": registration.registered_at,
                 "status": registration.status
             })
-    
+
     return {
         "user": user,
         "projects": [
