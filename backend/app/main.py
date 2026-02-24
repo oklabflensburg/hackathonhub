@@ -148,7 +148,7 @@ async def initialize_notification_types():
         notification_preference_service
     )
     from app.core.database import SessionLocal
-    
+
     db = SessionLocal()
     try:
         notification_preference_service.initialize_notification_types(db)

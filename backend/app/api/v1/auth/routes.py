@@ -10,7 +10,8 @@ import os
 
 from app.core.database import get_db
 from app.domain.schemas.user import (
-    TokenWithRefresh, UserRegister, UserLogin, EmailResendRequest
+    TokenWithRefresh, UserRegister, UserLogin, EmailResendRequest,
+    EmailVerificationRequest, PasswordResetRequest, PasswordResetConfirm
 )
 from app.core.auth import refresh_tokens, verify_refresh_token
 from app.services.auth_service import auth_service
@@ -21,7 +22,6 @@ from app.i18n.helpers import (
     raise_unauthorized,
     raise_forbidden,
     raise_bad_request,
-    raise_internal_server_error,
     raise_i18n_http_exception
 )
 
@@ -115,13 +115,13 @@ async def login_json(
 
 @router.post("/refresh", response_model=TokenWithRefresh)
 async def refresh_token(
-    refresh_token: str,
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
     """
     Refresh access token using a valid refresh token.
     """
-    token_data = refresh_tokens(refresh_token, db)
+    token_data = refresh_tokens(token, db)
     return TokenWithRefresh(
         access_token=token_data["access_token"],
         refresh_token=token_data["refresh_token"],
@@ -131,14 +131,14 @@ async def refresh_token(
 
 @router.post("/logout")
 async def logout(
-    refresh_token: str,
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
     """
     Logout by revoking a refresh token.
     """
-    token_info = verify_refresh_token(refresh_token, db)
+    token_info = verify_refresh_token(token, db)
     success = auth_service.revoke_refresh_token(db, token_info["token_id"])
     if not success:
         raise_i18n_http_exception(
@@ -245,13 +245,13 @@ async def register_user(
 
 @router.post("/forgot-password")
 async def forgot_password(
-    email: str,
+    request: PasswordResetRequest,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
     """Request password reset for a user."""
     try:
-        success = auth_service.request_password_reset(db, email)
+        success = auth_service.request_password_reset(db, request.email)
 
         if not success:
             # For security reasons, don't reveal if email exists or not
@@ -273,14 +273,15 @@ async def forgot_password(
 
 @router.post("/reset-password")
 async def reset_password(
-    token: str,
-    new_password: str,
+    request: PasswordResetConfirm,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
     """Reset password using a valid reset token."""
     try:
-        success = auth_service.reset_password(db, token, new_password)
+        success = auth_service.reset_password(
+            db, request.token, request.new_password
+        )
 
         if not success:
             raise_i18n_http_exception(
@@ -444,14 +445,14 @@ async def github_callback(
 
 @router.post("/verify-email")
 async def verify_email(
-    token: str,
+    request: EmailVerificationRequest,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
     """Verify email address using verification token"""
     try:
         from app.services.email_verification_service import verify_email_token
-        user = verify_email_token(db, token)
+        user = verify_email_token(db, request.token)
         return {
             "message": "Email verified successfully",
             "user": user
