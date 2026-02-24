@@ -83,6 +83,10 @@ export const useAuthStore = defineStore('auth', () => {
       // Get current URL if not provided
       if (!redirectUrl && typeof window !== 'undefined') {
         redirectUrl = window.location.pathname + window.location.search
+        // If user is on login or register page, redirect to home after OAuth
+        if (window.location.pathname === '/login' || window.location.pathname === '/register') {
+          redirectUrl = '/'
+        }
       }
 
       // First, get the GitHub authorization URL from backend
@@ -122,6 +126,10 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (!redirectUrl && typeof window !== 'undefined') {
         redirectUrl = window.location.pathname + window.location.search
+        // If user is on login or register page, redirect to home after OAuth
+        if (window.location.pathname === '/login' || window.location.pathname === '/register') {
+          redirectUrl = '/'
+        }
       }
 
       const url = new URL(`${backendUrl}/api/auth/google`)
@@ -442,6 +450,11 @@ export const useAuthStore = defineStore('auth', () => {
 
         // Start background token refresh timer
         startBackgroundTokenRefresh()
+
+        // If user is on login or register page, redirect to home
+        if (window.location.pathname === '/login' || window.location.pathname === '/register') {
+          window.location.href = '/'
+        }
         return
       } else {
         // Check preferences store for existing tokens
