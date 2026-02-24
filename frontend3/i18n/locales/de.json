@@ -547,6 +547,11 @@
       "views": "Aufrufe",
       "comments": "Kommentare"
     },
+    "projects": {
+      "votes": "Stimmen",
+      "comments": "Kommentare",
+      "views": "Aufrufe"
+    },
     "team": {
       "team": "Team",
       "members": "Mitglieder"

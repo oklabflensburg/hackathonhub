@@ -546,6 +546,11 @@
       "views": "Views",
       "comments": "Comments"
     },
+    "projects": {
+      "votes": "Votes",
+      "comments": "Comments",
+      "views": "Views"
+    },
     "team": {
       "team": "Team",
       "members": "members",
