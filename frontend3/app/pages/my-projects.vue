@@ -275,6 +275,24 @@ const totalPages = computed(() => {
   return Math.ceil(totalProjects.value / pageSize.value)
 })
 
+const generatePlaceholderImage = (projectId: number, projectName: string) => {
+  // Simple color based on project ID
+  const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#a8edea']
+  const color = colors[projectId % colors.length] || '#667eea'
+
+  // Get first letter of project name
+  const firstLetter = projectName.charAt(0).toUpperCase() || 'P'
+
+  // Simple SVG
+  const svg = `<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="${color}" />
+    <text x="50%" y="50%" font-family="Arial" font-size="120" font-weight="bold" 
+          fill="white" text-anchor="middle" dy=".35em" opacity="0.8">${firstLetter}</text>
+  </svg>`
+
+  return 'data:image/svg+xml;base64,' + btoa(svg)
+}
+
 const formatDate = (dateString: string) => {
   if (!dateString) return t('projects.myProjects.notAvailable')
   try {
@@ -302,7 +320,7 @@ const fetchMyProjects = async () => {
         ...project,
         name: project.title, // map title to name for template
         hackathon_name: project.hackathon?.name || 'Hackathon',
-        image: project.image_path || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
+        image: project.image_path || generatePlaceholderImage(project.id || 0, project.title || 'Project'),
         technologiesArray: project.technologies
           ? project.technologies.split(',').map((tech: string) => tech.trim()).filter((tech: string) => tech.length > 0)
           : []

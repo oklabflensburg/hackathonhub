@@ -8,7 +8,7 @@ from typing import List
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.domain.schemas.hackathon import (
-    Hackathon, HackathonCreate, HackathonUpdate
+    Hackathon, HackathonCreate, HackathonUpdate, HackathonRegistrationStatus
 )
 from app.repositories.hackathon_repository import (
     HackathonRepository,
@@ -152,6 +152,48 @@ async def register_for_hackathon(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get(
+    "/{hackathon_id}/register",
+    response_model=HackathonRegistrationStatus
+)
+async def check_hackathon_registration(
+    hackathon_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Check if the current user is registered for a hackathon."""
+    # Check if hackathon exists
+    hackathon = hackathon_repository.get(db, hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+
+    # Check if user is registered
+    is_registered = registration_repository.is_user_registered(
+        db, current_user.id, hackathon_id
+    )
+
+    response_data = {
+        "is_registered": is_registered,
+        "hackathon_id": hackathon_id,
+        "user_id": current_user.id
+    }
+
+    # If registered, get registration details
+    if is_registered:
+        registration = db.query(registration_repository.model).filter(
+            registration_repository.model.user_id == current_user.id,
+            registration_repository.model.hackathon_id == hackathon_id
+        ).first()
+        if registration:
+            response_data.update({
+                "registration_id": registration.id,
+                "status": registration.status,
+                "registered_at": registration.registered_at
+            })
+
+    return response_data
+
+
 @router.get("/{hackathon_id}/projects")
 async def get_hackathon_projects(
     hackathon_id: int,
@@ -195,7 +237,7 @@ async def get_hackathon_teams(
         raise HTTPException(status_code=404, detail="Hackathon not found")
 
     # Import Team model and query teams
-    from app.domain.models.team import Team
+    from app.domain.models.team import Team, TeamMember
     teams = db.query(Team).filter(
         Team.hackathon_id == hackathon_id
     ).all()
@@ -203,12 +245,22 @@ async def get_hackathon_teams(
     # Convert to simple dict representation
     team_list = []
     for team in teams:
+        # Count team members
+        member_count = db.query(TeamMember).filter(
+            TeamMember.team_id == team.id
+        ).count()
+        
         team_list.append({
             "id": team.id,
             "name": team.name,
             "description": team.description,
             "owner_id": team.created_by,
-            "created_at": team.created_at
+            "created_at": team.created_at,
+            "is_open": team.is_open if hasattr(team, 'is_open') else True,
+            "max_members": (
+                team.max_members if hasattr(team, 'max_members') else 5
+            ),
+            "member_count": member_count
         })
 
     return {"teams": team_list, "hackathon_id": hackathon_id}

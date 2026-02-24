@@ -100,3 +100,20 @@ async def get_user_votes(
     ).all()
     
     return [schemas.Vote.from_orm(vote) for vote in user_votes]
+
+
+@router.get("/me/registrations",
+            response_model=List[schemas.HackathonRegistration])
+async def get_user_registrations(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+    locale: str = Depends(get_locale)
+):
+    """Get current user's hackathon registrations."""
+    # Get user's hackathon registrations
+    user_registrations = db.query(models.HackathonRegistration).filter(
+        models.HackathonRegistration.user_id == current_user.id
+    ).all()
+    
+    return [schemas.HackathonRegistration.from_orm(reg)
+            for reg in user_registrations]

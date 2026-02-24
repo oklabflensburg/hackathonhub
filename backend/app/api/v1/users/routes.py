@@ -9,8 +9,8 @@ from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.domain.schemas.user import User, UserUpdate
 from app.domain.schemas.project import Project
-from app.services.user_service import UserService
 from app.domain.models.team import Team, TeamMember
+from app.services.user_service import UserService
 from app.i18n.dependencies import get_locale
 from app.i18n.helpers import (
     raise_not_found, raise_forbidden
@@ -26,8 +26,8 @@ async def get_users(
     db: Session = Depends(get_db)
 ):
     """Get all users."""
-    user_service = UserService(db)
-    return user_service.get_users(skip=skip, limit=limit)
+    user_service = UserService()
+    return user_service.get_users(db, skip=skip, limit=limit)
 
 
 @router.get("/me", response_model=User)
@@ -321,8 +321,8 @@ async def get_user(
     locale: str = Depends(get_locale)
 ):
     """Get a specific user by ID."""
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
+    user_service = UserService()
+    user = user_service.get_user(db, user_id)
     if user is None:
         raise_not_found(locale, "user")
     return user
@@ -336,8 +336,8 @@ async def update_user(
     locale: str = Depends(get_locale)
 ):
     """Update a user."""
-    user_service = UserService(db)
-    user = user_service.update_user(user_id, user_update)
+    user_service = UserService()
+    user = user_service.update_user(db, user_id, user_update)
     if user is None:
         raise_not_found(locale, "user")
     return user
@@ -350,8 +350,8 @@ async def delete_user(
     locale: str = Depends(get_locale)
 ):
     """Delete a user."""
-    user_service = UserService(db)
-    success = user_service.delete_user(user_id)
+    user_service = UserService()
+    success = user_service.delete_user(db, user_id)
     if not success:
         raise_not_found(locale, "user")
     return {"message": "User deleted successfully"}
@@ -364,8 +364,8 @@ async def get_user_profile(
     locale: str = Depends(get_locale)
 ):
     """Get user profile with additional information."""
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
+    user_service = UserService()
+    user = user_service.get_user(db, user_id)
     if user is None:
         raise_not_found(locale, "user")
 

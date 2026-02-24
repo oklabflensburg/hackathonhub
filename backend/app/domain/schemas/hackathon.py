@@ -83,3 +83,13 @@ class HackathonRegistration(HackathonRegistrationBase):
     hackathon: Optional[Hackathon] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class HackathonRegistrationStatus(BaseModel):
+    """Response schema for checking if user is registered for a hackathon."""
+    is_registered: bool
+    hackathon_id: int
+    user_id: Optional[int] = None
+    registration_id: Optional[int] = None
+    status: Optional[str] = None
+    registered_at: Optional[datetime] = None

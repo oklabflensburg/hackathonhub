@@ -635,19 +635,38 @@ const checkRegistrationStatus = async () => {
 
   try {
     // Use fetchWithAuth for automatic token refresh
-    const response = await authStore.fetchWithAuth('/api/me/registrations')
+    const config = useRuntimeConfig()
+    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    const response = await authStore.fetchWithAuth(`${backendUrl}/api/hackathons/${id}/register`)
 
     if (response.ok) {
-      const registrations = await response.json()
+      const registrationStatus = await response.json()
       // Check if user is registered for this hackathon
+      isRegistered.value = registrationStatus.is_registered || false
+    } else if (response.status === 404) {
+      // Hackathon not found or endpoint not available, fall back to old method
+      await checkRegistrationStatusFallback()
+    }
+  } catch (error) {
+    console.error('Error checking registration status:', error)
+    // Fall back to old method
+    await checkRegistrationStatusFallback()
+  }
+}
+
+const checkRegistrationStatusFallback = async () => {
+  try {
+    // Fallback to old method using /api/me/registrations
+    const response = await authStore.fetchWithAuth('/api/me/registrations')
+    if (response.ok) {
+      const registrations = await response.json()
       isRegistered.value = registrations.some((reg: any) =>
         reg.hackathon_id === parseInt(id)
       )
     }
-  } catch (error) {
-    console.error('Error checking registration status:', error)
-    // This is a background operation, so we don't show a prominent error
-    // uiStore.showError('Registration status check failed', 'Unable to check your registration status. Please refresh the page.')
+  } catch (fallbackError) {
+    console.error('Error in fallback registration check:', fallbackError)
+    isRegistered.value = false
   }
 }
 
@@ -685,16 +704,12 @@ const registerForHackathon = async () => {
 
     const result = await response.json()
 
-    if (result.is_new) {
-      uiStore.showSuccess(t('hackathons.details.registrationSuccess'))
-      isRegistered.value = true
-      // Update hackathon participant count
-      if (hackathon.value) {
-        hackathon.value.participant_count = (hackathon.value.participant_count || 0) + 1
-      }
-    } else {
-      uiStore.showInfo(t('hackathons.details.alreadyRegistered'), t('common.alreadyRegistered'))
-      isRegistered.value = true
+    // Successfully registered
+    uiStore.showSuccess(t('hackathons.details.registrationSuccess'))
+    isRegistered.value = true
+    // Update hackathon participant count
+    if (hackathon.value) {
+      hackathon.value.participant_count = (hackathon.value.participant_count || 0) + 1
     }
   } catch (error) {
     console.error('Registration error:', error)
