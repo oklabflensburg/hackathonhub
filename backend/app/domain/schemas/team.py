@@ -50,6 +50,12 @@ class TeamMemberCreate(TeamMemberBase):
     pass
 
 
+class TeamMemberCreateRequest(BaseModel):
+    """Schema for creating a team member from API request."""
+    user_id: int
+    role: str = "member"
+
+
 class TeamMemberUpdate(BaseModel):
     role: Optional[str] = None
 
@@ -70,6 +76,11 @@ class TeamInvitationBase(BaseModel):
 
 class TeamInvitationCreate(TeamInvitationBase):
     pass
+
+
+class TeamInvitationCreateRequest(BaseModel):
+    """Schema for creating a team invitation from API request."""
+    invited_user_id: int
 
 
 class TeamInvitation(TeamInvitationBase):

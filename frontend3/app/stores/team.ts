@@ -457,9 +457,30 @@ export const useTeamStore = defineStore('team', () => {
     }
   }
 
+  async function fetchTeamInvitations(teamId: number) {
+    try {
+      const response = await fetchWithAuth(`/api/teams/${teamId}/invitations`)
+      
+      if (!response.ok) {
+        // If 403, user is not a team member - return empty array
+        if (response.status === 403) {
+          return []
+        }
+        throw new Error(`Failed to fetch team invitations: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (err) {
+      console.error('Failed to fetch team invitations:', err)
+      // Don't show error to user for invitation fetching failures
+      return []
+    }
+  }
+
   async function acceptInvitation(invitationId: number) {
     try {
-      const response = await fetchWithAuth(`/api/invitations/${invitationId}/accept`, {
+      const response = await fetchWithAuth(`/api/teams/invitations/${invitationId}/accept`, {
         method: 'POST'
       })
       
@@ -490,7 +511,7 @@ export const useTeamStore = defineStore('team', () => {
 
   async function declineInvitation(invitationId: number) {
     try {
-      const response = await fetchWithAuth(`/api/invitations/${invitationId}/decline`, {
+      const response = await fetchWithAuth(`/api/teams/invitations/${invitationId}/decline`, {
         method: 'POST'
       })
       
@@ -533,6 +554,29 @@ export const useTeamStore = defineStore('team', () => {
       return data
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to send invitation'
+      uiStore.showError(errorMsg, 'Invitation Error')
+      throw err
+    }
+  }
+
+  async function cancelInvitation(invitationId: number) {
+    try {
+      const response = await fetchWithAuth(`/api/teams/invitations/${invitationId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || `Failed to cancel invitation: ${response.status}`)
+      }
+
+      // Remove from invitations list
+      invitations.value = invitations.value.filter(inv => inv.id !== invitationId)
+      
+      uiStore.showSuccess('Invitation cancelled successfully')
+      return true
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to cancel invitation'
       uiStore.showError(errorMsg, 'Invitation Error')
       throw err
     }
@@ -675,9 +719,11 @@ export const useTeamStore = defineStore('team', () => {
     removeTeamMember,
     updateTeamMemberRole,
     fetchMyInvitations,
+    fetchTeamInvitations,
     acceptInvitation,
     declineInvitation,
     inviteToTeam,
+    cancelInvitation,
     fetchHackathonTeams,
     fetchTeamProjects,
     fetchUserTeamsForHackathon,

@@ -12,8 +12,8 @@ from .hackathon import (
 )
 from .team import (
     Team, TeamCreate, TeamUpdate,
-    TeamMember, TeamMemberCreate, TeamMemberUpdate,
-    TeamInvitation, TeamInvitationCreate,
+    TeamMember, TeamMemberCreate, TeamMemberCreateRequest, TeamMemberUpdate,
+    TeamInvitation, TeamInvitationCreate, TeamInvitationCreateRequest,
     TeamWithMembers, TeamWithProjects
 )
 from .notification import (
@@ -44,9 +44,11 @@ __all__ = [
     "TeamUpdate",
     "TeamMember",
     "TeamMemberCreate",
+    "TeamMemberCreateRequest",
     "TeamMemberUpdate",
     "TeamInvitation",
     "TeamInvitationCreate",
+    "TeamInvitationCreateRequest",
     "TeamWithMembers",
     "TeamWithProjects",
     "NotificationType",

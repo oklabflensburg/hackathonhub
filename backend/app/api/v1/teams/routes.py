@@ -9,8 +9,8 @@ from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.domain.schemas.team import (
     Team, TeamCreate, TeamUpdate,
-    TeamMember, TeamMemberCreate,
-    TeamInvitation, TeamInvitationCreate
+    TeamMember, TeamMemberCreateRequest,
+    TeamInvitation, TeamInvitationCreateRequest
 )
 from app.domain.schemas.project import Project
 from app.repositories.team_repository import (
@@ -176,7 +176,7 @@ async def get_team_projects(
 @router.post("/{team_id}/members", response_model=TeamMember)
 async def add_team_member(
     team_id: int,
-    member: TeamMemberCreate,
+    member: TeamMemberCreateRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
     locale: str = Depends(get_locale)
@@ -279,7 +279,7 @@ async def get_team_invitations(
 @router.post("/{team_id}/invitations", response_model=TeamInvitation)
 async def create_team_invitation(
     team_id: int,
-    invitation: TeamInvitationCreate,
+    invitation: TeamInvitationCreateRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
     locale: str = Depends(get_locale)
@@ -399,3 +399,43 @@ async def decline_team_invitation(
         db, db_obj=invitation, obj_in=invitation_update)
 
     return {"message": "Invitation declined", "invitation_id": invitation_id}
+
+
+@router.delete("/invitations/{invitation_id}")
+async def delete_team_invitation(
+    invitation_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
+):
+    """Delete/cancel a team invitation."""
+    # Get invitation
+    invitation = team_invitation_repository.get(db, invitation_id)
+    if not invitation:
+        raise_not_found(locale, "invitation")
+
+    # Check if user has permission to delete the invitation
+    # User can delete if they are the inviter (sent the invitation)
+    # or team owner/admin
+    is_inviter = invitation.invited_by == current_user.id
+
+    # Check if user is team owner or admin
+    current_user_member = team_member_repository.get_by_team_and_user(
+        db, invitation.team_id, current_user.id)
+    is_team_owner_or_admin = (
+        current_user_member and
+        current_user_member.role in ["owner", "admin"]
+    )
+
+    if not (is_inviter or is_team_owner_or_admin):
+        raise_forbidden(locale, "delete_invitation", entity="invitation")
+
+    # Delete invitation
+    success = team_invitation_repository.delete(db, id=invitation_id)
+    if not success:
+        raise_internal_server_error(locale, "delete", entity="invitation")
+
+    return {
+        "message": "Invitation deleted successfully",
+        "invitation_id": invitation_id
+    }

@@ -258,9 +258,109 @@
               </p>
             </div>
            </div>
-         </div>
+          </div>
 
-         <!-- Team Projects -->
+          <!-- Team Invitations (visible to team members) -->
+          <div v-if="isTeamMember" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-6">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('teams.teamInvitations') }}</h3>
+              <div class="text-sm text-gray-600 dark:text-gray-400">
+                {{ pendingInvitations.length }} {{ t('teams.pending') }}
+              </div>
+            </div>
+
+            <div v-if="invitationsLoading" class="text-center py-8">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">{{ t('teams.loadingInvitations') }}</p>
+            </div>
+
+            <div v-else-if="pendingInvitations.length === 0" class="text-center py-8">
+              <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 mb-4">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400">{{ t('teams.noPendingInvitations') }}</p>
+            </div>
+
+            <div v-else class="space-y-4">
+              <div
+                v-for="invitation in pendingInvitations"
+                :key="invitation.id"
+                class="p-4 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <NuxtLink 
+                      v-if="invitation.invited_user"
+                      :to="`/users/${invitation.invited_user.id}`"
+                      class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4 overflow-hidden hover:opacity-90 transition-opacity"
+                    >
+                      <img
+                        v-if="invitation.invited_user?.avatar_url"
+                        :src="invitation.invited_user.avatar_url"
+                        :alt="invitation.invited_user?.username || t('teams.unknownUser')"
+                        class="w-full h-full object-cover"
+                        @error="handleAvatarError"
+                      />
+                      <span
+                        v-else
+                        class="text-sm font-medium text-primary-600 dark:text-primary-400"
+                      >
+                        {{ (invitation.invited_user?.username || t('teams.unknownUserInitial')).charAt(0).toUpperCase() }}
+                      </span>
+                    </NuxtLink>
+                    <div v-else class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4 overflow-hidden">
+                      <span class="text-sm font-medium text-primary-600 dark:text-primary-400">
+                        {{ t('teams.unknownUserInitial').charAt(0).toUpperCase() }}
+                      </span>
+                    </div>
+                    <div>
+                      <div class="font-medium text-gray-900 dark:text-white">
+                        <NuxtLink 
+                          v-if="invitation.invited_user"
+                          :to="`/users/${invitation.invited_user.id}`"
+                          class="hover:text-primary-600 dark:hover:text-primary-400"
+                        >
+                          {{ invitation.invited_user.username }}
+                        </NuxtLink>
+                        <span v-else>
+                          {{ t('teams.unknownUser') }}
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ t('teams.invited') }} {{ formatDate(invitation.created_at) }}
+                         <span v-if="invitation.inviter">
+                           {{ t('by') }} 
+                           <NuxtLink 
+                             :to="`/users/${invitation.inviter.id}`"
+                             class="hover:text-primary-600 dark:hover:text-primary-400"
+                           >
+                             {{ invitation.inviter.username }}
+                           </NuxtLink>
+                         </span>
+                      </p>
+                    </div>
+                  </div>
+                   <div class="flex items-center space-x-3">
+                     <span class="text-sm text-gray-500 dark:text-gray-400">
+                       {{ t('teams.pending') }}
+                     </span>
+                     <button
+                       v-if="isTeamOwner"
+                       @click="cancelInvitation(invitation.id)"
+                       class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                       title="Cancel invitation"
+                     >
+                       {{ t('common.remove') }}
+                     </button>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team Projects -->
          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-6">
            <div class="flex items-center justify-between mb-6">
              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('teams.teamProjects') }}</h3>
@@ -476,6 +576,8 @@ const team = ref<any>(null)
 const members = ref<any[]>([])
 const projects = ref<any[]>([])
 const projectsLoading = ref(false)
+const invitations = ref<any[]>([])
+const invitationsLoading = ref(false)
 const inviteUsername = ref('')
 const inviting = ref(false)
 const userSuggestions = ref<any[]>([])
@@ -495,6 +597,10 @@ const isTeamOwner = computed(() => {
 })
 const isTeamFull = computed(() => {
   return members.value.length >= (team.value?.max_members || 5)
+})
+
+const pendingInvitations = computed(() => {
+  return invitations.value.filter(inv => inv.status === 'pending')
 })
 
 // Methods
@@ -519,11 +625,30 @@ async function loadTeam() {
     
     // Load team projects
     await loadTeamProjects()
+    
+    // Load team invitations (only for team members)
+    if (isTeamMember.value) {
+      await loadTeamInvitations()
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : t('teams.failedToLoadTeam')
     console.error('Failed to load team:', err)
   } finally {
     loading.value = false
+  }
+}
+
+async function loadTeamInvitations() {
+  if (!teamId.value) return
+  
+  invitationsLoading.value = true
+  try {
+    invitations.value = await teamStore.fetchTeamInvitations(teamId.value)
+  } catch (err) {
+    console.error('Failed to load team invitations:', err)
+    invitations.value = []
+  } finally {
+    invitationsLoading.value = false
   }
 }
 
@@ -713,11 +838,33 @@ async function sendInvitation() {
     inviteUsername.value = ''
     userSuggestions.value = []
     showSuggestions.value = false
+    
+    // Refresh invitations list
+    if (isTeamMember.value) {
+      await loadTeamInvitations()
+    }
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : t('teams.invitationError')
     uiStore.showError(errorMsg, t('teams.invitationError'))
   } finally {
     inviting.value = false
+  }
+}
+
+async function cancelInvitation(invitationId: number) {
+  if (!isTeamOwner.value) return
+
+  try {
+    const confirmed = confirm('Are you sure you want to cancel this invitation?')
+    if (!confirmed) return
+
+    await teamStore.cancelInvitation(invitationId)
+    uiStore.showSuccess('Invitation cancelled successfully')
+    
+    // Refresh invitations list
+    await loadTeamInvitations()
+  } catch (err) {
+    console.error('Failed to cancel invitation:', err)
   }
 }
 
