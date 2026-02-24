@@ -5,11 +5,9 @@ from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict
 
-# Import at the top to avoid circular imports
-from .user import User
-from .hackathon import Hackathon
-
 if TYPE_CHECKING:
+    from .user import User
+    from .hackathon import Hackathon
     from .project import Project
 
 
@@ -36,8 +34,8 @@ class Team(TeamBase):
     id: int
     created_by: int
     created_at: datetime
-    creator: Optional[User] = None
-    hackathon: Optional[Hackathon] = None
+    creator: Optional["User"] = None
+    hackathon: Optional["Hackathon"] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -59,8 +57,8 @@ class TeamMemberUpdate(BaseModel):
 class TeamMember(TeamMemberBase):
     id: int
     joined_at: datetime
-    user: Optional[User] = None
-    team: Optional[Team] = None
+    user: Optional["User"] = None
+    team: Optional["Team"] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -80,9 +78,9 @@ class TeamInvitation(TeamInvitationBase):
     status: str = "pending"
     created_at: datetime
     expires_at: Optional[datetime] = None
-    invited_user: Optional[User] = None
-    inviter: Optional[User] = None
-    team: Optional[Team] = None
+    invited_user: Optional["User"] = None
+    inviter: Optional["User"] = None
+    team: Optional["Team"] = None
 
     model_config = ConfigDict(from_attributes=True)
 

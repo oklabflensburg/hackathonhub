@@ -5,9 +5,6 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
-# Import at the top to avoid circular imports
-from .user import User
-
 
 class NotificationTypeBase(BaseModel):
     type_key: str
@@ -42,7 +39,7 @@ class UserNotificationPreference(UserNotificationPreferenceBase):
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    user: Optional[User] = None
+    user: Optional["User"] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,7 +61,7 @@ class UserNotification(UserNotificationBase):
     user_id: int
     read_at: Optional[datetime] = None
     created_at: datetime
-    user: Optional[User] = None
+    user: Optional["User"] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -85,6 +82,6 @@ class PushSubscription(PushSubscriptionBase):
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    user: Optional[User] = None
+    user: Optional["User"] = None
 
     model_config = ConfigDict(from_attributes=True)

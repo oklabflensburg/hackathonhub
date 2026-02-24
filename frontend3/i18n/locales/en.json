@@ -553,7 +553,9 @@
     },
     "emptyState": {
       "noProjectsFound": "No projects found",
-      "description": "Try adjusting your search or be the first to submit a project!"
+      "description": "Try adjusting your search or be the first to submit a project!",
+      "tryAdjustingSearch": "Try adjusting your search or filters to find what you're looking for.",
+      "beFirstToSubmit": "Be the first to submit a project for this hackathon!"
     },
     "loadMore": "Load More Projects",
     "errors": {
@@ -589,6 +591,12 @@
       "teamMembersCount": "{count} member | {count} members",
       "viewTeam": "View Team",
       "deleteProject": "Delete Project"
+    },
+    "details": {
+      "notFoundTitle": "Project Not Found",
+      "backToProjects": "Back to Projects",
+      "githubRepository": "GitHub Repository",
+      "liveDemo": "Live Demo"
     },
     "edit": {
       "title": "Edit Project",

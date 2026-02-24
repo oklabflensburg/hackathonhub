@@ -1,8 +1,6 @@
 """
 User-related Pydantic schemas.
 """
-from __future__ import annotations
-
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
@@ -40,18 +38,12 @@ class User(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Import after User is defined to avoid circular imports
-from .team import TeamMember
-from .project import Project, Vote, Comment
-from .hackathon import HackathonRegistration
-
-
 class UserWithDetails(User):
-    teams: Optional[List[TeamMember]] = None
-    projects: Optional[List[Project]] = None
-    votes: Optional[List[Vote]] = None
-    comments: Optional[List[Comment]] = None
-    hackathon_registrations: Optional[List[HackathonRegistration]] = None
+    teams: Optional[List["TeamMember"]] = None
+    projects: Optional[List["Project"]] = None
+    votes: Optional[List["Vote"]] = None
+    comments: Optional[List["Comment"]] = None
+    hackathon_registrations: Optional[List["HackathonRegistration"]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

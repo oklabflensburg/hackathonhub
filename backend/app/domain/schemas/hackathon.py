@@ -2,11 +2,11 @@
 Hackathon Pydantic schemas.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict
 
-# Import at the top to avoid circular imports
-from .user import User
+if TYPE_CHECKING:
+    from app.domain.schemas.user import User
 
 
 class HackathonBase(BaseModel):
@@ -61,7 +61,7 @@ class Hackathon(HackathonBase):
     id: int
     owner_id: Optional[int] = None
     created_at: datetime
-    owner: Optional[User] = None
+    owner: Optional["User"] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -79,7 +79,7 @@ class HackathonRegistrationCreate(HackathonRegistrationBase):
 class HackathonRegistration(HackathonRegistrationBase):
     id: int
     registered_at: datetime
-    user: Optional[User] = None
+    user: Optional["User"] = None
     hackathon: Optional[Hackathon] = None
 
     model_config = ConfigDict(from_attributes=True)

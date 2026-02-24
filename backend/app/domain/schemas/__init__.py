@@ -1,6 +1,7 @@
 """
 Pydantic schemas for the domain models.
 """
+from typing import List, Optional
 from .user import User, UserCreate, UserUpdate, UserWithDetails
 from .project import (
     Project, ProjectCreate, ProjectUpdate,
@@ -59,5 +60,27 @@ __all__ = [
 ]
 
 # Rebuild models with forward refs once all schemas are imported.
-Project.model_rebuild(_types_namespace={"Team": Team})
-TeamWithProjects.model_rebuild(_types_namespace={"Project": Project})
+_types_namespace = {
+    "Comment": Comment,
+    "Hackathon": Hackathon,
+    "HackathonRegistration": HackathonRegistration,
+    "List": List,
+    "Optional": Optional,
+    "Project": Project,
+    "Team": Team,
+    "TeamMember": TeamMember,
+    "User": User,
+    "Vote": Vote,
+}
+Project.model_rebuild(_types_namespace=_types_namespace)
+Hackathon.model_rebuild(_types_namespace=_types_namespace)
+HackathonRegistration.model_rebuild(_types_namespace=_types_namespace)
+Team.model_rebuild(_types_namespace=_types_namespace)
+TeamMember.model_rebuild(_types_namespace=_types_namespace)
+TeamInvitation.model_rebuild(_types_namespace=_types_namespace)
+TeamWithMembers.model_rebuild(_types_namespace=_types_namespace)
+TeamWithProjects.model_rebuild(_types_namespace=_types_namespace)
+UserNotificationPreference.model_rebuild(_types_namespace=_types_namespace)
+UserNotification.model_rebuild(_types_namespace=_types_namespace)
+PushSubscription.model_rebuild(_types_namespace=_types_namespace)
+UserWithDetails.model_rebuild(_types_namespace=_types_namespace)

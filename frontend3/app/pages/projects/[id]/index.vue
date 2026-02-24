@@ -702,7 +702,15 @@ const fetchComments = async () => {
     const response = await authStore.fetchWithAuth(`${backendUrl}/api/projects/${projectId}/comments`)
     
     if (response.ok) {
-      comments.value = await response.json()
+      const data = await response.json()
+      // Transform comments to match frontend expectations
+      comments.value = (data.comments || []).map(comment => ({
+        ...comment,
+        user: {
+          name: comment.user_name || 'Anonymous',
+          avatar_url: null // Backend doesn't provide avatar_url for comments
+        }
+      }))
     }
   } catch (err) {
     console.error('Error fetching comments:', err)

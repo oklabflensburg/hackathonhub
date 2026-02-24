@@ -5,12 +5,10 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict
 
-# Import at the top with forward references to avoid circular imports
-from .user import User
-from .hackathon import Hackathon
-
 if TYPE_CHECKING:
+    from .user import User
     from .team import Team
+    from .hackathon import Hackathon
 
 
 class ProjectBase(BaseModel):
@@ -54,8 +52,8 @@ class Project(ProjectBase):
     vote_score: int = 0
     comment_count: int = 0
     view_count: int = 0
-    owner: Optional[User] = None
-    hackathon: Optional[Hackathon] = None
+    owner: Optional["User"] = None
+    hackathon: Optional["Hackathon"] = None
     team: Optional["Team"] = None
 
     model_config = ConfigDict(from_attributes=True)

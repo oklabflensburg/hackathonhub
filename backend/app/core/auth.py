@@ -76,7 +76,7 @@ def create_tokens(user_id: int, username: str):
         },
         expires_delta=access_token_expires
     )
-    
+
     # Refresh token with unique ID
     refresh_token_id = str(uuid.uuid4())
     refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -89,7 +89,7 @@ def create_tokens(user_id: int, username: str):
         },
         expires_delta=refresh_token_expires
     )
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -103,18 +103,18 @@ def verify_refresh_token(token: str, db: Session):
     """Verify a refresh token and return user info"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        
+
         # Check token type
         token_type = payload.get("type")
         if token_type != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
-        
+
         # Check token ID (jti)
         token_id = payload.get("jti")
         if not token_id:
             raise HTTPException(
                 status_code=401, detail="Invalid refresh token")
-        
+
         # Check if token is revoked in database
         refresh_token_repository = RefreshTokenRepository()
         refresh_token = refresh_token_repository.get_valid_by_token_id(
@@ -123,21 +123,21 @@ def verify_refresh_token(token: str, db: Session):
         if not refresh_token:
             raise HTTPException(
                 status_code=401, detail="Refresh token revoked or expired")
-        
+
         # Check expiration
         exp = payload.get("exp")
         if exp and datetime.utcnow().timestamp() > exp:
             raise HTTPException(
                 status_code=401, detail="Refresh token expired")
-        
+
         # Get user info
         username = payload.get("sub")
         user_id = payload.get("user_id")
-        
+
         if not username or not user_id:
             raise HTTPException(
                 status_code=401, detail="Invalid token payload")
-        
+
         return {
             "username": username,
             "user_id": user_id,
@@ -151,20 +151,20 @@ def refresh_tokens(refresh_token: str, db: Session):
     """Refresh access token using a valid refresh token"""
     # Verify the refresh token
     token_info = verify_refresh_token(refresh_token, db)
-    
+
     # Get user from database
     user_repository = UserRepository()
     user = user_repository.get(db, token_info["user_id"])
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    
+
     # Revoke the old refresh token
     refresh_token_repository = RefreshTokenRepository()
     refresh_token_repository.revoke_by_token_id(db, token_info["token_id"])
-    
+
     # Create new tokens
     new_tokens = create_tokens(user.id, user.username)
-    
+
     # Store new refresh token in database
     expires_at = datetime.utcnow() + new_tokens["refresh_token_expires"]
     refresh_token_repository.create_token(
@@ -173,7 +173,7 @@ def refresh_tokens(refresh_token: str, db: Session):
         token_id=new_tokens["refresh_token_id"],
         expires_at=expires_at
     )
-    
+
     return {
         "access_token": new_tokens["access_token"],
         "refresh_token": new_tokens["refresh_token"],
@@ -193,25 +193,25 @@ async def get_current_user(
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         # Decode token to check type
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         token_type = payload.get("type")
-        
+
         # Only accept access tokens
         if token_type != "access":
             raise credentials_exception
-        
+
         # Use existing verify_token for backward compatibility
         token_data = verify_token(token, credentials_exception)
-        
+
         # Try to find user by username (stored in token sub field)
         user_repository = UserRepository()
         user = user_repository.get_by_username(
@@ -240,17 +240,17 @@ async def get_current_active_user(
 async def authenticate_github_user(code: str, db: Session):
     """
     Authenticate user via GitHub OAuth
-    
+
     This function implements the complete GitHub OAuth flow:
     1. Exchange code for access token with GitHub
     2. Use access token to get user info from GitHub API
     3. Create or update user in database
     4. Return JWT token for the application
-    
+
     Args:
         code: The OAuth authorization code from GitHub
         db: Database session
-    
+
     Returns:
         Dictionary with access_token, token_type, and user info
     """
