@@ -252,13 +252,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from '#imports'
+import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const uiStore = useUIStore()
 const authStore = useAuthStore()
 const searchQuery = ref('')
@@ -272,11 +273,32 @@ const hasMore = ref(true)
 const config = useRuntimeConfig()
 const apiUrl = config.public.apiUrl
 
-// Initialize search query from URL parameter
+// Initialize search query and tags from URL parameters
 onMounted(() => {
   if (route.query.q) {
     searchQuery.value = route.query.q as string
   }
+  const newTags: string[] = []
+  if (route.query.technology) {
+    const tech = Array.isArray(route.query.technology)
+      ? route.query.technology[0]
+      : route.query.technology
+    if (tech) {
+      newTags.push(tech)
+    }
+  }
+  if (route.query.technologies) {
+    const techs = Array.isArray(route.query.technologies)
+      ? route.query.technologies[0]
+      : route.query.technologies
+    if (techs) {
+      const split = techs.split(',').map(t => t.trim()).filter(t => t)
+      split.forEach(t => {
+        if (!newTags.includes(t)) newTags.push(t)
+      })
+    }
+  }
+  selectedTags.value = newTags
   fetchProjects()
 })
 
@@ -285,6 +307,31 @@ watch(() => route.query.q, (newQ) => {
   if (newQ !== undefined) {
     searchQuery.value = newQ as string
   }
+})
+
+// Watch for URL changes to update technology filter and refetch projects
+watch([() => route.query.technology, () => route.query.technologies], ([techParam, techsParam]) => {
+  const newTags: string[] = []
+  // Single technology parameter
+  if (techParam !== undefined) {
+    const tech = Array.isArray(techParam) ? techParam[0] : techParam
+    if (tech) {
+      newTags.push(tech)
+    }
+  }
+  // Multiple technologies parameter
+  if (techsParam !== undefined) {
+    const techs = Array.isArray(techsParam) ? techsParam[0] : techsParam
+    if (techs) {
+      const split = techs.split(',').map(t => t.trim()).filter(t => t)
+      split.forEach(t => {
+        if (!newTags.includes(t)) newTags.push(t)
+      })
+    }
+  }
+  selectedTags.value = newTags
+  // Refetch projects with new filter
+  fetchProjects()
 })
 
 // Watch for user parameter changes to refetch projects
@@ -296,6 +343,22 @@ watch(() => route.query.user, () => {
 watch(searchQuery, () => {
   fetchProjects()
 })
+
+// Watch selectedTags and update URL
+watch(selectedTags, (newTags) => {
+  const query = { ...route.query }
+  const validTags = newTags.filter(tag => tag)
+  // Remove existing technology parameters
+  delete query.technology
+  delete query.technologies
+  
+  if (validTags.length === 1) {
+    query.technology = validTags[0]
+  } else if (validTags.length > 1) {
+    query.technologies = validTags.join(',')
+  }
+  router.replace({ query })
+}, { deep: true })
 
 // Fetch projects from API with optional search
 const fetchProjects = async () => {
@@ -311,11 +374,20 @@ const fetchProjects = async () => {
     }
     // Add user filter if present in URL
     if (route.query.user) {
-      const userParam = Array.isArray(route.query.user) 
-        ? route.query.user[0] 
+      const userParam = Array.isArray(route.query.user)
+        ? route.query.user[0]
         : route.query.user
       if (userParam) {
         params.append('user', userParam as string)
+      }
+    }
+    // Add technology filter if present
+    if (selectedTags.value.length > 0) {
+      const validTags = selectedTags.value.filter(tag => tag)
+      if (validTags.length === 1) {
+        params.append('technology', validTags[0])
+      } else if (validTags.length > 1) {
+        params.append('technologies', validTags.join(','))
       }
     }
     
@@ -399,14 +471,8 @@ const filteredProjects = computed(() => {
     )
   }
 
-  // Apply tag filter (AND logic - project must have ALL selected tags)
-  if (selectedTags.value.length > 0) {
-    filtered = filtered.filter(p =>
-      selectedTags.value.every(tag =>
-        p.tech.some((tech: string) => tech.toLowerCase() === tag.toLowerCase())
-      )
-    )
-  }
+  // Tag filtering is now handled server-side via technology parameter
+  // Client-side tag filtering is disabled to avoid double filtering
 
   // Apply sorting
   if (sortBy.value === 'popular') {

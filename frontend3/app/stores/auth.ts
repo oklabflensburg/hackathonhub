@@ -103,13 +103,15 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await fetch(url.toString(), { headers })
       if (!response.ok) {
-        throw new Error('Failed to get GitHub authorization URL')
+        const { t } = useI18n()
+        throw new Error(t('errors.failed_to_get_github_authorization_url'))
       }
 
       const data = await response.json()
       window.location.href = data.authorization_url
     } catch (err) {
-      error.value = 'Failed to initiate GitHub login'
+      const { t } = useI18n()
+      error.value = t('errors.failed_to_initiate_github_login')
       console.error('GitHub login error:', err)
     } finally {
       isLoading.value = false
@@ -139,13 +141,15 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await fetch(url.toString())
       if (!response.ok) {
-        throw new Error('Failed to get Google authorization URL')
+        const { t } = useI18n()
+        throw new Error(t('errors.failed_to_get_google_authorization_url'))
       }
 
       const data = await response.json()
       window.location.href = data.authorization_url
     } catch (err) {
-      error.value = 'Failed to initiate Google login'
+      const { t } = useI18n()
+      error.value = t('errors.failed_to_initiate_google_login')
       console.error('Google login error:', err)
     } finally {
       isLoading.value = false
@@ -173,13 +177,15 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.detail || 'Login failed')
+        const { t } = useI18n()
+        throw new Error(errorData.detail || t('errors.login_failed'))
       }
 
       const data = await response.json()
       await handleAuthResponse(data)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed'
+      const { t } = useI18n()
+      const errorMessage = err instanceof Error ? err.message : t('errors.login_failed')
       error.value = errorMessage
 
       // Also show notification for better visibility
@@ -216,22 +222,23 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        const errorDetail = errorData.detail || 'Registration failed'
+        const { t } = useI18n()
+        const errorDetail = errorData.detail || t('errors.registration_failed')
 
         // Provide more user-friendly messages for common errors
         if (errorDetail.includes('email already exists')) {
-          throw new Error(`An account with email ${credentials.email} already exists. Please try logging in or use a different email address.`)
+          throw new Error(t('errors.email_already_exists', { email: credentials.email }))
         } else if (errorDetail.includes('Username already taken')) {
-          throw new Error(`Username "${credentials.username}" is already taken. Please choose a different username.`)
+          throw new Error(t('errors.username_already_taken', { username: credentials.username }))
         } else if (errorDetail.includes('Invalid email address')) {
-          throw new Error('Please enter a valid email address.')
+          throw new Error(t('errors.invalid_email_address'))
         } else if (errorDetail.includes('password cannot be longer than 72 bytes')) {
           // This error might be caused by bcrypt library issues
           // Provide a helpful message
-          throw new Error('Password validation failed. Please try a different password or contact support if the issue persists.')
+          throw new Error(t('errors.password_validation_failed'))
         } else if (errorDetail.includes('bcrypt') || errorDetail.includes('__about__')) {
           // Handle bcrypt library errors
-          throw new Error('Authentication system error. Please try again later or contact support.')
+          throw new Error(t('errors.authentication_system_error'))
         } else {
           throw new Error(errorDetail)
         }
@@ -242,7 +249,8 @@ export const useAuthStore = defineStore('auth', () => {
       // Show success message and redirect to login
       return data
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed'
+      const { t } = useI18n()
+      const errorMessage = err instanceof Error ? err.message : t('errors.registration_failed')
       error.value = errorMessage
 
       // Also show notification for better visibility
@@ -276,7 +284,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to resend verification email')
+        const { t } = useI18n()
+        throw new Error(errorData.detail || t('errors.failed_to_resend_verification_email'))
       }
 
       const data = await response.json()
@@ -285,7 +294,8 @@ export const useAuthStore = defineStore('auth', () => {
       uiStore.showSuccess(data.message, 'Verification Email Sent')
       return data
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to resend verification email'
+      const { t } = useI18n()
+      const errorMessage = err instanceof Error ? err.message : t('errors.failed_to_resend_verification_email')
       error.value = errorMessage
 
       // Also show notification for better visibility
@@ -480,11 +490,40 @@ export const useAuthStore = defineStore('auth', () => {
     return response
   }
 
-  function logout() {
+  async function logout() {
     console.log('[Auth] Logging out user')
 
     // Stop background token refresh timer
     stopBackgroundTokenRefresh()
+
+    // Try to call backend logout endpoint with refresh token
+    if (refreshToken.value) {
+      try {
+        const config = useRuntimeConfig()
+        const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+        const response = await fetch(`${backendUrl}/api/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${refreshToken.value}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        if (!response.ok) {
+          // 401 Unauthorized is expected if token is already revoked/expired
+          if (response.status === 401) {
+            console.log('[Auth] Backend logout: token already invalid (expected)')
+          } else {
+            console.warn('[Auth] Backend logout failed:', response.status, response.statusText)
+          }
+          // Continue with client-side logout anyway
+        } else {
+          console.log('[Auth] Backend logout successful')
+        }
+      } catch (err) {
+        console.error('[Auth] Error calling logout endpoint:', err)
+        // Continue with client-side logout
+      }
+    }
 
     user.value = null
     token.value = null
@@ -645,7 +684,8 @@ export const useAuthStore = defineStore('auth', () => {
   // Helper function for authenticated API calls with token expiration handling
   async function authenticatedFetch(url: string, options: RequestInit = {}) {
     if (!token.value) {
-      throw new Error('Not authenticated')
+      const { t } = useI18n()
+      throw new Error(t('errors.not_authenticated'))
     }
 
     const config = useRuntimeConfig()
@@ -702,12 +742,14 @@ export const useAuthStore = defineStore('auth', () => {
         // If still 401 after refresh, token is invalid
         if (response.status === 401) {
           logout()
-          throw new Error('Session expired. Please login again.')
+          const { t } = useI18n()
+          throw new Error(t('errors.session_expired'))
         }
       } else {
         // Refresh failed, logout
         logout()
-        throw new Error('Session expired. Please login again.')
+        const { t } = useI18n()
+        throw new Error(t('errors.session_expired'))
       }
     }
 

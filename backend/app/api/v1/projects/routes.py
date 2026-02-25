@@ -34,13 +34,28 @@ async def get_projects(
     skip: int = 0,
     limit: int = 100,
     user: Optional[int] = None,
+    technology: Optional[str] = None,
+    technologies: Optional[str] = None,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
-    """Get all projects, optionally filtered by user."""
-    projects = project_service.get_projects(
-        db, skip=skip, limit=limit, user_id=user
-    )
+    """Get all projects, optionally filtered by user or technology."""
+    if technology:
+        projects = project_service.get_projects_by_technology(
+            db, technology=technology, skip=skip, limit=limit
+        )
+    elif technologies:
+        tech_list = [t.strip() for t in technologies.split(",") if t.strip()]
+        projects = project_service.get_projects_by_technologies(
+            db, technologies=tech_list, skip=skip, limit=limit
+        )
+    elif user is not None:
+        projects = project_service.get_projects(
+            db, skip=skip, limit=limit, user_id=user
+        )
+    else:
+        projects = project_service.get_projects(db, skip=skip, limit=limit)
+    
     return projects
 
 
@@ -172,7 +187,7 @@ async def vote_for_project(
         )
 
         vote_obj = None
-        
+
         if existing_vote:
             # Update existing vote
             if existing_vote.vote_type == vote_type:
@@ -243,7 +258,7 @@ async def vote_for_project(
             )
         }
     }
-    
+
     # Include vote object if it exists (for frontend state updates)
     if vote_obj:
         response_data["vote"] = {
@@ -257,7 +272,7 @@ async def vote_for_project(
                 else None
             )
         }
-    
+
     return response_data
 
 

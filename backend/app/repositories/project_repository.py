@@ -10,10 +10,10 @@ from app.domain.models.project import Project, Vote, Comment
 
 class ProjectRepository(BaseRepository[Project]):
     """Repository for projects."""
-    
+
     def __init__(self):
         super().__init__(Project)
-    
+
     def get_public_projects(
         self, db: Session, skip: int = 0, limit: int = 100
     ) -> List[Project]:
@@ -23,7 +23,7 @@ class ProjectRepository(BaseRepository[Project]):
         ).order_by(
             self.model.created_at.desc()
         ).offset(skip).limit(limit).all()
-    
+
     def get_by_owner(
         self, db: Session, owner_id: int, skip: int = 0, limit: int = 100
     ) -> List[Project]:
@@ -33,7 +33,7 @@ class ProjectRepository(BaseRepository[Project]):
         ).order_by(
             self.model.created_at.desc()
         ).offset(skip).limit(limit).all()
-    
+
     def get_by_hackathon(
         self, db: Session, hackathon_id: int, skip: int = 0, limit: int = 100
     ) -> List[Project]:
@@ -43,7 +43,7 @@ class ProjectRepository(BaseRepository[Project]):
         ).order_by(
             self.model.created_at.desc()
         ).offset(skip).limit(limit).all()
-    
+
     def get_by_team(
         self, db: Session, team_id: int, skip: int = 0, limit: int = 100
     ) -> List[Project]:
@@ -54,13 +54,41 @@ class ProjectRepository(BaseRepository[Project]):
             self.model.created_at.desc()
         ).offset(skip).limit(limit).all()
 
+    def get_by_technology(
+        self, db: Session, technology: str, skip: int = 0, limit: int = 100
+    ) -> List[Project]:
+        """Get projects containing a specific technology."""
+        # Case-insensitive partial match in comma-separated technologies
+        return db.query(self.model).filter(
+            self.model.is_public.is_(True),
+            self.model.technologies.ilike(f"%{technology}%")
+        ).order_by(
+            self.model.created_at.desc()
+        ).offset(skip).limit(limit).all()
+
+    def get_by_technologies(
+        self, db: Session, technologies: List[str],
+        skip: int = 0, limit: int = 100
+    ) -> List[Project]:
+        """Get projects containing ALL specified technologies (AND logic)."""
+        query = db.query(self.model).filter(
+            self.model.is_public.is_(True)
+        )
+        
+        for tech in technologies:
+            query = query.filter(self.model.technologies.ilike(f"%{tech}%"))
+        
+        return query.order_by(
+            self.model.created_at.desc()
+        ).offset(skip).limit(limit).all()
+
 
 class VoteRepository(BaseRepository[Vote]):
     """Repository for votes."""
-    
+
     def __init__(self):
         super().__init__(Vote)
-    
+
     def get_user_vote_for_project(
         self, db: Session, user_id: int, project_id: int
     ) -> Vote:
@@ -69,24 +97,24 @@ class VoteRepository(BaseRepository[Vote]):
             self.model.user_id == user_id,
             self.model.project_id == project_id
         ).first()
-    
+
     def update_vote_counts(
         self, db: Session, project_id: int
     ) -> None:
         """Update vote counts for a project."""
         from sqlalchemy import func
-        
+
         # Count upvotes and downvotes
         upvotes = db.query(func.count(self.model.id)).filter(
             self.model.project_id == project_id,
             self.model.vote_type == "upvote"
         ).scalar()
-        
+
         downvotes = db.query(func.count(self.model.id)).filter(
             self.model.project_id == project_id,
             self.model.vote_type == "downvote"
         ).scalar()
-        
+
         # Update project
         project = db.query(Project).filter(Project.id == project_id).first()
         if project:
@@ -98,10 +126,10 @@ class VoteRepository(BaseRepository[Vote]):
 
 class CommentRepository(BaseRepository[Comment]):
     """Repository for comments."""
-    
+
     def __init__(self):
         super().__init__(Comment)
-    
+
     def get_project_comments(
         self, db: Session, project_id: int, skip: int = 0, limit: int = 100
     ) -> List[Comment]:
@@ -112,7 +140,7 @@ class CommentRepository(BaseRepository[Comment]):
         ).order_by(
             self.model.created_at.desc()
         ).offset(skip).limit(limit).all()
-    
+
     def get_replies(
         self, db: Session, comment_id: int
     ) -> List[Comment]:

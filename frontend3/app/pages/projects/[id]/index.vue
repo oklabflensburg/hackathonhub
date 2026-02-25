@@ -119,13 +119,14 @@
           <div v-if="projectTechnologies.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">{{ t('projects.detail.technologies') }}</h2>
             <div class="flex flex-wrap gap-3">
-              <span 
-                v-for="tech in projectTechnologies" 
+              <NuxtLink
+                v-for="tech in projectTechnologies"
                 :key="tech"
-                class="px-4 py-2 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-300 rounded-lg text-sm font-medium"
+                :to="`/projects?technology=${encodeURIComponent(tech)}`"
+                class="px-4 py-2 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-300 rounded-lg text-sm font-medium hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
               >
                 {{ tech }}
-              </span>
+              </NuxtLink>
             </div>
           </div>
 

@@ -38,6 +38,25 @@ class ProjectService:
             )
         return [ProjectSchema.model_validate(p) for p in projects]
 
+    def get_projects_by_technology(
+        self, db: Session, technology: str, skip: int = 0, limit: int = 100
+    ) -> List[ProjectSchema]:
+        """Get projects by technology."""
+        projects = self.project_repo.get_by_technology(
+            db, technology=technology, skip=skip, limit=limit
+        )
+        return [ProjectSchema.model_validate(p) for p in projects]
+
+    def get_projects_by_technologies(
+        self, db: Session, technologies: List[str],
+        skip: int = 0, limit: int = 100
+    ) -> List[ProjectSchema]:
+        """Get projects by multiple technologies."""
+        projects = self.project_repo.get_by_technologies(
+            db, technologies=technologies, skip=skip, limit=limit
+        )
+        return [ProjectSchema.model_validate(p) for p in projects]
+
     def get_project(
         self, db: Session, project_id: int
     ) -> Optional[ProjectSchema]:

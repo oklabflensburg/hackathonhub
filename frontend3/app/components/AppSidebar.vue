@@ -128,7 +128,7 @@
 
       <!-- Sidebar Footer -->
       <div v-if="isAuthenticated" class="p-6 border-t border-gray-200 dark:border-gray-800">
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-3 mb-4">
           <div v-if="authStore.user?.avatar_url" class="w-10 h-10 rounded-full overflow-hidden">
             <img
               :src="authStore.user.avatar_url"
@@ -146,6 +146,15 @@
             <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ userEmail }}</p>
           </div>
         </div>
+        <button
+          @click="handleLogout"
+          class="flex items-center justify-center w-full p-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border border-red-200 dark:border-red-800"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          {{ t('appHeader.logout') }}
+        </button>
       </div>
     </div>
   </aside>
@@ -171,5 +180,11 @@ const userInitials = computed(() => authStore.userInitials)
 
 const closeSidebar = () => {
   uiStore.closeSidebar()
+}
+
+const handleLogout = async () => {
+  await authStore.logout()
+  closeSidebar()
+  uiStore.showSuccess('Successfully logged out')
 }
 </script>
