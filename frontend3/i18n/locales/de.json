@@ -222,11 +222,15 @@
     "forbidden": "Zugriff verboten",
     "validationError": "Validierungsfehler",
     "networkError": "Netzwerkfehler",
+    "networkErrorFetchResource": "Netzwerkfehler beim Abrufen der Ressource",
     "serverError": "Serverfehler",
     "timeout": "Zeitüberschreitung der Anfrage",
     "dashboardLoadFailed": "Dashboard-Daten konnten nicht geladen werden",
+    "dashboardLoadErrorDetailed": "Dashboard-Daten konnten nicht geladen werden. Bitte versuche es später erneut.",
     "fetchHackathonsFailed": "Hackathons konnten nicht abgerufen werden",
-    "fetchProjectsFailed": "Projekte konnten nicht abgerufen werden"
+    "hackathonListingsLoadError": "Hackathon-Liste konnte nicht geladen werden. Bitte versuche es später erneut.",
+    "fetchProjectsFailed": "Projekte konnten nicht abgerufen werden",
+    "projectsLoadError": "Projekte konnten nicht geladen werden. Bitte versuche es später erneut."
   },
   "validation": {
     "required": "Dieses Feld ist erforderlich",

@@ -104,7 +104,7 @@ class EmailVerificationService:
         try:
             # Create verification token
             token = self.create_verification_token(db, user_id)
-            
+
             # Send verification email
             return self.send_verification_email(
                 user_email, user_name, token, language
@@ -116,15 +116,21 @@ class EmailVerificationService:
     def verify_email_token(self, db: Session, token: str) -> Optional[User]:
         """Verify email verification token."""
         try:
-            # Find token in database
+            # Find token in database without filtering by used/expired
             db_token = db.query(EmailVerificationToken).filter(
-                EmailVerificationToken.token == token,
-                EmailVerificationToken.used.is_(False),
-                EmailVerificationToken.expires_at > datetime.utcnow()
+                EmailVerificationToken.token == token
             ).first()
 
             if not db_token:
-                return None
+                raise ValueError("invalid_token")
+
+            # Check if token already used
+            if db_token.used:
+                raise ValueError("token_already_used")
+
+            # Check if token expired
+            if db_token.expires_at <= datetime.utcnow():
+                raise ValueError("token_expired")
 
             # Mark token as used
             db_token.used = True
@@ -132,16 +138,29 @@ class EmailVerificationService:
 
             # Verify user's email
             user = self.user_repository.get(db, db_token.user_id)
-            if user:
+            if not user:
+                # Token references a non-existent user (data integrity issue)
+                raise ValueError("invalid_token")
+
+            # If user already verified, we still treat as success (no-op)
+            if not user.email_verified:
                 user.email_verified = True
                 user.email_verified_at = datetime.utcnow()
                 db.commit()
                 db.refresh(user)
+            else:
+                # User already verified, log but continue
+                logger.info(
+                    f"User {user.id} already verified, token used"
+                )
 
             return user
+        except ValueError:
+            # Re-raise ValueError with specific error code
+            raise
         except Exception as e:
             logger.error(f"Failed to verify email token: {e}")
-            return None
+            raise ValueError("email_verification_failed")
 
     def resend_verification_email(
         self,

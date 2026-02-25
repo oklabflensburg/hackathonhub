@@ -456,8 +456,23 @@ async def verify_email(
             "message": "Email verified successfully",
             "user": user
         }
-    except ValueError:
-        raise_bad_request(locale, "email_verification")
+    except ValueError as ve:
+        # Extract error code from ValueError
+        error_code = str(ve)
+        # Map error codes to translation keys
+        if error_code == "invalid_token":
+            translation_key = "errors.invalid_token"
+        elif error_code == "token_expired":
+            translation_key = "errors.token_expired"
+        elif error_code == "token_already_used":
+            translation_key = "errors.token_already_used"
+        else:
+            translation_key = "errors.validation_email_verification"
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            translation_key=translation_key
+        )
     except Exception as e:
         raise_i18n_http_exception(
             locale=locale,

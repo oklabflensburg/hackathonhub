@@ -413,7 +413,7 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
       console.error('Error fetching dashboard data:', err)
       // Show UI error on client side
       if (process.client) {
-        uiStore.showError('Failed to load dashboard', 'Unable to load dashboard data. Please try again later.')
+        uiStore.showError(t('errors.dashboardLoadFailed'), t('errors.dashboardLoadErrorDetailed'))
       }
       throw err
     }

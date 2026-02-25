@@ -357,7 +357,7 @@ const fetchProjects = async () => {
    } catch (err: any) {
     error.value = err.message || t('projects.errors.failedToLoad')
     console.error('Error fetching projects:', err)
-    uiStore.showError('Failed to load projects', 'Unable to load projects. Please try again later.')
+    uiStore.showError(t('errors.fetchProjectsFailed'), t('errors.projectsLoadError'))
     // Fallback to empty array
     projects.value = []
   } finally {

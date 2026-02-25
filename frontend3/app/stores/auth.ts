@@ -184,7 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Also show notification for better visibility
       const uiStore = useUIStore()
-const authStore = useAuthStore()
+      const authStore = useAuthStore()
       uiStore.showError(errorMessage, 'Login Error')
 
       console.error('Email login error:', err)
@@ -369,22 +369,22 @@ const authStore = useAuthStore()
       const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
       return fetch(fullUrl, options)
     }
-    
+
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
     const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
 
     // Check if this is an API call to our backend (similar to plugin logic)
     const isApiCall = fullUrl.startsWith(backendUrl) || url.startsWith('/api/')
-    
+
     // Prepare headers
     const headers = new Headers(options.headers || {})
-    
+
     // Add auth header if token exists AND this is an API call
     if (token.value && isApiCall) {
       headers.set('Authorization', `Bearer ${token.value}`)
     }
-    
+
     // Add Content-Type for JSON requests (POST/PUT/PATCH) if not FormData
     // Only for API calls (matching plugin behavior)
     if (isApiCall && !headers.has('Content-Type') && options.method && ['POST', 'PUT', 'PATCH'].includes(options.method)) {
@@ -393,7 +393,7 @@ const authStore = useAuthStore()
         headers.set('Content-Type', 'application/json')
       }
     }
-    
+
     // Helper function to clone FormData
     const cloneFormData = (formData: FormData): FormData => {
       const newFormData = new FormData()
@@ -402,33 +402,44 @@ const authStore = useAuthStore()
       }
       return newFormData
     }
-    
+
     // For authenticated API calls with FormData, we need to handle potential retry
     // Clone FormData upfront so we have a fresh copy for retry if needed
     let requestBody = options.body
     let hasClonedFormData = false
-    
+
     if (isApiCall && token.value && options.body instanceof FormData) {
       // Clone FormData to preserve it for potential retry
       requestBody = cloneFormData(options.body as FormData)
       hasClonedFormData = true
     }
-    
+
     const requestOptions = { ...options, headers, body: requestBody }
-    let response = await fetch(fullUrl, requestOptions)
-    
+    let response
+    try {
+      response = await fetch(fullUrl, requestOptions)
+    } catch (error) {
+      // Handle network errors (e.g., offline, CORS, etc.)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        // This is a network error from fetch()
+        const { t } = useI18n()
+        throw new Error(t('errors.networkErrorFetchResource'))
+      }
+      throw error // Re-throw other errors
+    }
+
     // Handle token expiration (skip for refresh endpoint to avoid infinite loop)
     // Only handle 401 for API calls (matching plugin behavior)
     const isRefreshEndpoint = fullUrl.includes('/api/auth/refresh')
     if (response.status === 401 && token.value && !isRefreshEndpoint && isApiCall) {
       console.log('[fetchWithAuth] Token expired, attempting refresh for:', url)
-      
+
       const refreshed = await refreshAccessToken()
       if (refreshed) {
         console.log('[fetchWithAuth] Token refresh successful, retrying request')
         // Update auth header with new token
         headers.set('Authorization', `Bearer ${token.value}`)
-        
+
         // Prepare body for retry
         let retryBody = options.body
         if (options.body instanceof FormData) {
@@ -453,10 +464,10 @@ const authStore = useAuthStore()
             }
           }
         }
-        
+
         const retryOptions = { ...options, headers, body: retryBody }
         response = await fetch(fullUrl, retryOptions)
-        
+
         // Check if retry also failed
         if (response.status === 401) {
           console.warn('[fetchWithAuth] Request still unauthorized after token refresh')
@@ -465,7 +476,7 @@ const authStore = useAuthStore()
         console.warn('[fetchWithAuth] Token refresh failed')
       }
     }
-    
+
     return response
   }
 
@@ -647,10 +658,21 @@ const authStore = useAuthStore()
       ...options.headers
     }
 
-    let response = await fetch(fullUrl, {
-      ...options,
-      headers
-    })
+    let response
+    try {
+      response = await fetch(fullUrl, {
+        ...options,
+        headers
+      })
+    } catch (error) {
+      // Handle network errors (e.g., offline, CORS, etc.)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        // This is a network error from fetch()
+        const { t } = useI18n()
+        throw new Error(t('errors.networkErrorFetchResource'))
+      }
+      throw error // Re-throw other errors
+    }
 
     // Check for token expiration and try to refresh
     if (response.status === 401 && token.value) {
@@ -662,10 +684,20 @@ const authStore = useAuthStore()
           'Authorization': `Bearer ${token.value}`,
           ...options.headers
         }
-        response = await fetch(fullUrl, {
-          ...options,
-          headers: newHeaders
-        })
+        try {
+          response = await fetch(fullUrl, {
+            ...options,
+            headers: newHeaders
+          })
+        } catch (error) {
+          // Handle network errors (e.g., offline, CORS, etc.)
+          if (error instanceof TypeError && error.message.includes('fetch')) {
+            // This is a network error from fetch()
+            const { t } = useI18n()
+            throw new Error(t('errors.networkErrorFetchResource'))
+          }
+          throw error // Re-throw other errors
+        }
 
         // If still 401 after refresh, token is invalid
         if (response.status === 401) {

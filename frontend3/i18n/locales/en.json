@@ -220,11 +220,15 @@
     "forbidden": "Access forbidden",
     "validationError": "Validation error",
     "networkError": "Network error",
+    "networkErrorFetchResource": "Network error when attempting to fetch resource",
     "serverError": "Server error",
     "timeout": "Request timeout",
     "dashboardLoadFailed": "Failed to load dashboard data",
+    "dashboardLoadErrorDetailed": "Unable to load dashboard data. Please try again later.",
     "fetchHackathonsFailed": "Failed to fetch hackathons",
-    "fetchProjectsFailed": "Failed to fetch projects"
+    "hackathonListingsLoadError": "Unable to load hackathon listings. Please try again later.",
+    "fetchProjectsFailed": "Failed to fetch projects",
+    "projectsLoadError": "Unable to load projects. Please try again later."
   },
   "validation": {
     "required": "This field is required",
