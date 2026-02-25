@@ -3,6 +3,7 @@ Project API routes.
 """
 from fastapi import APIRouter, Depends, Body, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from app.core.database import get_db
@@ -140,7 +141,7 @@ async def vote_for_project(
     current_user=Depends(get_current_user),
     locale: str = Depends(get_locale)
 ):
-    """Vote for a project."""
+    """Vote for a project with proper concurrency handling."""
     # Normalize vote type
     vote_type = vote_type.lower().strip()
 
@@ -164,39 +165,100 @@ async def vote_for_project(
     if not project:
         raise_not_found(locale, "project")
 
-    # Check if user already voted
-    existing_vote = vote_repository.get_user_vote_for_project(
-        db, current_user.id, project_id
-    )
+    try:
+        # Check if user already voted
+        existing_vote = vote_repository.get_user_vote_for_project(
+            db, current_user.id, project_id
+        )
 
-    if existing_vote:
-        # Update existing vote
-        if existing_vote.vote_type == vote_type:
-            # Same vote type - remove the vote
-            vote_repository.delete(db, id=existing_vote.id)
-            message = f"Removed {vote_type}"
+        vote_obj = None
+        
+        if existing_vote:
+            # Update existing vote
+            if existing_vote.vote_type == vote_type:
+                # Same vote type - remove the vote
+                vote_repository.delete(db, id=existing_vote.id)
+                message = f"Removed {vote_type}"
+            else:
+                # Change vote type
+                existing_vote.vote_type = vote_type
+                db.commit()
+                db.refresh(existing_vote)
+                message = f"Changed vote to {vote_type}"
+                vote_obj = existing_vote
         else:
-            # Change vote type
-            existing_vote.vote_type = vote_type
-            db.commit()
-            message = f"Changed vote to {vote_type}"
-    else:
-        # Create new vote
-        vote_repository.create(db, obj_in={
-            "user_id": current_user.id,
-            "project_id": project_id,
-            "vote_type": vote_type
-        })
-        message = f"Added {vote_type}"
+            # Create new vote with error handling for race conditions
+            try:
+                vote_obj = vote_repository.create(db, obj_in={
+                    "user_id": current_user.id,
+                    "project_id": project_id,
+                    "vote_type": vote_type
+                })
+                message = f"Added {vote_type}"
+            except IntegrityError:
+                # Race condition: vote was created by another request
+                db.rollback()
+                # Get the current vote state
+                existing_vote = vote_repository.get_user_vote_for_project(
+                    db, current_user.id, project_id
+                )
+                if existing_vote:
+                    # Another request created a vote, return current state
+                    message = f"Already voted {existing_vote.vote_type}"
+                    vote_type = existing_vote.vote_type
+                    vote_obj = existing_vote
+                else:
+                    # Retry once (should rarely happen)
+                    vote_obj = vote_repository.create(db, obj_in={
+                        "user_id": current_user.id,
+                        "project_id": project_id,
+                        "vote_type": vote_type
+                    })
+                    message = f"Added {vote_type}"
+
+    except IntegrityError:
+        db.rollback()
+        raise_bad_request(locale, "vote_conflict")
 
     # Update vote counts
     vote_repository.update_vote_counts(db, project_id)
 
-    return {
+    # Get updated project stats for frontend
+    project = project_repository.get(db, project_id)
+    db.refresh(project)
+
+    response_data = {
         "message": message,
         "project_id": project_id,
-        "vote_type": vote_type
+        "vote_type": vote_type,
+        "project_stats": {
+            "project_id": project_id,
+            "upvotes": getattr(project, 'upvote_count', 0),
+            "downvotes": getattr(project, 'downvote_count', 0),
+            "total_score": getattr(project, 'vote_score', 0),
+            "user_vote": (
+                vote_type
+                if message.startswith("Added") or message.startswith("Changed")
+                else None
+            )
+        }
     }
+    
+    # Include vote object if it exists (for frontend state updates)
+    if vote_obj:
+        response_data["vote"] = {
+            "id": vote_obj.id,
+            "user_id": vote_obj.user_id,
+            "project_id": vote_obj.project_id,
+            "vote_type": vote_obj.vote_type,
+            "created_at": (
+                vote_obj.created_at.isoformat()
+                if vote_obj.created_at
+                else None
+            )
+        }
+    
+    return response_data
 
 
 @router.get("/{project_id}/vote-stats")

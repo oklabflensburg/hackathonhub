@@ -2,7 +2,7 @@
   <div class="flex items-center space-x-2">
     <!-- Upvote Button -->
     <button
-      @click="handleVote('up')"
+      @click="debouncedHandleVote('up')"
       :disabled="isVotingInProgress"
       :class="[
         'vote-button-up',
@@ -20,7 +20,7 @@
 
     <!-- Downvote Button -->
     <button
-      @click="handleVote('down')"
+      @click="debouncedHandleVote('down')"
       :disabled="isVotingInProgress"
       :class="[
         'vote-button-down',
@@ -51,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useVotingStore } from '~/stores/voting'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
@@ -69,7 +69,25 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 const { t } = useI18n()
 
-const isVotingInProgress = ref(false)
+// Simple debounce implementation
+const debounceTimers = new Map<string, NodeJS.Timeout>()
+
+function debounce<T extends (...args: any[]) => any>(
+  key: string,
+  fn: T,
+  delay: number = 500
+): (...args: Parameters<T>) => void {
+  return (...args: Parameters<T>) => {
+    if (debounceTimers.has(key)) {
+      clearTimeout(debounceTimers.get(key)!)
+    }
+    
+    debounceTimers.set(key, setTimeout(() => {
+      fn(...args)
+      debounceTimers.delete(key)
+    }, delay))
+  }
+}
 
 // Computed properties
 const upvotes = computed(() => {
@@ -103,6 +121,11 @@ const userVote = computed(() => {
   return vote.vote_type
 })
 
+// Use store's loading state instead of local state
+const isVotingInProgress = computed(() => {
+  return votingStore.isVotingInProgress(props.projectId)
+})
+
 // Methods
 const handleVote = async (voteType: 'up' | 'down') => {
   if (!authStore.isAuthenticated) {
@@ -110,9 +133,11 @@ const handleVote = async (voteType: 'up' | 'down') => {
     return
   }
 
-  if (isVotingInProgress.value) return
-
-  isVotingInProgress.value = true
+  // Use store loading state to prevent multiple clicks
+  if (isVotingInProgress.value) {
+    uiStore.showWarning(t('votes.voteInProgress'), t('votes.pleaseWait'))
+    return
+  }
 
   try {
     // If user is clicking the same vote type again, remove the vote
@@ -124,11 +149,24 @@ const handleVote = async (voteType: 'up' | 'down') => {
       uiStore.showSuccess(voteType === 'up' ? t('votes.upvotedSuccessfully') : t('votes.downvotedSuccessfully'))
     }
   } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : t('votes.failedToVote'))
-  } finally {
-    isVotingInProgress.value = false
+    // Handle specific error messages
+    const errorMessage = error instanceof Error ? error.message : t('votes.failedToVote')
+    
+    // Check for specific error messages from backend
+    if (errorMessage.includes('Already voted') || errorMessage.includes('vote_conflict')) {
+      uiStore.showWarning(t('votes.alreadyVoted'), t('votes.voteAlreadyRecorded'))
+      // Refresh vote stats to get current state
+      await votingStore.getProjectVoteStats(props.projectId)
+    } else if (errorMessage.includes('vote conflict')) {
+      uiStore.showWarning(t('votes.concurrentVote'), t('votes.pleaseTryAgain'))
+    } else {
+      uiStore.showError(errorMessage)
+    }
   }
 }
+
+// Debounced version of handleVote to prevent rapid clicking
+const debouncedHandleVote = debounce(`vote-${props.projectId}`, handleVote, 500)
 
 // Fetch vote stats on mount
 onMounted(async () => {
