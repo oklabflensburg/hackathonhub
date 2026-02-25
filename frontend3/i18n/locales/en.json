@@ -230,7 +230,10 @@
     "fetchProjectsFailed": "Failed to fetch projects",
     "projectsLoadError": "Unable to load projects. Please try again later.",
     "failedToUpdateNotificationPreference": "Failed to update notification preference",
-    "failedToUpdateNotificationPreferences": "Failed to update notification preferences"
+    "failedToUpdateNotificationPreferences": "Failed to update notification preferences",
+    "invalid_token": "Invalid verification token",
+    "token_expired": "Verification token has expired",
+    "token_already_used": "Verification token has already been used"
   },
   "validation": {
     "required": "This field is required",

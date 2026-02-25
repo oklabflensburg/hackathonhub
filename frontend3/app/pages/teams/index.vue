@@ -279,11 +279,13 @@ import { useRouter } from '#app'
 import { useAuthStore } from '~/stores/auth'
 import { useTeamStore } from '~/stores/team'
 import { useUIStore } from '~/stores/ui'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const teamStore = useTeamStore()
 const uiStore = useUIStore()
+const { t } = useI18n()
 
 // State
 const teams = ref<any[]>([])
@@ -404,16 +406,15 @@ function debouncedLoadTeams() {
 
 async function joinTeam(teamId: number) {
   if (!authStore.user?.id) {
-    uiStore.showError('You must be logged in to join a team', 'Authentication Required')
+    uiStore.showError(t('teams.loginRequiredToJoin'), t('common.authenticationRequired'))
     navigateTo('/login')
     return
   }
 
   try {
-    // For now, we'll just show a message since we need invitation system
-    // In a real implementation, this would send a join request or use invitations
-    uiStore.showInfo('Open teams can be joined by requesting an invitation from the team owner.', 'Join Team')
-    navigateTo(`/teams/${teamId}`)
+    await teamStore.addTeamMember(teamId, authStore.user.id, 'member')
+    uiStore.showSuccess(t('teams.joinedTeamSuccess'))
+    await loadTeams()
   } catch (err) {
     console.error('Failed to join team:', err)
   }
@@ -423,11 +424,11 @@ async function leaveTeam(teamId: number) {
   if (!authStore.user?.id) return
 
   try {
-    const confirmed = confirm('Are you sure you want to leave this team?')
+    const confirmed = confirm(t('teams.confirmLeaveTeam'))
     if (!confirmed) return
 
     await teamStore.removeTeamMember(teamId, authStore.user.id)
-    uiStore.showSuccess('You have left the team')
+    uiStore.showSuccess(t('teams.leftTeamSuccess'))
     await loadTeams()
   } catch (err) {
     console.error('Failed to leave team:', err)

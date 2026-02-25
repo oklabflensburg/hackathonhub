@@ -232,7 +232,10 @@
     "fetchProjectsFailed": "Projekte konnten nicht abgerufen werden",
     "projectsLoadError": "Projekte konnten nicht geladen werden. Bitte versuche es später erneut.",
     "failedToUpdateNotificationPreference": "Benachrichtigungseinstellung konnte nicht aktualisiert werden",
-    "failedToUpdateNotificationPreferences": "Benachrichtigungseinstellungen konnten nicht aktualisiert werden"
+    "failedToUpdateNotificationPreferences": "Benachrichtigungseinstellungen konnten nicht aktualisiert werden",
+    "invalid_token": "Ungültiger Verifizierungstoken",
+    "token_expired": "Verifizierungstoken ist abgelaufen",
+    "token_already_used": "Verifizierungstoken wurde bereits verwendet"
   },
   "validation": {
     "required": "Dieses Feld ist erforderlich",

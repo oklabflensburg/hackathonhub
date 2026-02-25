@@ -361,7 +361,7 @@ export const useTeamStore = defineStore('team', () => {
       const currentMembers = teamMembers.value.get(teamId) || []
       teamMembers.value.set(teamId, [...currentMembers, data])
       
-      uiStore.showSuccess('Team member added successfully')
+      // Success notification is handled by the calling component
       return data
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to add team member'
@@ -392,8 +392,7 @@ export const useTeamStore = defineStore('team', () => {
           currentTeam.value = null
         }
       }
-      
-      uiStore.showSuccess('Team member removed successfully')
+      // Success notification is handled by the calling component
       return true
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to remove team member'
