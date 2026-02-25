@@ -562,23 +562,25 @@ export const useAuthStore = defineStore('auth', () => {
       // This causes hydration mismatches but is the current limitation
       return
     } else {
-      // Client-side: check for token in URL (from OAuth callback)
+      // Client-side: check for tokens in URL (from OAuth callback)
       const urlParams = new URLSearchParams(window.location.search)
-      const urlToken = urlParams.get('token')
+      const accessToken = urlParams.get('access_token')
+      const refreshTokenParam = urlParams.get('refresh_token')
       const source = urlParams.get('source')
 
-      if (urlToken && (source === 'github' || source === 'google')) {
-        // Store token from URL
-        token.value = urlToken
+      if (accessToken && (source === 'github' || source === 'google')) {
+        // Store tokens from URL
+        token.value = accessToken
+        refreshToken.value = refreshTokenParam || ''
         const preferences = usePreferencesStore()
-        preferences.auth.setTokens(urlToken, '') // Refresh token will be set later
+        preferences.auth.setTokens(accessToken, refreshTokenParam || '')
 
         // Clear URL parameters
         const newUrl = window.location.pathname
         window.history.replaceState({}, '', newUrl)
 
         // Fetch user info with the token
-        fetchUserWithToken(urlToken)
+        fetchUserWithToken(accessToken)
 
         // Start background token refresh timer
         startBackgroundTokenRefresh()

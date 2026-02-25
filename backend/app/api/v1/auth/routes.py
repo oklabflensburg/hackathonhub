@@ -174,10 +174,11 @@ async def google_callback(
     try:
         result = await google_oauth.authenticate_with_google(code, db)
 
-        # Redirect to frontend with token in query parameter
+        # Redirect to frontend with tokens in query parameters
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")
         import urllib.parse
-        token = urllib.parse.quote(result["access_token"])
+        access_token = urllib.parse.quote(result["access_token"])
+        refresh_token = urllib.parse.quote(result.get("refresh_token", ""))
 
         # Use state (redirect URL) if provided, otherwise redirect to home
         if state:
@@ -185,12 +186,19 @@ async def google_callback(
             if decoded_state.startswith('/'):
                 redirect_url = (
                     f"{frontend_url}{decoded_state}"
-                    f"?token={token}&source=google"
+                    f"?access_token={access_token}"
+                    f"&refresh_token={refresh_token}&source=google"
                 )
             else:
-                redirect_url = f"{frontend_url}/?token={token}&source=google"
+                redirect_url = (
+                    f"{frontend_url}/?access_token={access_token}"
+                    f"&refresh_token={refresh_token}&source=google"
+                )
         else:
-            redirect_url = f"{frontend_url}/?token={token}&source=google"
+            redirect_url = (
+                f"{frontend_url}/?access_token={access_token}"
+                f"&refresh_token={refresh_token}&source=google"
+            )
 
         return RedirectResponse(url=redirect_url)
     except Exception as e:
@@ -395,10 +403,11 @@ async def github_callback(
         result = await github_oauth.authenticate_with_github(
             code, db, current_user_id)
 
-        # Redirect to frontend with token in query parameter
+        # Redirect to frontend with tokens in query parameters
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")
         import urllib.parse
-        token = urllib.parse.quote(result["access_token"])
+        access_token = urllib.parse.quote(result["access_token"])
+        refresh_token = urllib.parse.quote(result.get("refresh_token", ""))
 
         # Use redirect URL from state if provided, otherwise redirect to home
         if redirect_url_from_state:
@@ -407,13 +416,20 @@ async def github_callback(
                 # It's a path within our frontend
                 redirect_url = (
                     f"{frontend_url}{redirect_url_from_state}"
-                    f"?token={token}&source=github"
+                    f"?access_token={access_token}"
+                    f"&refresh_token={refresh_token}&source=github"
                 )
             else:
                 # Fallback to home if state is malformed
-                redirect_url = f"{frontend_url}/?token={token}&source=github"
+                redirect_url = (
+                    f"{frontend_url}/?access_token={access_token}"
+                    f"&refresh_token={refresh_token}&source=github"
+                )
         else:
-            redirect_url = f"{frontend_url}/?token={token}&source=github"
+            redirect_url = (
+                f"{frontend_url}/?access_token={access_token}"
+                f"&refresh_token={refresh_token}&source=github"
+            )
 
         return RedirectResponse(url=redirect_url)
     except Exception as e:
