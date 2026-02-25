@@ -12,6 +12,7 @@ from app.domain.schemas.team import (
     TeamMember, TeamMemberCreateRequest,
     TeamInvitation, TeamInvitationCreateRequest
 )
+from app.domain.models.team import TeamMember as TeamMemberModel
 from app.domain.schemas.project import Project
 from app.repositories.team_repository import (
     TeamRepository,
@@ -187,12 +188,25 @@ async def add_team_member(
     if not team:
         raise_not_found(locale, "team")
 
-    # Verify user is team owner or has permission
-    # For now, just check if current user is team owner
-    team_member = team_member_repository.get_by_team_and_user(
-        db, team_id, current_user.id)
-    if not team_member or team_member.role not in ["owner", "admin"]:
-        raise_forbidden(locale, "add_member", entity="team")
+    # Determine if this is a self-join request
+    is_self_join = member.user_id == current_user.id
+
+    if is_self_join:
+        # Self-join allowed only if team is open
+        if not team.is_open:
+            raise_forbidden(locale, "team_not_open", entity="team")
+        # Check if team has reached max members
+        current_member_count = len(
+            team_member_repository.get_team_members(db, team_id)
+        )
+        if current_member_count >= team.max_members:
+            raise_bad_request(locale, "team_full", entity="team")
+    else:
+        # Adding another user requires owner/admin permission
+        team_member = team_member_repository.get_by_team_and_user(
+            db, team_id, current_user.id)
+        if not team_member or team_member.role not in ["owner", "admin"]:
+            raise_forbidden(locale, "add_member", entity="team")
 
     # Check if user is already a member
     existing_member = team_member_repository.get_by_team_and_user(

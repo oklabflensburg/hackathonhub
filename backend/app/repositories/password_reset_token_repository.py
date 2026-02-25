@@ -6,7 +6,7 @@ PasswordResetToken entities.
 """
 from typing import Optional
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.domain.models.user import PasswordResetToken
 from app.repositories.base import BaseRepository
@@ -51,7 +51,7 @@ class PasswordResetTokenRepository(BaseRepository[PasswordResetToken]):
         return db.query(self.model).filter(
             self.model.user_id == user_id,
             self.model.used.is_(False),
-            self.model.expires_at > datetime.utcnow()
+            self.model.expires_at > datetime.now(timezone.utc)
         ).first()
     
     def mark_as_used(self, db: Session, token_id: int) -> bool:

@@ -1,7 +1,7 @@
 """
 Notification API routes.
 """
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -48,20 +48,6 @@ async def get_notifications(
     return notifications
 
 
-@router.get("/{notification_id}", response_model=UserNotification)
-async def get_notification(
-    notification_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-    locale: str = Depends(get_locale)
-):
-    """Get a specific notification by ID."""
-    notification = notification_repository.get(db, notification_id)
-    if not notification or notification.user_id != current_user.id:
-        raise_not_found(locale, "notification")
-    return notification
-
-
 @router.post("/", response_model=UserNotification)
 async def create_notification(
     notification: UserNotificationCreate,
@@ -78,25 +64,6 @@ async def create_notification(
         db, obj_in=notification_data)
 
     return db_notification
-
-
-@router.post("/{notification_id}/read")
-async def mark_notification_as_read(
-    notification_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-    locale: str = Depends(get_locale)
-):
-    """Mark a notification as read."""
-    success = notification_repository.mark_as_read(
-        db, notification_id, current_user.id
-    )
-    if not success:
-        raise_not_found(locale, "notification")
-    return {
-        "message": "Notification marked as read",
-        "notification_id": notification_id
-    }
 
 
 @router.post("/read-all")
@@ -204,6 +171,39 @@ async def create_push_subscription(
         db, obj_in=subscription_data
     )
     return new_subscription
+
+
+@router.get("/{notification_id}", response_model=UserNotification)
+async def get_notification(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
+):
+    """Get a specific notification by ID."""
+    notification = notification_repository.get(db, notification_id)
+    if not notification or notification.user_id != current_user.id:
+        raise_not_found(locale, "notification")
+    return notification
+
+
+@router.post("/{notification_id}/read")
+async def mark_notification_as_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
+):
+    """Mark a notification as read."""
+    success = notification_repository.mark_as_read(
+        db, notification_id, current_user.id
+    )
+    if not success:
+        raise_not_found(locale, "notification")
+    return {
+        "message": "Notification marked as read",
+        "notification_id": notification_id
+    }
 
 
 @router.delete("/push-subscriptions/{subscription_id}")

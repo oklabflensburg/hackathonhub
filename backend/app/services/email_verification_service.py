@@ -4,7 +4,7 @@ Email verification service for sending and verifying email verification tokens.
 import os
 import uuid
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -129,7 +129,7 @@ class EmailVerificationService:
                 raise ValueError("token_already_used")
 
             # Check if token expired
-            if db_token.expires_at <= datetime.utcnow():
+            if db_token.expires_at <= datetime.now(timezone.utc):
                 raise ValueError("token_expired")
 
             # Mark token as used
@@ -209,7 +209,7 @@ class EmailVerificationService:
         """Clean up expired verification tokens."""
         try:
             expired_tokens = db.query(EmailVerificationToken).filter(
-                EmailVerificationToken.expires_at <= datetime.utcnow()
+                EmailVerificationToken.expires_at <= datetime.now(timezone.utc)
             ).all()
 
             count = len(expired_tokens)

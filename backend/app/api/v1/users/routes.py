@@ -151,14 +151,17 @@ async def get_user_votes(
                 "project_vote_count": total_votes,
                 "project_comment_count": project.comment_count,
                 "project_view_count": project.view_count,
-                "hackathon_name": hackathon_name
+                "hackathon_name": hackathon_name,
+                "hackathon_id": project.hackathon_id
             }
 
             # Add author name if available
             if project.owner:
                 vote_data["project_author"] = project.owner.name
+                vote_data["project_author_id"] = project.owner.id
             else:
                 vote_data["project_author"] = "Unknown"
+                vote_data["project_author_id"] = None
 
             enriched_votes.append(vote_data)
 

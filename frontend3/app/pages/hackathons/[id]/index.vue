@@ -147,12 +147,12 @@
               <div v-else-if="teams.length === 0" class="text-center py-8">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 mb-4">
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <p class="text-gray-600 dark:text-gray-400">No teams have been created for this hackathon yet.</p>
+                <p class="text-gray-600 dark:text-gray-400">{{ $t('teams.noTeamsForHackathon') }}</p>
                 <NuxtLink v-if="authStore.isAuthenticated" to="/teams/create" class="mt-4 btn btn-primary">
-                  Create First Team
+                  {{ $t('teams.createFirstTeam') }}
                 </NuxtLink>
               </div>
               <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -183,9 +183,9 @@
                   <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                     <span class="flex items-center">
                       <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      {{ team.member_count || 0 }} / {{ team.max_members }} members
+                      {{ team.member_count || 0 }} / {{ team.max_members }} {{ $t('teams.members') }}
                     </span>
                     <span class="text-xs">
                       Created {{ formatDate(team.created_at) }}
@@ -535,14 +535,6 @@ const fetchHackathon = async () => {
       console.error('Error parsing prizes JSON:', e)
     }
 
-    // Only use defaults if prizes is null/undefined/empty string (not if it's empty array)
-    if (!apiData.prizes && prizes.length === 0) {
-      prizes = [
-        { name: t('hackathons.details.prizeNamePlaceholder'), description: t('hackathons.details.prizeDescriptionPlaceholder'), value: t('hackathons.details.prizeAmountPlaceholder') },
-        { name: t('common.unknown'), description: t('common.unknown'), value: t('common.unknown') },
-        { name: t('common.unknown'), description: t('common.unknown'), value: t('common.unknown') }
-      ]
-    }
 
     // Parse organizers JSON if available
     let organizers = []
@@ -554,13 +546,6 @@ const fetchHackathon = async () => {
       console.error('Error parsing organizers JSON:', e)
     }
 
-    // Only use defaults if organizers is null/undefined/empty string (not if it's empty array)
-    if (!apiData.organizers && organizers.length === 0) {
-      organizers = [
-        { id: 1, name: t('hackathons.details.organizerNamePlaceholder'), role: t('hackathons.details.organizerRolePlaceholder') },
-        { id: 2, name: t('common.unknown'), role: t('common.unknown') }
-      ]
-    }
 
     // Transform image URL to use backend API URL if needed
     let image_url = apiData.image_url || null

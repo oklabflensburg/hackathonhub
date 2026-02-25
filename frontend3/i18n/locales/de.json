@@ -230,7 +230,9 @@
     "fetchHackathonsFailed": "Hackathons konnten nicht abgerufen werden",
     "hackathonListingsLoadError": "Hackathon-Liste konnte nicht geladen werden. Bitte versuche es später erneut.",
     "fetchProjectsFailed": "Projekte konnten nicht abgerufen werden",
-    "projectsLoadError": "Projekte konnten nicht geladen werden. Bitte versuche es später erneut."
+    "projectsLoadError": "Projekte konnten nicht geladen werden. Bitte versuche es später erneut.",
+    "failedToUpdateNotificationPreference": "Benachrichtigungseinstellung konnte nicht aktualisiert werden",
+    "failedToUpdateNotificationPreferences": "Benachrichtigungseinstellungen konnten nicht aktualisiert werden"
   },
   "validation": {
     "required": "Dieses Feld ist erforderlich",

@@ -5,7 +5,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import uuid
 from dotenv import load_dotenv
@@ -191,7 +191,8 @@ def refresh_tokens(refresh_token: str, db: Session, locale: str = "en"):
     new_tokens = create_tokens(user.id, user.username)
 
     # Store new refresh token in database
-    expires_at = datetime.utcnow() + new_tokens["refresh_token_expires"]
+    now = datetime.now(timezone.utc)
+    expires_at = now + new_tokens["refresh_token_expires"]
     refresh_token_repository.create_token(
         db,
         user_id=user.id,

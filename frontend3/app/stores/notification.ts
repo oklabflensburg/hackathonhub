@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { useUIStore } from './ui'
+import { useI18n } from 'vue-i18n'
 
 export interface UserNotification {
   id: number
@@ -43,6 +44,7 @@ export interface PushSubscription {
 export const useNotificationStore = defineStore('notification', () => {
   const authStore = useAuthStore()
   const uiStore = useUIStore()
+  const { t } = useI18n()
 
   // State
   const notifications = ref<UserNotification[]>([])
@@ -222,7 +224,7 @@ export const useNotificationStore = defineStore('notification', () => {
       }
     } catch (error) {
       console.error('Failed to update notification preference:', error)
-      uiStore.showError('Failed to update notification preference')
+      uiStore.showError(t('errors.failedToUpdateNotificationPreference'))
     }
   }
 
@@ -244,7 +246,7 @@ export const useNotificationStore = defineStore('notification', () => {
       }
     } catch (error) {
       console.error('Failed to update notification preferences:', error)
-      uiStore.showError('Failed to update notification preferences')
+      uiStore.showError(t('errors.failedToUpdateNotificationPreferences'))
     }
   }
 

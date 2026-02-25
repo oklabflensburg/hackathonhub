@@ -170,14 +170,21 @@
                             {{ vote.project_author?.charAt(0) || 'U' }}
                           </span>
                         </div>
-                         <span>{{ $t('myVotes.projectDetails.by') }} {{ vote.project_author || $t('myVotes.projectDetails.unknownAuthor') }}</span>
+                        <span>{{ $t('myVotes.projectDetails.by') }}</span>&nbsp;
+                        <NuxtLink v-if="vote.project_author_id" :to="`/users/${vote.project_author_id}`" class="hover:underline">
+                          {{ vote.project_author || $t('myVotes.projectDetails.unknownAuthor') }}
+                        </NuxtLink>
+                        <span v-else>{{ vote.project_author || $t('myVotes.projectDetails.unknownAuthor') }}</span>
                       </div>
                       <span>•</span>
                       <div class="flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
-                         <span>{{ vote.hackathon_name || $t('myVotes.projectDetails.hackathon') }}</span>
+                        <NuxtLink v-if="vote.hackathon_id" :to="`/hackathons/${vote.hackathon_id}`" class="hover:underline">
+                          {{ vote.hackathon_name || $t('myVotes.projectDetails.hackathon') }}
+                        </NuxtLink>
+                        <span v-else>{{ vote.hackathon_name || $t('myVotes.projectDetails.hackathon') }}</span>
                       </div>
                       <span>•</span>
                       <div class="flex items-center">
@@ -202,7 +209,8 @@
                   <span
                     v-for="tech in vote.project_technologies.slice(0, 5)"
                     :key="tech"
-                    class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs"
+                    @click="toggleTag(tech)"
+                    class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs hover:underline cursor-pointer"
                   >
                     {{ tech }}
                   </span>

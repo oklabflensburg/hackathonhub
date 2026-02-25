@@ -2,7 +2,7 @@
 User repository for user-related database operations.
 """
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.domain.models.user import (
@@ -69,7 +69,7 @@ class UserRepository(BaseRepository[User]):
         """Update user's last login timestamp."""
         user = self.get(db, user_id)
         if user:
-            user.last_login = datetime.utcnow()
+            user.last_login = datetime.now(timezone.utc)
             db.commit()
             db.refresh(user)
         return user
@@ -162,7 +162,7 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
     ) -> Optional[RefreshToken]:
         """Get a valid (non-expired) refresh token by token ID."""
         token = self.get_by_token_id(db, token_id)
-        if token and token.expires_at > datetime.utcnow():
+        if token and token.expires_at > datetime.now(timezone.utc):
             return token
         return None
 
