@@ -2,7 +2,7 @@
 Project repository for database operations.
 """
 from typing import List
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.repositories.base import BaseRepository
 from app.domain.models.project import Project, Vote, Comment
@@ -17,8 +17,12 @@ class ProjectRepository(BaseRepository[Project]):
     def get_public_projects(
         self, db: Session, skip: int = 0, limit: int = 100
     ) -> List[Project]:
-        """Get public projects."""
-        return db.query(self.model).filter(
+        """Get public projects with eager loading of relationships."""
+        return db.query(self.model).options(
+            joinedload(self.model.owner),
+            joinedload(self.model.hackathon),
+            joinedload(self.model.team)
+        ).filter(
             self.model.is_public.is_(True)
         ).order_by(
             self.model.created_at.desc()
@@ -27,8 +31,12 @@ class ProjectRepository(BaseRepository[Project]):
     def get_by_owner(
         self, db: Session, owner_id: int, skip: int = 0, limit: int = 100
     ) -> List[Project]:
-        """Get projects by owner."""
-        return db.query(self.model).filter(
+        """Get projects by owner with eager loading."""
+        return db.query(self.model).options(
+            joinedload(self.model.owner),
+            joinedload(self.model.hackathon),
+            joinedload(self.model.team)
+        ).filter(
             self.model.owner_id == owner_id
         ).order_by(
             self.model.created_at.desc()
@@ -37,8 +45,12 @@ class ProjectRepository(BaseRepository[Project]):
     def get_by_hackathon(
         self, db: Session, hackathon_id: int, skip: int = 0, limit: int = 100
     ) -> List[Project]:
-        """Get projects by hackathon."""
-        return db.query(self.model).filter(
+        """Get projects by hackathon with eager loading."""
+        return db.query(self.model).options(
+            joinedload(self.model.owner),
+            joinedload(self.model.hackathon),
+            joinedload(self.model.team)
+        ).filter(
             self.model.hackathon_id == hackathon_id
         ).order_by(
             self.model.created_at.desc()
@@ -47,8 +59,12 @@ class ProjectRepository(BaseRepository[Project]):
     def get_by_team(
         self, db: Session, team_id: int, skip: int = 0, limit: int = 100
     ) -> List[Project]:
-        """Get projects by team."""
-        return db.query(self.model).filter(
+        """Get projects by team with eager loading."""
+        return db.query(self.model).options(
+            joinedload(self.model.owner),
+            joinedload(self.model.hackathon),
+            joinedload(self.model.team)
+        ).filter(
             self.model.team_id == team_id
         ).order_by(
             self.model.created_at.desc()
@@ -57,9 +73,13 @@ class ProjectRepository(BaseRepository[Project]):
     def get_by_technology(
         self, db: Session, technology: str, skip: int = 0, limit: int = 100
     ) -> List[Project]:
-        """Get projects containing a specific technology."""
+        """Get projects containing a specific technology with eager loading."""
         # Case-insensitive partial match in comma-separated technologies
-        return db.query(self.model).filter(
+        return db.query(self.model).options(
+            joinedload(self.model.owner),
+            joinedload(self.model.hackathon),
+            joinedload(self.model.team)
+        ).filter(
             self.model.is_public.is_(True),
             self.model.technologies.ilike(f"%{technology}%")
         ).order_by(
@@ -71,7 +91,11 @@ class ProjectRepository(BaseRepository[Project]):
         skip: int = 0, limit: int = 100
     ) -> List[Project]:
         """Get projects containing ALL specified technologies (AND logic)."""
-        query = db.query(self.model).filter(
+        query = db.query(self.model).options(
+            joinedload(self.model.owner),
+            joinedload(self.model.hackathon),
+            joinedload(self.model.team)
+        ).filter(
             self.model.is_public.is_(True)
         )
         
@@ -79,6 +103,26 @@ class ProjectRepository(BaseRepository[Project]):
             query = query.filter(self.model.technologies.ilike(f"%{tech}%"))
         
         return query.order_by(
+            self.model.created_at.desc()
+        ).offset(skip).limit(limit).all()
+
+    def search_projects(
+        self, db: Session, search_term: str, skip: int = 0, limit: int = 100
+    ) -> List[Project]:
+        """Search projects by title, description, or technologies."""
+        search_pattern = f"%{search_term}%"
+        return db.query(self.model).options(
+            joinedload(self.model.owner),
+            joinedload(self.model.hackathon),
+            joinedload(self.model.team)
+        ).filter(
+            self.model.is_public.is_(True),
+            (
+                self.model.title.ilike(search_pattern) |
+                self.model.description.ilike(search_pattern) |
+                self.model.technologies.ilike(search_pattern)
+            )
+        ).order_by(
             self.model.created_at.desc()
         ).offset(skip).limit(limit).all()
 

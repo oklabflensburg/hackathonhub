@@ -36,11 +36,16 @@ async def get_projects(
     user: Optional[int] = None,
     technology: Optional[str] = None,
     technologies: Optional[str] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
-    """Get all projects, optionally filtered by user or technology."""
-    if technology:
+    """Get all projects, optionally filtered by user, technology, or search."""
+    if search:
+        projects = project_service.search_projects(
+            db, search_term=search, skip=skip, limit=limit
+        )
+    elif technology:
         projects = project_service.get_projects_by_technology(
             db, technology=technology, skip=skip, limit=limit
         )

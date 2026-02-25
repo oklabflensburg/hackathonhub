@@ -12,6 +12,7 @@ from app.repositories.project_repository import (
     ProjectRepository, VoteRepository, CommentRepository
 )
 from app.repositories.user_repository import UserRepository
+from app.utils.cache import cached, invalidate_cache
 
 
 class ProjectService:
@@ -23,6 +24,7 @@ class ProjectService:
         self.comment_repo = CommentRepository()
         self.user_repo = UserRepository()
 
+    @cached(ttl=60)  # Cache for 1 minute
     def get_projects(
         self, db: Session, skip: int = 0, limit: int = 100,
         user_id: Optional[int] = None
@@ -38,6 +40,7 @@ class ProjectService:
             )
         return [ProjectSchema.model_validate(p) for p in projects]
 
+    @cached(ttl=60)  # Cache for 1 minute
     def get_projects_by_technology(
         self, db: Session, technology: str, skip: int = 0, limit: int = 100
     ) -> List[ProjectSchema]:
@@ -47,6 +50,7 @@ class ProjectService:
         )
         return [ProjectSchema.model_validate(p) for p in projects]
 
+    @cached(ttl=60)  # Cache for 1 minute
     def get_projects_by_technologies(
         self, db: Session, technologies: List[str],
         skip: int = 0, limit: int = 100
@@ -57,6 +61,7 @@ class ProjectService:
         )
         return [ProjectSchema.model_validate(p) for p in projects]
 
+    @cached(ttl=30)  # Shorter TTL for individual projects
     def get_project(
         self, db: Session, project_id: int
     ) -> Optional[ProjectSchema]:
@@ -70,6 +75,17 @@ class ProjectService:
             return ProjectSchema.model_validate(project)
         return None
 
+    @cached(ttl=60)  # Cache for 1 minute
+    def search_projects(
+        self, db: Session, search_term: str, skip: int = 0, limit: int = 100
+    ) -> List[ProjectSchema]:
+        """Search projects by title, description, or technologies."""
+        projects = self.project_repo.search_projects(
+            db, search_term=search_term, skip=skip, limit=limit
+        )
+        return [ProjectSchema.model_validate(p) for p in projects]
+
+    @invalidate_cache()
     def create_project(
         self, db: Session, project_create: ProjectCreate, creator_id: int
     ) -> ProjectSchema:
@@ -82,6 +98,7 @@ class ProjectService:
         project = self.project_repo.create(db, obj_in=project_data)
         return ProjectSchema.model_validate(project)
 
+    @invalidate_cache()
     def update_project(
         self, db: Session, project_id: int, project_update: ProjectUpdate
     ) -> Optional[ProjectSchema]:
@@ -95,6 +112,7 @@ class ProjectService:
             db, db_obj=project, obj_in=update_data)
         return ProjectSchema.model_validate(updated_project)
 
+    @invalidate_cache()
     def delete_project(self, db: Session, project_id: int) -> bool:
         """Delete a project."""
         project = self.project_repo.get(db, project_id)
