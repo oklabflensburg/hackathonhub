@@ -237,28 +237,44 @@ async def remove_team_member(
     if not team:
         raise_not_found(locale, "team")
 
-    # Verify current user has permission (owner or admin)
-    current_user_member = team_member_repository.get_by_team_and_user(
-        db, team_id, current_user.id)
-    allowed_roles = ["owner", "admin"]
-    has_permission = (current_user_member and
-                      current_user_member.role in allowed_roles)
-    if not has_permission:
-        raise_forbidden(locale, "remove_member", entity="team")
-
-    # Check if trying to remove self
-    if user_id == current_user.id:
-        raise_bad_request(locale, "remove_self", entity="team")
-
-    # Check if target user is a member
+    # Get target member first
     target_member = team_member_repository.get_by_team_and_user(
         db, team_id, user_id)
     if not target_member:
         raise_not_found(locale, "member")
 
-    # Check if trying to remove team owner (only if current user is also owner)
-    if target_member.role == "owner" and current_user_member.role != "owner":
-        raise_forbidden(locale, "remove_owner", entity="team")
+    # Determine if this is a self-removal
+    is_self_removal = user_id == current_user.id
+
+    if is_self_removal:
+        # Self-removal allowed for any member, but check if sole owner
+        if target_member.role == "owner":
+            # Count how many owners the team has
+            from sqlalchemy import func
+            owner_count = db.query(func.count(TeamMemberModel.id)).filter(
+                TeamMemberModel.team_id == team_id,
+                TeamMemberModel.role == "owner"
+            ).scalar()
+            if owner_count <= 1:
+                raise_bad_request(
+                    locale, "sole_owner_cannot_leave", entity="team"
+                )
+        # No further permission check needed for self-removal
+    else:
+        # Removing another user requires owner/admin permission
+        current_user_member = team_member_repository.get_by_team_and_user(
+            db, team_id, current_user.id)
+        allowed_roles = ["owner", "admin"]
+        has_permission = (current_user_member and
+                          current_user_member.role in allowed_roles)
+        if not has_permission:
+            raise_forbidden(locale, "remove_member", entity="team")
+
+        # Check if trying to remove team owner
+        # (only if current user is also owner)
+        if (target_member.role == "owner" and
+                current_user_member.role != "owner"):
+            raise_forbidden(locale, "remove_owner", entity="team")
 
     # Remove member
     team_member_repository.delete(db, id=target_member.id)
