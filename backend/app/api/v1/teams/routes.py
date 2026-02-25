@@ -41,6 +41,8 @@ async def get_teams(
     db: Session = Depends(get_db)
 ):
     """Get all teams."""
+    from app.domain.models.team import TeamMember
+
     if hackathon_id:
         # Get teams for specific hackathon
         teams = team_repository.get_by_hackathon(
@@ -49,6 +51,29 @@ async def get_teams(
     else:
         # Get all teams
         teams = team_repository.get_multi(db, skip=skip, limit=limit)
+
+    # Compute member counts for all teams in a single query
+    team_ids = [team.id for team in teams]
+    if team_ids:
+        # Query counts
+        from sqlalchemy import func
+        count_subq = db.query(
+            TeamMember.team_id,
+            func.count(TeamMember.id).label('member_count')
+        ).filter(
+            TeamMember.team_id.in_(team_ids)
+        ).group_by(TeamMember.team_id).subquery()
+
+        # Create mapping
+        count_results = db.query(count_subq).all()
+        count_map = {row.team_id: row.member_count for row in count_results}
+    else:
+        count_map = {}
+
+    # Attach member_count as attribute
+    for team in teams:
+        team._member_count = count_map.get(team.id, 0)
+
     return teams
 
 
@@ -60,9 +85,19 @@ async def get_team(
     locale: str = Depends(get_locale)
 ):
     """Get a specific team by ID."""
+    from app.domain.models.team import TeamMember
+    from sqlalchemy import func
+
     team = team_repository.get(db, team_id)
     if not team:
         raise_not_found(locale, "team")
+
+    # Compute member count
+    member_count = db.query(func.count(TeamMember.id)).filter(
+        TeamMember.team_id == team_id
+    ).scalar()
+    team._member_count = member_count or 0
+
     return team
 
 

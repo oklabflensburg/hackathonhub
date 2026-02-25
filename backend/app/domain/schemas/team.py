@@ -36,6 +36,7 @@ class Team(TeamBase):
     created_at: datetime
     creator: Optional["User"] = None
     hackathon: Optional["Hackathon"] = None
+    member_count: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

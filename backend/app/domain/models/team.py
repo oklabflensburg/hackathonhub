@@ -5,7 +5,6 @@ from sqlalchemy import (
     Column, Integer, String, Text, DateTime,
     ForeignKey, Boolean, UniqueConstraint
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from .base import Base
@@ -29,6 +28,18 @@ class Team(Base):
     # members = relationship("TeamMember", back_populates="team")
     # invitations = relationship("TeamInvitation", back_populates="team")
     # projects = relationship("Project", back_populates="team")
+
+    @property
+    def member_count(self) -> int:
+        """Return the number of members in this team."""
+        if hasattr(self, '_member_count'):
+            return self._member_count
+        # If members relationship is loaded, use its length
+        if self.members:
+            return len(self.members)
+        # Otherwise, we cannot compute; return 0
+        # (should be populated by queries)
+        return 0
 
 
 class TeamMember(Base):
