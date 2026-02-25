@@ -129,7 +129,7 @@ export const useVotingStore = defineStore('voting', () => {
   async function getProjectVoteStats(projectId: number) {
     try {
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      const response = await fetch(`${backendUrl}/api/projects/${projectId}/vote-stats`)
+      const response = await authStore.fetchWithAuth(`/api/projects/${projectId}/vote-stats`)
       
       if (response.ok) {
         const stats = await response.json()

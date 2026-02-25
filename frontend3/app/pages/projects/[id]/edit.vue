@@ -459,7 +459,7 @@ const fetchProject = async () => {
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
     
-    const response = await fetch(`${backendUrl}/api/projects/${projectId}`)
+    const response = await authStore.fetchWithAuth(`/api/projects/${projectId}`)
     
     if (!response.ok) {
       if (response.status === 404) {
@@ -519,7 +519,7 @@ const fetchHackathons = async () => {
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
     
-    const response = await fetch(`${backendUrl}/api/hackathons`)
+    const response = await authStore.fetchWithAuth(`/api/hackathons`)
     
     if (response.ok) {
       hackathons.value = await response.json()

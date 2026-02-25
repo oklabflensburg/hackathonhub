@@ -254,11 +254,13 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from '#imports'
 import { useUIStore } from '~/stores/ui'
+import { useAuthStore } from '~/stores/auth'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
 const { t } = useI18n()
 const route = useRoute()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 const searchQuery = ref('')
 const selectedTags = ref<string[]>([])
 const sortBy = ref('popular')
@@ -317,7 +319,7 @@ const fetchProjects = async () => {
       }
     }
     
-    const response = await fetch(`${apiUrl}/api/projects?${params.toString()}`)
+    const response = await authStore.fetchWithAuth(`/api/projects?${params.toString()}`)
     if (!response.ok) {
       throw new Error(`${t('projects.errors.failedToFetch')}: ${response.status}`)
     }
@@ -439,7 +441,7 @@ const loadMore = async () => {
       }
     }
     
-    const response = await fetch(`${apiUrl}/api/projects?${params.toString()}`)
+    const response = await authStore.fetchWithAuth(`/api/projects?${params.toString()}`)
     if (!response.ok) {
       throw new Error(`${t('projects.errors.failedToLoadMore')}: ${response.status}`)
     }

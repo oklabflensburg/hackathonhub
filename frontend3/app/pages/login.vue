@@ -186,7 +186,10 @@ const resendSuccess = ref(false)
 
 // Computed property to check if error is email verification error
 const isEmailVerificationError = computed(() => {
-  return authStore.error?.includes('Email not verified')
+  const error = authStore.error
+  if (!error) return false
+  // Check for English "Email not verified" or German "E-Mail nicht verifiziert"
+  return error.includes('Email not verified') || error.includes('E-Mail nicht verifiziert')
 })
 
 // Redirect authenticated users away from login page

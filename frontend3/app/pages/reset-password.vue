@@ -100,6 +100,7 @@ const { t } = useI18n()
 const route = useRoute()
 const config = useRuntimeConfig()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 
 const token = ref('')
 const password = ref('')

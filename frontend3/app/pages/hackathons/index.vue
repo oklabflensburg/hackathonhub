@@ -258,10 +258,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
+import { useAuthStore } from '~/stores/auth'
 import { generateHackathonPlaceholder } from '~/utils/placeholderImages'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -325,7 +327,7 @@ const fetchHackathons = async (page: number = 1) => {
       params.append('search', searchQuery.value)
     }
     
-    const response = await fetch(`${config.public.apiUrl}/api/hackathons?${params.toString()}`)
+    const response = await authStore.fetchWithAuth(`/api/hackathons?${params.toString()}`)
     if (!response.ok) {
       throw new Error(`Failed to fetch hackathons: ${response.status}`)
     }

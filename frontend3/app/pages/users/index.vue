@@ -166,6 +166,7 @@ import { useUIStore } from '~/stores/ui'
 
 const route = useRoute()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 const searchQuery = ref('')
 const sortBy = ref('newest')
 const isLoading = ref(false)
@@ -195,7 +196,7 @@ const fetchUsers = async () => {
     params.append('skip', '0')
     params.append('limit', limit.toString())
     
-    const response = await fetch(`${apiUrl}/api/users?${params.toString()}`)
+    const response = await authStore.fetchWithAuth(`/api/users?${params.toString()}`)
     if (!response.ok) {
       throw new Error(`Failed to fetch users: ${response.status}`)
     }
@@ -247,7 +248,7 @@ const fetchUserProfiles = async () => {
   try {
     const promises = users.value.map(async (user) => {
       try {
-        const response = await fetch(`${apiUrl}/api/users/${user.id}/profile`)
+        const response = await authStore.fetchWithAuth(`/api/users/${user.id}/profile`)
         if (response.ok) {
           const profile = await response.json()
           user.project_count = profile.stats?.project_count || 0
@@ -270,7 +271,7 @@ const loadMore = async () => {
   isLoading.value = true
   try {
     const skip = users.value.length
-    const response = await fetch(`${apiUrl}/api/users?skip=${skip}&limit=${limit}`)
+    const response = await authStore.fetchWithAuth(`/api/users?skip=${skip}&limit=${limit}`)
     if (!response.ok) {
       throw new Error(`Failed to load more users: ${response.status}`)
     }
@@ -322,7 +323,7 @@ const fetchUserProfilesForNewUsers = async (newUsers: any[]) => {
   try {
     const promises = newUsers.map(async (user) => {
       try {
-        const response = await fetch(`${apiUrl}/api/users/${user.id}/profile`)
+        const response = await authStore.fetchWithAuth(`/api/users/${user.id}/profile`)
         if (response.ok) {
           const profile = await response.json()
           user.project_count = profile.stats?.project_count || 0

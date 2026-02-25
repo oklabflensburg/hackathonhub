@@ -499,7 +499,7 @@ const fetchHackathon = async () => {
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
 
-    const response = await fetch(`${backendUrl}/api/hackathons/${id}`)
+    const response = await authStore.fetchWithAuth(`/api/hackathons/${id}`)
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -620,7 +620,7 @@ const fetchTeams = async () => {
 
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-    const response = await fetch(`${backendUrl}/api/hackathons/${id}/teams`)
+    const response = await authStore.fetchWithAuth(`/api/hackathons/${id}/teams`)
 
     if (!response.ok) {
       // Check if error is due to authentication and user is not authenticated

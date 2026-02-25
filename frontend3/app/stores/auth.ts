@@ -184,6 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Also show notification for better visibility
       const uiStore = useUIStore()
+const authStore = useAuthStore()
       uiStore.showError(errorMessage, 'Login Error')
 
       console.error('Email login error:', err)
@@ -359,31 +360,112 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+    // Only run on client side (matching plugin behavior)
+    if (!process.client) {
+      // During SSR, return a mock response or throw error
+      // For simplicity, we'll use regular fetch during SSR (won't have auth headers)
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
+      return fetch(fullUrl, options)
+    }
+    
     const config = useRuntimeConfig()
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
     const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
 
-    // Add auth header if token exists
-    const headers = {
-      ...options.headers,
-      ...(token.value ? { 'Authorization': `Bearer ${token.value}` } : {})
+    // Check if this is an API call to our backend (similar to plugin logic)
+    const isApiCall = fullUrl.startsWith(backendUrl) || url.startsWith('/api/')
+    
+    // Prepare headers
+    const headers = new Headers(options.headers || {})
+    
+    // Add auth header if token exists AND this is an API call
+    if (token.value && isApiCall) {
+      headers.set('Authorization', `Bearer ${token.value}`)
     }
-
-    let response = await fetch(fullUrl, { ...options, headers })
-
-    // If 401, try to refresh token and retry once
-    if (response.status === 401 && token.value) {
-      const refreshed = await refreshAccessToken()
-      if (refreshed) {
-        // Retry with new token
-        const newHeaders = {
-          ...options.headers,
-          'Authorization': `Bearer ${token.value}`
-        }
-        response = await fetch(fullUrl, { ...options, headers: newHeaders })
+    
+    // Add Content-Type for JSON requests (POST/PUT/PATCH) if not FormData
+    // Only for API calls (matching plugin behavior)
+    if (isApiCall && !headers.has('Content-Type') && options.method && ['POST', 'PUT', 'PATCH'].includes(options.method)) {
+      const isFormData = options.body instanceof FormData
+      if (!isFormData) {
+        headers.set('Content-Type', 'application/json')
       }
     }
-
+    
+    // Helper function to clone FormData
+    const cloneFormData = (formData: FormData): FormData => {
+      const newFormData = new FormData()
+      for (const [key, value] of formData.entries()) {
+        newFormData.append(key, value)
+      }
+      return newFormData
+    }
+    
+    // For authenticated API calls with FormData, we need to handle potential retry
+    // Clone FormData upfront so we have a fresh copy for retry if needed
+    let requestBody = options.body
+    let hasClonedFormData = false
+    
+    if (isApiCall && token.value && options.body instanceof FormData) {
+      // Clone FormData to preserve it for potential retry
+      requestBody = cloneFormData(options.body as FormData)
+      hasClonedFormData = true
+    }
+    
+    const requestOptions = { ...options, headers, body: requestBody }
+    let response = await fetch(fullUrl, requestOptions)
+    
+    // Handle token expiration (skip for refresh endpoint to avoid infinite loop)
+    // Only handle 401 for API calls (matching plugin behavior)
+    const isRefreshEndpoint = fullUrl.includes('/api/auth/refresh')
+    if (response.status === 401 && token.value && !isRefreshEndpoint && isApiCall) {
+      console.log('[fetchWithAuth] Token expired, attempting refresh for:', url)
+      
+      const refreshed = await refreshAccessToken()
+      if (refreshed) {
+        console.log('[fetchWithAuth] Token refresh successful, retrying request')
+        // Update auth header with new token
+        headers.set('Authorization', `Bearer ${token.value}`)
+        
+        // Prepare body for retry
+        let retryBody = options.body
+        if (options.body instanceof FormData) {
+          if (hasClonedFormData) {
+            // We already cloned the FormData for the first request
+            // The clone was consumed, so we need to clone from the original again
+            try {
+              retryBody = cloneFormData(options.body as FormData)
+            } catch (err) {
+              console.error('[fetchWithAuth] Failed to clone FormData for retry:', err)
+              // If original FormData is consumed, we can't retry
+              return response
+            }
+          } else {
+            // FormData wasn't cloned upfront (edge case: token existed but we didn't clone)
+            // Try to clone now
+            try {
+              retryBody = cloneFormData(options.body as FormData)
+            } catch (err) {
+              console.error('[fetchWithAuth] Failed to clone FormData for retry:', err)
+              return response
+            }
+          }
+        }
+        
+        const retryOptions = { ...options, headers, body: retryBody }
+        response = await fetch(fullUrl, retryOptions)
+        
+        // Check if retry also failed
+        if (response.status === 401) {
+          console.warn('[fetchWithAuth] Request still unauthorized after token refresh')
+        }
+      } else {
+        console.warn('[fetchWithAuth] Token refresh failed')
+      }
+    }
+    
     return response
   }
 

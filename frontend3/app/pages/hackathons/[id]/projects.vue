@@ -194,11 +194,11 @@ const fetchProjects = async () => {
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
 
     // First, try to get projects for this specific hackathon
-    const response = await fetch(`${backendUrl}/api/projects?hackathon_id=${id}`)
+    const response = await authStore.fetchWithAuth(`/api/projects?hackathon_id=${id}`)
 
     if (!response.ok) {
       // If no hackathon-specific endpoint, get all projects
-      const allResponse = await fetch(`${backendUrl}/api/projects`)
+      const allResponse = await authStore.fetchWithAuth(`/api/projects`)
       if (!allResponse.ok) {
         throw new Error(`Failed to fetch projects: ${allResponse.status}`)
       }
@@ -387,7 +387,7 @@ const voteForProject = async (projectId: number) => {
 const fetchProjectVoteStats = async (projectId: number) => {
   try {
     const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-    const response = await fetch(`${backendUrl}/api/projects/${projectId}/vote-stats`)
+    const response = await authStore.fetchWithAuth(`/api/projects/${projectId}/vote-stats`)
     
     if (response.ok) {
       const stats = await response.json()

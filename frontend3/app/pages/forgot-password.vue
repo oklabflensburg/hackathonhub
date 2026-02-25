@@ -66,6 +66,7 @@ import { useUIStore } from '~/stores/ui'
 const { t } = useI18n()
 const config = useRuntimeConfig()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 
 const email = ref('')
 const isLoading = ref(false)
