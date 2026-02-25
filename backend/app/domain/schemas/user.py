@@ -3,7 +3,7 @@ User-related Pydantic schemas.
 """
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 
@@ -11,6 +11,11 @@ if TYPE_CHECKING:
     from app.domain.schemas.team import TeamMember
     from app.domain.schemas.project import Project, Vote, Comment
     from app.domain.schemas.hackathon import HackathonRegistration
+
+
+def is_base64_data_url(value: str) -> bool:
+    """Check if a string is a base64 data URL (data:image/...;base64,...)."""
+    return value.startswith('data:image/') and 'base64,' in value
 
 
 class UserBase(BaseModel):
@@ -21,6 +26,18 @@ class UserBase(BaseModel):
     bio: Optional[str] = None
     location: Optional[str] = None
     company: Optional[str] = None
+
+    @field_validator('avatar_url')
+    @classmethod
+    def validate_avatar_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if is_base64_data_url(v):
+            raise ValueError(
+                'Base64 data URLs are not allowed for avatar_url. '
+                'Please upload the file via the upload endpoint.'
+            )
+        return v
 
 
 class UserCreate(UserBase):
@@ -63,6 +80,18 @@ class UserUpdate(BaseModel):
     bio: Optional[str] = None
     location: Optional[str] = None
     company: Optional[str] = None
+
+    @field_validator('avatar_url')
+    @classmethod
+    def validate_avatar_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if is_base64_data_url(v):
+            raise ValueError(
+                'Base64 data URLs are not allowed for avatar_url. '
+                'Please upload the file via the upload endpoint.'
+            )
+        return v
 
 
 class UserRegister(BaseModel):

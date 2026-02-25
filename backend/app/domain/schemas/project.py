@@ -3,12 +3,17 @@ Project Pydantic schemas.
 """
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 if TYPE_CHECKING:
     from .user import User
     from .team import Team
     from .hackathon import Hackathon
+
+
+def is_base64_data_url(value: str) -> bool:
+    """Check if a string is a base64 data URL (data:image/...;base64,...)."""
+    return value.startswith('data:image/') and 'base64,' in value
 
 
 class ProjectBase(BaseModel):
@@ -22,6 +27,18 @@ class ProjectBase(BaseModel):
     hackathon_id: Optional[int] = None
     team_id: Optional[int] = None
     image_path: Optional[str] = None
+
+    @field_validator('image_path')
+    @classmethod
+    def validate_image_path(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if is_base64_data_url(v):
+            raise ValueError(
+                'Base64 data URLs are not allowed for image_path. '
+                'Please upload the file via the upload endpoint.'
+            )
+        return v
 
 
 class ProjectCreate(ProjectBase):
@@ -39,6 +56,18 @@ class ProjectUpdate(BaseModel):
     hackathon_id: Optional[int] = None
     team_id: Optional[int] = None
     image_path: Optional[str] = None
+
+    @field_validator('image_path')
+    @classmethod
+    def validate_image_path(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if is_base64_data_url(v):
+            raise ValueError(
+                'Base64 data URLs are not allowed for image_path. '
+                'Please upload the file via the upload endpoint.'
+            )
+        return v
 
 
 class Project(ProjectBase):

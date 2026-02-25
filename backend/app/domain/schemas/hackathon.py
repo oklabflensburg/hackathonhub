@@ -3,10 +3,15 @@ Hackathon Pydantic schemas.
 """
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 if TYPE_CHECKING:
     from app.domain.schemas.user import User
+
+
+def is_base64_data_url(value: str) -> bool:
+    """Check if a string is a base64 data URL (data:image/...;base64,...)."""
+    return value.startswith('data:image/') and 'base64,' in value
 
 
 class HackathonBase(BaseModel):
@@ -30,6 +35,18 @@ class HackathonBase(BaseModel):
     rules: Optional[str] = None
     organizers: Optional[str] = None
     prize_pool: Optional[str] = None
+
+    @field_validator('image_url', 'banner_path')
+    @classmethod
+    def validate_image_fields(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if is_base64_data_url(v):
+            raise ValueError(
+                'Base64 data URLs are not allowed for image fields. '
+                'Please upload the file via the upload endpoint.'
+            )
+        return v
 
 
 class HackathonCreate(HackathonBase):
@@ -57,6 +74,18 @@ class HackathonUpdate(BaseModel):
     rules: Optional[str] = None
     organizers: Optional[str] = None
     prize_pool: Optional[str] = None
+
+    @field_validator('image_url', 'banner_path')
+    @classmethod
+    def validate_image_fields(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if is_base64_data_url(v):
+            raise ValueError(
+                'Base64 data URLs are not allowed for image fields. '
+                'Please upload the file via the upload endpoint.'
+            )
+        return v
 
 
 class Hackathon(HackathonBase):

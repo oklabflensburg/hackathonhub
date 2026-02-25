@@ -43,7 +43,14 @@ Successfully refactored the image upload system to eliminate base64 blob storage
   - Preserves external URLs (http/https)
   - Interactive confirmation for safety
 
-### 4. Architecture Benefits
+### 4. Backend Validation
+- **Added Pydantic validators** to all image fields (`image_path`, `image_url`, `banner_path`, `avatar_url`):
+  - Automatically reject base64 data URLs with clear error messages
+  - Ensure only file paths or external URLs are accepted
+  - Validators are applied to both create and update schemas
+- **Prevents accidental storage** of base64 data via API requests
+
+### 5. Architecture Benefits
 - **Eliminated database bloat**: No more 33% size increase from base64 encoding
 - **Improved performance**: Smaller database, faster API responses
 - **Scalable**: Easy to migrate to cloud storage (S3, GCS) later
@@ -61,8 +68,11 @@ Successfully refactored the image upload system to eliminate base64 blob storage
 
 ### Modified Files:
 1. `backend/main.py` - Added upload endpoint and static file serving
-2. `frontend3/app/components/HackathonEditForm.vue` - Refactored image upload
-3. `frontend3/app/pages/create.vue` - Refactored project/hackathon uploads
+2. `backend/app/domain/schemas/project.py` - Added base64 validation for image_path
+3. `backend/app/domain/schemas/hackathon.py` - Added base64 validation for image_url and banner_path
+4. `backend/app/domain/schemas/user.py` - Added base64 validation for avatar_url
+5. `frontend3/app/components/HackathonEditForm.vue` - Refactored image upload
+6. `frontend3/app/pages/create.vue` - Refactored project/hackathon uploads
 
 ## Directory Structure
 ```
