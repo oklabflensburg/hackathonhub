@@ -253,11 +253,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { format } from 'date-fns'
+import { resolveImageUrl } from '~/utils/imageUrl'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 
 const authStore = useAuthStore()
+const config = useRuntimeConfig()
 const uiStore = useUIStore()
 const { t } = useI18n()
 const loading = ref(true)
@@ -320,7 +322,9 @@ const fetchMyProjects = async () => {
         ...project,
         name: project.title, // map title to name for template
         hackathon_name: project.hackathon?.name || 'Hackathon',
-        image: project.image_path || generatePlaceholderImage(project.id || 0, project.title || 'Project'),
+        image: project.image_path
+          ? resolveImageUrl(project.image_path, config.public.apiUrl || 'http://localhost:8000')
+          : generatePlaceholderImage(project.id || 0, project.title || 'Project'),
         technologiesArray: project.technologies
           ? project.technologies.split(',').map((tech: string) => tech.trim()).filter((tech: string) => tech.length > 0)
           : []
