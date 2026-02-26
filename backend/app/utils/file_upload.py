@@ -4,8 +4,10 @@ File upload utility for handling file uploads in the application.
 import uuid
 import logging
 from pathlib import Path
+from io import BytesIO
 from fastapi import UploadFile, status
 import shutil
+from PIL import Image
 
 from app.core.config import settings
 from app.i18n.helpers import raise_i18n_http_exception
@@ -48,6 +50,7 @@ class FileUploadService:
             "hackathon": "hackathons",
             "avatar": "avatars"
         }
+        self.max_image_dimension = 1080
 
     def _is_writable(self, path: Path) -> bool:
         """Check if a directory is writable"""
@@ -115,8 +118,7 @@ class FileUploadService:
 
         # Save file
         try:
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            self._save_resized_image(file, file_path, file_extension)
         except Exception as e:
             raise_i18n_http_exception(
                 locale=locale,
@@ -127,6 +129,50 @@ class FileUploadService:
 
         # Return relative path
         return str(file_path.relative_to(self.upload_dir))
+
+    def _save_resized_image(
+        self,
+        file: UploadFile,
+        file_path: Path,
+        file_extension: str
+    ) -> None:
+        """Save an uploaded image, resizing to max 1080px while preserving ratio."""
+        if file_extension == ".gif":
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            return
+
+        file.file.seek(0)
+        image_bytes = file.file.read()
+        file.file.seek(0)
+
+        with Image.open(BytesIO(image_bytes)) as image:
+            width, height = image.size
+            if max(width, height) <= self.max_image_dimension:
+                with open(file_path, "wb") as buffer:
+                    buffer.write(image_bytes)
+                return
+
+            resized_image = image.copy()
+            resized_image.thumbnail(
+                (self.max_image_dimension, self.max_image_dimension),
+                Image.Resampling.LANCZOS
+            )
+
+            format_mapping = {
+                ".jpg": "JPEG",
+                ".jpeg": "JPEG",
+                ".png": "PNG",
+                ".webp": "WEBP"
+            }
+            image_format = format_mapping.get(file_extension, image.format)
+            save_kwargs = {"format": image_format}
+            if image_format == "JPEG":
+                if resized_image.mode in {"RGBA", "LA", "P"}:
+                    resized_image = resized_image.convert("RGB")
+                save_kwargs.update({"quality": 90, "optimize": True})
+
+            resized_image.save(file_path, **save_kwargs)
 
     def get_file_url(self, file_path: str) -> str:
         """Get URL for a file"""
