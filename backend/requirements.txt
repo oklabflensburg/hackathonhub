@@ -13,3 +13,4 @@ pydantic-settings==2.1.0
 email-validator>=2.1.1
 uuid==1.30
 PyJWT==2.8.0
+Pillow==10.4.0
