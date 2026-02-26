@@ -1,21 +1,24 @@
 """
 File upload utility for handling file uploads in the application.
 """
-import os
 import uuid
+import logging
 from pathlib import Path
 from fastapi import UploadFile, status
 import shutil
 
+from app.core.config import settings
 from app.i18n.helpers import raise_i18n_http_exception
+
+logger = logging.getLogger(__name__)
 
 
 class FileUploadService:
     def __init__(self):
-        # Try to use UPLOAD_DIR from environment, fallback to ./uploads
+        # Use UPLOAD_DIR from settings (loaded from .env)
+        # Fallback to ./uploads if not set in settings
         # If ./uploads is not writable, use /tmp/uploads
-        default_dir = "./uploads"
-        upload_dir = os.getenv("UPLOAD_DIR", default_dir)
+        upload_dir = settings.UPLOAD_DIR
 
         # Check if directory is writable
         upload_path = Path(upload_dir)
@@ -24,7 +27,11 @@ class FileUploadService:
             tmp_upload = Path("/tmp/uploads")
             tmp_upload.mkdir(parents=True, exist_ok=True)
             upload_dir = str(tmp_upload)
-            print(f"WARNING: Using fallback upload directory: {upload_dir}")
+            logger.warning(
+                f"Using fallback upload directory: {upload_dir}. "
+                f"Configured directory {settings.UPLOAD_DIR} is not "
+                "writable or not set."
+            )
 
         self.upload_dir = Path(upload_dir)
         self.max_file_size = 10 * 1024 * 1024  # 10MB
@@ -125,12 +132,12 @@ class FileUploadService:
         """Get URL for a file"""
         if not file_path:
             return ""
-        
+
         # Check if file exists
         full_path = self.upload_dir / file_path
         if not full_path.exists():
             return ""
-        
+
         # Return relative URL
         return f"/static/uploads/{file_path}"
 
