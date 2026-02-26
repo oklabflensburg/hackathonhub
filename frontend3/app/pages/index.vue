@@ -254,6 +254,7 @@ import { useUIStore } from '~/stores/ui'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder, generateHackathonPlaceholder } from '~/utils/placeholderImages'
+import { resolveImageUrl } from '~/utils/imageUrl'
 import { useRouter } from '#imports'
 
 const { t } = useI18n()
@@ -318,16 +319,7 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
         let imageUrl = ''
         const imageSource = hackathon.image_url || hackathon.banner_path
         if (imageSource) {
-          if (imageSource.startsWith('http')) {
-            // Already a full URL
-            imageUrl = imageSource
-          } else if (imageSource.startsWith('/')) {
-            // Relative path, prepend backend URL
-            imageUrl = `${apiUrl}${imageSource}`
-          } else {
-            // Assume it's a relative path without leading slash
-            imageUrl = `${apiUrl}/${imageSource}`
-          }
+          imageUrl = resolveImageUrl(imageSource, apiUrl)
         } else {
           // Generate placeholder image for hackathon
           imageUrl = generateHackathonPlaceholder({
@@ -354,16 +346,7 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
         // Handle project image URL
         let imageUrl = ''
         if (project.image_path) {
-          if (project.image_path.startsWith('http')) {
-            // Already a full URL
-            imageUrl = project.image_path
-          } else if (project.image_path.startsWith('/')) {
-            // Relative path, prepend backend URL
-            imageUrl = `${apiUrl}${project.image_path}`
-          } else {
-            // Assume it's a relative path without leading slash
-            imageUrl = `${apiUrl}/${project.image_path}`
-          }
+          imageUrl = resolveImageUrl(project.image_path, apiUrl)
         } else {
           // Generate placeholder image for project
           imageUrl = generateProjectPlaceholder({

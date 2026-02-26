@@ -279,6 +279,7 @@ import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
+import { resolveImageUrl } from '~/utils/imageUrl'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -436,7 +437,7 @@ const fetchProjects = async () => {
               project.status === 'finalist' ? 'Finalist' : 'Submitted',
        description: project.description || t('common.noDescription'),
        tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
-        image: project.image_path ? project.image_path : generateProjectPlaceholder({
+        image: project.image_path ? resolveImageUrl(project.image_path, config.public.apiUrl || 'http://localhost:8000') : generateProjectPlaceholder({
           id: project.id,
           title: project.title
         }),
@@ -553,7 +554,7 @@ const loadMore = async () => {
               project.status === 'finalist' ? 'Finalist' : 'Submitted',
        description: project.description || t('common.noDescription'),
       tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
-        image: project.image_path ? project.image_path : generateProjectPlaceholder({
+        image: project.image_path ? resolveImageUrl(project.image_path, config.public.apiUrl || 'http://localhost:8000') : generateProjectPlaceholder({
           id: project.id,
           title: project.title
         }),

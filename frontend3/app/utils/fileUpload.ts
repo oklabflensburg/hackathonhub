@@ -3,6 +3,7 @@
  */
 
 import { useAuthStore } from '~/stores/auth'
+import { normalizeUploadPathForApi } from '~/utils/imageUrl'
 
 export interface UploadResponse {
   file_path: string
@@ -75,7 +76,11 @@ export async function uploadFile(
       )
     }
 
-    return await response.json()
+    const payload = await response.json()
+    return {
+      ...payload,
+      url: normalizeUploadPathForApi(payload?.url) || ''
+    }
   } catch (error) {
     if (error instanceof Error) {
       throw error

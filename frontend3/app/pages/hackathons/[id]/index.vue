@@ -411,6 +411,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import HackathonEditForm from '~/components/HackathonEditForm.vue'
+import { resolveImageUrl } from '~/utils/imageUrl'
 
 const route = useRoute()
 const id = route.params.id as string
@@ -550,15 +551,7 @@ const fetchHackathon = async () => {
     // Transform image URL to use backend API URL if needed
     let image_url = apiData.image_url || null
     if (image_url) {
-      if (image_url.startsWith('http')) {
-        // Already a full URL, keep as is
-      } else if (image_url.startsWith('/')) {
-        // Relative path, prepend backend URL
-        image_url = `${backendUrl}${image_url}`
-      } else {
-        // Assume it's a relative path without leading slash
-        image_url = `${backendUrl}/${image_url}`
-      }
+      image_url = resolveImageUrl(image_url, backendUrl)
     }
 
     hackathon.value = {
@@ -782,15 +775,7 @@ const editHackathon = async () => {
     // Transform image URL to use backend API URL if needed
     let image_url = apiData.image_url || ''
     if (image_url) {
-      if (image_url.startsWith('http')) {
-        // Already a full URL, keep as is
-      } else if (image_url.startsWith('/')) {
-        // Relative path, prepend backend URL
-        image_url = `${backendUrl}${image_url}`
-      } else {
-        // Assume it's a relative path without leading slash
-        image_url = `${backendUrl}/${image_url}`
-      }
+      image_url = resolveImageUrl(image_url, backendUrl)
     }
 
     // Initialize edit form with fresh API data

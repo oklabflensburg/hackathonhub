@@ -588,6 +588,7 @@ import { useUIStore } from '~/stores/ui'
 import VoteButtons from '~/components/VoteButtons.vue'
 import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
+import { resolveImageUrl } from '~/utils/imageUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -624,7 +625,7 @@ const projectImage = computed(() => {
       title: project.value?.title || 'Project'
     })
   }
-  return project.value.image_path
+  return resolveImageUrl(project.value.image_path, useRuntimeConfig().public.apiUrl || 'http://localhost:8000')
 })
 
 const canEditProject = computed(() => {
