@@ -43,106 +43,23 @@
 
     <!-- Projects Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="project in filteredProjects" :key="project.id" class="card-hover group">
-        <!-- Project Image -->
-        <div class="relative h-48 mb-4 rounded-xl overflow-hidden">
-          <img :src="project.image" :alt="project.name"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-          <div class="absolute top-4 right-4">
-            <span :class="[
-              'badge',
-              project.status === 'Winner' ? 'badge-success' :
-                project.status === 'Finalist' ? 'badge-warning' :
-                  'badge-primary'
-            ]">
-              {{ project.status }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Project Details -->
-        <div class="space-y-4">
-          <div>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ project.name }}</h3>
-            <p class="text-gray-600 dark:text-gray-400 text-sm">
-              {{ project.description }}
-            </p>
-          </div>
-
-          <!-- Team -->
-          <div class="flex items-center space-x-2">
-            <div class="flex -space-x-2">
-              <div v-for="member in project.team.slice(0, 3)" :key="member.id"
-                class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                <span class="text-xs font-medium text-primary-600 dark:text-primary-300">
-                  {{ member.name.charAt(0) }}
-                </span>
-              </div>
-              <div v-if="project.team.length > 3"
-                class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center">
-                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  +{{ project.team.length - 3 }}
-                </span>
-              </div>
-            </div>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-              {{ project.team.length }} member{{ project.team.length !== 1 ? 's' : '' }}
-            </span>
-          </div>
-
-          <!-- Tech Stack -->
-          <div class="flex flex-wrap gap-2">
-            <span v-for="tech in project.techStack.slice(0, 3)" :key="tech" class="badge badge-primary text-xs">
-              {{ tech }}
-            </span>
-            <span v-if="project.techStack.length > 3" class="text-xs text-gray-500 dark:text-gray-400">
-              +{{ project.techStack.length - 3 }}
-            </span>
-          </div>
-
-          <!-- Stats -->
-          <div class="grid grid-cols-3 gap-4 py-4 border-t border-gray-100 dark:border-gray-800">
-            <div class="text-center">
-              <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.votes }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projects.votes') }}</div>
-            </div>
-            <div class="text-center">
-              <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.comments }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projects.comments') }}</div>
-            </div>
-            <div class="text-center">
-              <div class="text-xl font-bold text-gray-900 dark:text-white">{{ project.views }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projects.views') }}</div>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
-            <div class="flex space-x-2">
-              <button @click="viewProject(project.id)" class="btn btn-primary px-4 py-2 text-sm">
-                {{ $t('hackathons.projects.viewDetails') }}
-              </button>
-              <!-- Edit button for project owner or team members -->
-              <button v-if="canEditProject(project)" @click="editProject(project)"
-                class="btn btn-outline px-4 py-2 text-sm flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                {{ $t('common.edit') }}
-              </button>
-            </div>
-            <button @click="voteForProject(project.id)" class="btn btn-outline px-4 py-2 text-sm flex items-center"
-              :class="{ 'text-primary-600 border-primary-600': project.hasVoted }">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-              </svg>
-              {{ project.hasVoted ? $t('hackathons.projects.voted') : $t('hackathons.projects.vote') }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <HackathonProjectCard
+        v-for="project in filteredProjects"
+        :key="project.id"
+        :project="project"
+        :can-edit="canEditProject(project)"
+        :labels="{
+          votes: $t('projects.stats.votes'),
+          comments: $t('projects.stats.comments'),
+          views: $t('projects.stats.views'),
+          view: $t('projects.viewProject'),
+          vote: $t('votes.vote'),
+          edit: $t('projects.editProject')
+        }"
+        @view="viewProject"
+        @vote="voteForProject"
+        @edit="editProject"
+      />
     </div>
 
     <!-- Empty State -->
@@ -172,6 +89,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
+import HackathonProjectCard from '~/components/hackathons/HackathonProjectCard.vue'
 
 const route = useRoute()
 const config = useRuntimeConfig()
