@@ -25,65 +25,11 @@
 
     <!-- Project Details -->
     <div v-else-if="project" class="max-w-6xl mx-auto px-0 sm:px-2 md:px-4 lg:px-6">
-      <!-- Project Header -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ project.title }}</h1>
-            <div class="flex items-center space-x-4 mt-2">
-              <div class="flex items-center space-x-2">
-                <NuxtLink v-if="project.owner" :to="`/users/${project.owner.id}`"
-                  class="flex items-center space-x-2 hover:opacity-90 transition-opacity">
-                  <div
-                    class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                    <img v-if="project.owner?.avatar_url" :src="project.owner.avatar_url" :alt="project.owner.username"
-                      class="w-full h-full object-cover" />
-                    <span v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {{ project.owner?.username?.charAt(0)?.toUpperCase() || 'U' }}
-                    </span>
-                  </div>
-                  <span class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">{{
-                    project.owner?.username || 'Unknown' }}</span>
-                </NuxtLink>
-                <div v-else class="flex items-center space-x-2">
-                  <div
-                    class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">U</span>
-                  </div>
-                  <span class="text-gray-600 dark:text-gray-400">Unknown</span>
-                </div>
-              </div>
-              <span class="text-gray-500 dark:text-gray-500">•</span>
-              <span class="text-gray-600 dark:text-gray-400">{{ formatDate(project.created_at) }}</span>
-            </div>
-          </div>
-
-          <!-- Vote Buttons -->
-          <div v-if="authStore.isAuthenticated">
-            <VoteButtons :project-id="project.id" />
-          </div>
-        </div>
-
-        <!-- Project Status -->
-        <div class="flex items-center space-x-4">
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" :class="{
-            'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300': project.status === 'active',
-            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300': project.status === 'completed',
-            'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300': project.status === 'archived'
-          }">
-            {{ project.status || 'active' }}
-          </span>
-
-          <NuxtLink v-if="project.hackathon" :to="`/hackathons/${project.hackathon.id}`"
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            {{ project.hackathon.name }}
-          </NuxtLink>
-        </div>
-      </div>
+      <ProjectHeader
+        :project="project"
+        :show-voting="authStore.isAuthenticated"
+        :format-date="formatDate"
+      />
 
       <!-- Project Content -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -101,62 +47,18 @@
               <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ project.description }}</p>
             </div>
           </div>
-
-          <!-- Technologies -->
-          <div v-if="projectTechnologies.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">{{ t('projects.detail.technologies') }}
-            </h2>
-            <div class="flex flex-wrap gap-3">
-              <NuxtLink v-for="tech in projectTechnologies" :key="tech"
-                :to="`/projects?technology=${encodeURIComponent(tech)}`"
-                class="px-4 py-2 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-300 rounded-lg text-sm font-medium hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors">
-                {{ tech }}
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Links -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">{{ t('projects.detail.links') }}</h2>
-            <div class="space-y-4">
-              <a v-if="project.repository_url" :href="project.repository_url" target="_blank"
-                class="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                  <path
-                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                </svg>
-                <div class="flex-1">
-                  <p class="font-medium text-gray-900 dark:text-white">{{ t('projects.details.githubRepository') }}</p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ project.repository_url }}</p>
-                </div>
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-
-              <a v-if="project.live_url" :href="project.live_url" target="_blank"
-                class="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor"
-                  viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-                <div class="flex-1">
-                  <p class="font-medium text-gray-900 dark:text-white">{{ t('projects.details.liveDemo') }}</p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ project.live_url }}</p>
-                </div>
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-
-              <div v-if="!project.repository_url && !project.live_url" class="text-center py-4">
-                <p class="text-gray-500 dark:text-gray-400">No links provided for this project</p>
-              </div>
-            </div>
-          </div>
+          <TechnologyTags
+            :technologies="projectTechnologies"
+            :title="t('projects.detail.technologies')"
+          />
+          <ProjectLinks
+            :title="t('projects.detail.links')"
+            :repository-label="t('projects.details.githubRepository')"
+            :live-label="t('projects.details.liveDemo')"
+            :empty-label="'No links provided for this project'"
+            :repository-url="project.repository_url"
+            :live-url="project.live_url"
+          />
 
           <!-- Comments Section -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
@@ -389,142 +291,39 @@
 
         <!-- Sidebar -->
         <div class="space-y-6">
-          <!-- Stats Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">{{ t('projects.detail.projectStats') }}
-            </h2>
-            <div class="flex flex-wrap justify-between gap-6">
-              <div class="text-center flex-1 min-w-[120px]">
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ project.upvote_count || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ t('projects.detail.upvotes') }}</p>
-              </div>
-              <div class="text-center flex-1 min-w-[120px]">
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ project.downvote_count || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ t('projects.detail.downvotes') }}</p>
-              </div>
-              <div class="text-center flex-1 min-w-[120px]">
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ project.vote_score || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ t('projects.detail.totalScore') }}</p>
-              </div>
-              <div class="text-center flex-1 min-w-[120px]">
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ project.comment_count || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ t('projects.detail.comments') }}</p>
-              </div>
-              <div class="text-center flex-1 min-w-[120px]">
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ project.view_count || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ t('projects.detail.views') }}</p>
-              </div>
-            </div>
-          </div>
+          <ProjectStats
+            :title="t('projects.detail.projectStats')"
+            :upvotes="project.upvote_count || 0"
+            :downvotes="project.downvote_count || 0"
+            :score="project.vote_score || 0"
+            :comments="project.comment_count || 0"
+            :views="project.view_count || 0"
+            :labels="{
+              upvotes: t('projects.detail.upvotes'),
+              downvotes: t('projects.detail.downvotes'),
+              score: t('projects.detail.totalScore'),
+              comments: t('projects.detail.comments'),
+              views: t('projects.detail.views')
+            }"
+          />
 
-          <!-- Creator Info -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">{{ t('projects.detail.creator') }}</h2>
-            <div class="flex items-center space-x-3">
-              <div
-                class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                <img v-if="project.owner?.avatar_url || project.team?.creator?.avatar_url"
-                  :src="project.owner?.avatar_url || project.team?.creator?.avatar_url"
-                  :alt="project.owner?.username || project.team?.creator?.username"
-                  class="w-full h-full object-cover" />
-                <span v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ (project.owner?.username || project.team?.creator?.username || 'U').charAt(0).toUpperCase() }}
-                </span>
-              </div>
-              <div>
-                <NuxtLink v-if="project.owner?.id || project.team?.creator?.id"
-                  :to="`/users/${project.owner?.id || project.team?.creator?.id}`"
-                  class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                  {{ project.owner?.username || project.team?.creator?.username || 'Unknown' }}
-                </NuxtLink>
-                <p v-else class="font-medium text-gray-900 dark:text-white">
-                  {{ project.owner?.username || project.team?.creator?.username || 'Unknown' }}
-                </p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Project Creator</p>
-              </div>
-            </div>
-          </div>
+          <CreatorInfo
+            :project="project"
+            :title="t('projects.detail.creator')"
+            subtitle="Project Creator"
+          />
 
-          <!-- Actions Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">{{ t('projects.detail.actions') }}</h2>
-            <div class="space-y-3">
-              <!-- Edit Project Button (for owner/members) -->
-              <NuxtLink v-if="canEditProject" :to="`/projects/${project.id}/edit`"
-                class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span>{{ t('projects.detail.editProject') }}</span>
-              </NuxtLink>
-
-              <!-- Delete Project Button (for owner only) -->
-              <button v-if="canEditProject" @click="deleteProject"
-                class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span>{{ t('projects.detail.deleteProject') }}</span>
-              </button>
-
-              <NuxtLink v-if="project.hackathon_id" :to="`/hackathons/${project.hackathon_id}`"
-                class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span>{{ t('projects.detail.viewHackathon') }}</span>
-              </NuxtLink>
-
-              <!-- Team Section -->
-              <div v-if="project.team_id" class="w-full">
-                <div class="flex items-center justify-between mb-2">
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('projects.detail.team') }}</h3>
-                  <span
-                    class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded-full">
-                    {{ t('projects.detail.teamProject') }}
-                  </span>
-                </div>
-
-                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-4">
-                  <div class="flex items-center space-x-3 mb-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
-                      <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 class="font-medium text-gray-900 dark:text-white">{{ project.team?.name || 'Team' }}</h4>
-                      <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('projects.detail.teamMembersCount', {
-                        count: project.team?.member_count || 1 }) }}</p>
-                    </div>
-                  </div>
-
-                  <NuxtLink :to="`/teams/${project.team_id}`"
-                    class="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{{ t('projects.detail.viewTeam') }}</span>
-                  </NuxtLink>
-                </div>
-              </div>
-
-              <NuxtLink to="/projects"
-                class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span>{{ t('projects.detail.backToProjects') }}</span>
-              </NuxtLink>
-            </div>
-          </div>
+          <ProjectActions
+            :project="project"
+            :can-edit="canEditProject"
+            :title="t('projects.detail.actions')"
+            :edit-label="t('projects.detail.editProject')"
+            :delete-label="t('projects.detail.deleteProject')"
+            :view-hackathon-label="t('projects.detail.viewHackathon')"
+            :view-team-label="t('projects.detail.viewTeam')"
+            :back-label="t('projects.detail.backToProjects')"
+            @delete="deleteProject"
+          />
         </div>
       </div>
     </div>
@@ -538,10 +337,15 @@ import { useRoute, useRouter } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { useVotingStore } from '~/stores/voting'
 import { useUIStore } from '~/stores/ui'
-import VoteButtons from '~/components/VoteButtons.vue'
 import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 import { resolveImageUrl } from '~/utils/imageUrl'
+import ProjectHeader from '~/components/projects/ProjectHeader.vue'
+import TechnologyTags from '~/components/projects/TechnologyTags.vue'
+import ProjectLinks from '~/components/projects/ProjectLinks.vue'
+import ProjectStats from '~/components/projects/ProjectStats.vue'
+import CreatorInfo from '~/components/projects/CreatorInfo.vue'
+import ProjectActions from '~/components/projects/ProjectActions.vue'
 
 interface CommentUser {
   name: string

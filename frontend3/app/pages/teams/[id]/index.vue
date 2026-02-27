@@ -16,61 +16,24 @@
   </div>
 
   <div v-else-if="team" class="container mx-auto px-4 py-8">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-start justify-between mb-8">
-      <div>
-        <div class="flex items-center mb-2">
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ team.name }}</h1>
-          <span
-            :class="[
-              'ml-3 px-2 py-1 text-xs font-medium rounded-full',
-              team.is_open
-                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-            ]"
-          >
-            {{ team.is_open ? t('teams.open') : t('teams.closed') }}
-          </span>
-        </div>
-        <p class="text-gray-600 dark:text-gray-400">
-          {{ t('teams.teamFor', { hackathon: '' }) }}
-          <NuxtLink 
-            v-if="team.hackathon"
-            :to="`/hackathons/${team.hackathon.id}`"
-            class="text-primary-600 dark:text-primary-400 hover:underline"
-          >
-            {{ team.hackathon.name }}
-          </NuxtLink>
-          <span v-else class="text-gray-500 dark:text-gray-400">
-            {{ t('common.unknownHackathon') }}
-          </span>
-        </p>
-      </div>
-      
-      <div class="mt-4 md:mt-0 flex space-x-3">
-        <button
-          v-if="isTeamOwner"
-          @click="editTeam"
-          class="btn btn-outline"
-        >
-          {{ t('teams.editTeam') }}
-        </button>
-        <button
-          v-if="isTeamMember"
-          @click="leaveTeam"
-          class="btn btn-outline text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-        >
-          {{ t('teams.leaveTeam') }}
-        </button>
-        <button
-          v-else-if="team.is_open && !isTeamFull"
-          @click="joinTeam"
-          class="btn btn-primary"
-        >
-          {{ t('teams.joinTeam') }}
-        </button>
-      </div>
-    </div>
+    <TeamDetailHeader
+      :team="team"
+      :is-owner="isTeamOwner"
+      :is-member="isTeamMember"
+      :is-full="isTeamFull"
+      :labels="{
+        open: t('teams.open'),
+        closed: t('teams.closed'),
+        teamFor: t('teams.teamFor', { hackathon: '' }),
+        unknownHackathon: t('common.unknownHackathon'),
+        editTeam: t('teams.editTeam'),
+        leaveTeam: t('teams.leaveTeam'),
+        joinTeam: t('teams.joinTeam')
+      }"
+      @edit="editTeam"
+      @leave="leaveTeam"
+      @join="joinTeam"
+    />
 
     <!-- Team Info -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -455,100 +418,27 @@
        </div>
 
        <!-- Right Column: Team Stats & Info -->
-      <div>
-        <!-- Team Stats -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ t('teams.teamInfo') }}</h3>
-          
-          <div class="space-y-4">
-            <div>
-               <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.created') }}</p>
-              <p class="font-medium text-gray-900 dark:text-white">{{ formatDate(team.created_at) }}</p>
-            </div>
-            
-            <div>
-               <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.hackathon') }}</p>
-               <p class="font-medium text-gray-900 dark:text-white">
-                 <NuxtLink 
-                   v-if="team.hackathon"
-                   :to="`/hackathons/${team.hackathon.id}`"
-                   class="text-primary-600 dark:text-primary-400 hover:underline"
-                 >
-                   {{ team.hackathon.name }}
-                 </NuxtLink>
-                 <span v-else class="text-gray-500 dark:text-gray-400">
-                   {{ t('teams.unknown') }}
-                 </span>
-               </p>
-            </div>
-            
-            <div>
-               <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.teamSize') }}</p>
-               <p class="font-medium text-gray-900 dark:text-white">{{ members.length }} / {{ team.max_members }} {{ t('teams.members') }}</p>
-            </div>
-            
-            <div>
-               <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.status') }}</p>
-               <p class="font-medium text-gray-900 dark:text-white">
-                 {{ team.is_open ? t('teams.openDescription') : t('teams.closedDescription') }}
-               </p>
-            </div>
-            
-             <div v-if="team.creator">
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('teams.createdBy') }}</p>
-               <div class="flex items-center mt-1">
-                 <NuxtLink 
-                   :to="`/users/${team.creator.id}`"
-                   class="flex items-center hover:opacity-90 transition-opacity"
-                 >
-                   <div class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-2 overflow-hidden">
-                     <img
-                       v-if="team.creator.avatar_url"
-                       :src="team.creator.avatar_url"
-                       :alt="team.creator.username"
-                       class="w-full h-full object-cover"
-                       @error="handleAvatarError"
-                     />
-                     <span
-                       v-else
-                       class="text-xs font-medium text-primary-600 dark:text-primary-400"
-                     >
-                       {{ team.creator.username.charAt(0).toUpperCase() }}
-                     </span>
-                   </div>
-                   <span class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">{{ team.creator.username }}</span>
-                 </NuxtLink>
-               </div>
-             </div>
-          </div>
-        </div>
-
-        <!-- Actions (for owners) -->
-        <div v-if="isTeamOwner" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ t('teams.teamManagement') }}</h3>
-          
-          <div class="space-y-3">
-            <button
-              @click="editTeam"
-              class="w-full btn btn-outline justify-start"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-               {{ t('teams.editTeamDetails') }}
-            </button>
-            
-            <button
-              @click="deleteTeam"
-              class="w-full btn btn-outline justify-start text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-               {{ t('teams.deleteTeam') }}
-            </button>
-          </div>
-        </div>
+      <div class="lg:col-span-1">
+        <TeamSidebar
+          :team="team"
+          :members="members"
+          :is-owner="isTeamOwner"
+          :labels="{
+            teamInfo: t('teams.teamInfo'),
+            hackathon: t('teams.hackathon'),
+            unknown: t('teams.unknown'),
+            teamSize: t('teams.teamSize'),
+            members: t('teams.members'),
+            status: t('teams.status'),
+            openDescription: t('teams.openDescription'),
+            closedDescription: t('teams.closedDescription'),
+            teamManagement: t('teams.teamManagement'),
+            editTeamDetails: t('teams.editTeamDetails'),
+            deleteTeam: t('teams.deleteTeam')
+          }"
+          @edit="editTeam"
+          @delete="deleteTeam"
+        />
       </div>
     </div>
   </div>
@@ -561,6 +451,8 @@ import { useTeamStore } from '~/stores/team'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
+import TeamDetailHeader from '~/components/teams/TeamDetailHeader.vue'
+import TeamSidebar from '~/components/teams/TeamSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()
