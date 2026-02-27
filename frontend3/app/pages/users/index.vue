@@ -1,108 +1,30 @@
 <template>
   <div class="space-y-8">
-    <!-- Page Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Users</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-2">
-          Browse all registered users on the platform
-        </p>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div class="relative">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search users..."
-            class="input pl-10"
-          />
-          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
-        <select v-model="sortBy" class="input">
-          <option value="newest">Newest</option>
-          <option value="name">Name</option>
-          <option value="activity">Last Active</option>
-        </select>
-      </div>
-    </div>
+    <UsersPageHeader
+      title="Users"
+      subtitle="Browse all registered users on the platform"
+      :search-query="searchQuery"
+      :sort-by="sortBy"
+      search-placeholder="Search users..."
+      newest-label="Newest"
+      name-label="Name"
+      activity-label="Last Active"
+      @update:search-query="searchQuery = $event"
+      @update:sort-by="sortBy = $event"
+    />
 
     <!-- Users Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <div
+      <UserCard
         v-for="user in filteredUsers"
         :key="user.id"
-        class="card-hover group cursor-pointer"
-        @click="$router.push(`/users/${user.id}`)"
-      >
-        <!-- User Avatar and Info -->
-        <div class="flex flex-col items-center text-center p-6">
-          <div class="relative mb-4">
-            <div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
-              <img
-                v-if="user.avatar_url"
-                :src="user.avatar_url"
-                :alt="user.name || user.username"
-                class="w-full h-full object-cover"
-              />
-              <div v-else class="text-3xl font-bold text-gray-600 dark:text-gray-400">
-                {{ userInitials(user) }}
-              </div>
-            </div>
-            <div v-if="user.is_admin" class="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-              <span class="badge badge-warning text-xs px-2 py-1">
-                Admin
-              </span>
-            </div>
-          </div>
-          
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 mb-1">
-            {{ user.name || user.username }}
-          </h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            @{{ user.username }}
-          </p>
-          
-          <!-- User Bio -->
-          <p v-if="user.bio" class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-            {{ user.bio }}
-          </p>
-          
-          <!-- User Stats -->
-          <div class="grid grid-cols-3 gap-4 w-full mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <div class="text-center">
-              <div class="text-lg font-bold text-gray-900 dark:text-white">{{ user.project_count || 0 }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Projects</div>
-            </div>
-            <div class="text-center">
-              <div class="text-lg font-bold text-gray-900 dark:text-white">{{ user.team_count || 0 }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Teams</div>
-            </div>
-            <div class="text-center">
-              <div class="text-lg font-bold text-gray-900 dark:text-white">{{ user.hackathon_count || 0 }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Hackathons</div>
-            </div>
-          </div>
-          
-          <!-- User Location/Company -->
-          <div v-if="user.location || user.company" class="flex flex-col items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 w-full">
-            <div v-if="user.location" class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {{ user.location }}
-            </div>
-            <div v-if="user.company" class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              {{ user.company }}
-            </div>
-          </div>
-        </div>
-      </div>
+        :user="user"
+        admin-label="Admin"
+        projects-label="Projects"
+        teams-label="Teams"
+        hackathons-label="Hackathons"
+        @open="(id) => $router.push(`/users/${id}`)"
+      />
     </div>
 
     <!-- Empty State -->
@@ -161,8 +83,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import UsersPageHeader from '~/components/users/UsersPageHeader.vue'
+import UserCard from '~/components/users/UserCard.vue'
 import { useRoute } from '#imports'
 import { useUIStore } from '~/stores/ui'
+import { useAuthStore } from '~/stores/auth'
 
 const route = useRoute()
 const uiStore = useUIStore()
@@ -175,8 +100,6 @@ const error = ref<string | null>(null)
 const hasMore = ref(true)
 const limit = 20
 
-const config = useRuntimeConfig()
-const apiUrl = config.public.apiUrl
 
 // Initialize search query from URL parameter
 onMounted(() => {
@@ -339,14 +262,6 @@ const fetchUserProfilesForNewUsers = async (newUsers: any[]) => {
   } catch (err) {
     console.error('Error fetching profiles for new users:', err)
   }
-}
-
-// Helper function to get user initials
-const userInitials = (user: any) => {
-  if (user.name) {
-    return user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)
-  }
-  return user.username.substring(0, 2).toUpperCase()
 }
 
 // Filtered users based on search and sort
