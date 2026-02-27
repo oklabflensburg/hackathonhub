@@ -64,99 +64,17 @@
 
     <!-- Hackathons Grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="hackathon in filteredHackathons" :key="hackathon.id"
-        class="card-hover group relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-        role="link" :aria-label="`View details for ${hackathon.name}`" tabindex="0"
-        @click="navigateToHackathon(hackathon.id)" @keydown.enter="navigateToHackathon(hackathon.id)"
-        @keydown.space="navigateToHackathon(hackathon.id)">
-        <!-- Hackathon Image -->
-        <div class="relative h-48 mb-4 rounded-xl overflow-hidden">
-          <img :src="hackathon.image" :alt="hackathon.name"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-          <div class="absolute top-4 right-4">
-            <span :class="[
-              'badge',
-              hackathon.status === 'Active' ? 'badge-success' :
-                hackathon.status === 'Upcoming' ? 'badge-warning' :
-                  hackathon.status === 'Completed' ? 'badge-info' : 'badge-primary'
-            ]">
-              {{ hackathon.status }}
-            </span>
-          </div>
-          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-            <h3 class="text-xl font-bold text-white">{{ hackathon.name }}</h3>
-          </div>
-        </div>
-
-        <!-- Hackathon Details -->
-        <div class="space-y-4">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-              <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  {{ hackathon.organization.charAt(0) }}
-                </span>
-              </div>
-              <span class="text-gray-600 dark:text-gray-400">{{ hackathon.organization }}</span>
-            </div>
-            <div v-if="hackathon.prize" class="text-right">
-              <div class="text-lg font-bold text-gray-900 dark:text-white">{{ hackathon.prize }}</div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">{{ $t('hackathons.prizePool') }}</div>
-            </div>
-          </div>
-
-          <p class="text-gray-600 dark:text-gray-400 text-sm">
-            {{ hackathon.description }}
-          </p>
-
-          <!-- Stats -->
-          <div class="grid grid-cols-3 gap-4 py-4 border-t border-gray-100 dark:border-gray-800">
-            <div class="text-center">
-              <div class="text-xl font-bold text-gray-900 dark:text-white">{{ hackathon.participants }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.participants') }}</div>
-            </div>
-            <div class="text-center">
-              <div class="text-xl font-bold text-gray-900 dark:text-white">{{ hackathon.projects }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.projectsLabel') }}</div>
-            </div>
-            <div class="text-center">
-              <div class="text-xl font-bold text-gray-900 dark:text-white">{{ hackathon.duration }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ $t('hackathons.duration') }}</div>
-            </div>
-          </div>
-
-          <!-- Dates -->
-          <div class="flex items-center justify-between text-sm">
-            <div class="flex items-center text-gray-500 dark:text-gray-400">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {{ hackathon.startDate }} - {{ hackathon.endDate }}
-            </div>
-            <div class="flex items-center space-x-2">
-              <span class="text-gray-500 dark:text-gray-400">
-                {{ hackathon.location }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
-            <div class="flex items-center space-x-2">
-              <span v-for="tag in hackathon.tags.slice(0, 2)" :key="tag" class="badge badge-primary text-xs">
-                {{ tag }}
-              </span>
-              <span v-if="hackathon.tags.length > 2" class="text-xs text-gray-500 dark:text-gray-400">
-                +{{ hackathon.tags.length - 2 }}
-              </span>
-            </div>
-            <NuxtLink :to="`/hackathons/${hackathon.id}`" class="btn btn-primary px-4 py-2 text-sm" @click.stop>
-              {{ $t('hackathons.viewDetails') }}
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
+      <HackathonListCard
+        v-for="hackathon in filteredHackathons"
+        :key="hackathon.id"
+        :hackathon="hackathon"
+        :participants-label="$t('hackathons.participants')"
+        :projects-label="$t('hackathons.projectsLabel')"
+        :duration-label="$t('hackathons.duration')"
+        :prize-pool-label="$t('hackathons.prizePool')"
+        :view-details-label="$t('hackathons.viewDetails')"
+        @open="navigateToHackathon"
+      />
     </div>
 
     <!-- Empty State -->
@@ -232,6 +150,7 @@ import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'
 import { generateHackathonPlaceholder } from '~/utils/placeholderImages'
+import HackathonListCard from '~/components/hackathons/HackathonListCard.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()

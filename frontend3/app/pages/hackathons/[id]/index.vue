@@ -19,42 +19,11 @@
 
     <!-- Hackathon details -->
     <div v-else-if="hackathon" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-      <!-- Header with image or gradient -->
-      <div class="h-48 relative">
-        <!-- Background image if available -->
-        <div v-if="hackathon.image_url" class="absolute inset-0 bg-cover bg-center"
-          :style="{ backgroundImage: `url(${hackathon.image_url})` }">
-          <div class="absolute inset-0 bg-black/40"></div>
-        </div>
-        <!-- Fallback gradient if no image -->
-        <div v-else class="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-600">
-          <div class="absolute inset-0 bg-black/20"></div>
-        </div>
-
-        <div class="relative h-full flex items-center justify-center p-8">
-          <div class="text-center">
-            <h1 class="text-4xl font-bold text-white mb-2">{{ hackathon.name }}</h1>
-            <div class="flex items-center justify-center space-x-4 text-white/90">
-              <span class="flex items-center">
-                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {{ formatDateTime(hackathon.start_date) }} - {{ formatDateTime(hackathon.end_date) }}
-              </span>
-              <span class="flex items-center">
-                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {{ hackathon.location || $t('common.virtual') }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <HackathonHero
+        :hackathon="hackathon"
+        :format-date-time="formatDateTime"
+        :virtual-label="$t('common.virtual')"
+      />
 
       <!-- Content -->
       <div class="p-8">
@@ -70,38 +39,16 @@
               </div>
             </div>
 
-            <!-- Prizes -->
-            <div class="mb-8" v-if="hackathon.prizes && hackathon.prizes.length > 0">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.prizes') }}
-              </h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div v-for="(prize, idx) in hackathon.prizes" :key="idx"
-                  class="bg-gradient-to-br from-primary-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 p-4 sm:p-5 lg:p-6 rounded-xl border border-primary-100 dark:border-gray-700">
-                  <div class="flex items-center mb-3">
-                    <div
-                      class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-3">
-                      <span class="text-primary-600 dark:text-primary-300 font-bold">{{ +idx + 1 }}</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ prize.name }}</h3>
-                  </div>
-                  <p class="text-gray-700 dark:text-gray-300">{{ prize.description }}</p>
-                  <div class="mt-3 text-primary-600 dark:text-primary-400 font-bold">
-                    {{ prize.value }}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PrizeList
+              :title="$t('hackathons.details.prizes')"
+              :prizes="hackathon.prizes || []"
+            />
 
             <!-- Rules -->
-            <div v-if="hackathon.rules">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{
-                $t('hackathons.details.rulesAndGuidelines') }}</h2>
-              <div class="bg-gray-50 dark:bg-gray-700/50 p-4 sm:p-5 lg:p-6 rounded-xl">
-                <div class="prose dark:prose-invert max-w-none">
-                  <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ hackathon.rules }}</p>
-                </div>
-              </div>
-            </div>
+            <RulesSection
+              :title="$t('hackathons.details.rulesAndGuidelines')"
+              :rules="hackathon.rules"
+            />
 
             <!-- Teams -->
             <div class="mt-8">
@@ -203,41 +150,18 @@
 
           <!-- Sidebar -->
           <div class="lg:col-span-1">
-            <!-- Stats -->
-            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 sm:p-5 lg:p-6 mb-6">
-              <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">{{
-                $t('hackathons.details.hackathonStats') }}</h3>
-              <div class="space-y-4">
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.status') }}</span>
-                  <span :class="{
-                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300': hackathon.status === 'active',
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300': hackathon.status === 'upcoming',
-                    'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300': hackathon.status === 'completed'
-                  }" class="px-3 py-1 rounded-full text-sm font-medium capitalize">
-                    {{ hackathon.status }}
-                  </span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.participants') }}</span>
-                  <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.participant_count || 0 }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.views') }}</span>
-                  <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.view_count || 0 }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.projects') }}</span>
-                  <span class="font-bold text-gray-900 dark:text-white">{{ hackathon.project_count || 0 }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600 dark:text-gray-400">{{ $t('hackathons.details.registrationDeadline')
-                    }}</span>
-                  <span class="font-bold text-gray-900 dark:text-white">{{
-                    formatDateTime(hackathon.registration_deadline) }}</span>
-                </div>
-              </div>
-            </div>
+            <HackathonStats
+              :hackathon="hackathon"
+              :title="$t('hackathons.details.hackathonStats')"
+              :format-date-time="formatDateTime"
+              :labels="{
+                status: $t('hackathons.details.status'),
+                participants: $t('hackathons.details.participants'),
+                views: $t('hackathons.details.views'),
+                projects: $t('hackathons.details.projects'),
+                registrationDeadline: $t('hackathons.details.registrationDeadline')
+              }"
+            />
 
             <!-- Location Map -->
             <div v-if="hackathon.latitude && hackathon.longitude"
@@ -258,119 +182,27 @@
               </div>
             </div>
 
-            <!-- Actions -->
-            <div class="space-y-4">
-              <div>
-                <!-- Registration section - always shown -->
-                <div v-if="hackathon.status === 'completed'">
-                  <!-- For completed hackathons, show registered status or closed message -->
-                  <div v-if="isRegistered"
-                    class="w-full p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl text-center">
-                    <div class="flex items-center justify-center text-green-600 dark:text-green-400 mb-2">
-                      <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span class="font-bold">{{ $t('hackathons.details.registered') }}</span>
-                    </div>
-                    <p class="text-sm text-green-700 dark:text-green-300">
-                      {{ $t('hackathons.details.hackathonCompleted') }}
-                    </p>
-                  </div>
-                  <div v-else
-                    class="w-full p-4 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-center">
-                    <div class="flex items-center justify-center text-gray-600 dark:text-gray-400 mb-2">
-                      <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span class="font-bold">{{ $t('hackathons.details.registrationClosed') }}</span>
-                    </div>
-                    <p class="text-sm text-gray-700 dark:text-gray-300">
-                      {{ $t('hackathons.details.hackathonCompleted') }}
-                    </p>
-                  </div>
-                </div>
-                <div v-else>
-                  <!-- For active/upcoming hackathons -->
-                  <button v-if="!isRegistered" class="w-full btn btn-primary" @click="registerForHackathon"
-                    :disabled="registrationLoading">
-                    <svg v-if="registrationLoading" class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                      <path class="opacity-75" fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    <svg v-else class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    {{ registrationLoading ? $t('hackathons.details.registering') : $t('hackathons.details.registerNow')
-                    }}
-                  </button>
-                  <div v-else
-                    class="w-full p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl text-center">
-                    <div class="flex items-center justify-center text-green-600 dark:text-green-400 mb-2">
-                      <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span class="font-bold">{{ $t('hackathons.details.registered') }}</span>
-                    </div>
-                    <p class="text-sm text-green-700 dark:text-green-300">
-                      {{ $t('hackathons.details.alreadyRegistered') }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Edit button for hackathon owner -->
-              <button v-if="isHackathonOwner" class="w-full btn btn-outline flex items-center justify-center"
-                @click="editHackathon">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                {{ $t('hackathons.details.editHackathon') }}
-              </button>
-
-              <NuxtLink :to="`/hackathons/${id}/projects`"
-                class="w-full btn btn-outline flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                {{ $t('hackathons.details.viewProjects') }}
-              </NuxtLink>
-
-              <button class="w-full btn btn-outline flex items-center justify-center" @click="shareHackathon">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                {{ $t('hackathons.details.share') }}
-              </button>
-            </div>
-
-            <!-- Organizers -->
-            <div class="mt-6" v-if="hackathon.organizers && hackathon.organizers.length > 0">
-              <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.organizers') }}
-              </h3>
-              <div class="space-y-3">
-                <div v-for="organizer in hackathon.organizers" :key="organizer.id"
-                  class="flex items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div
-                    class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-3">
-                    <span class="text-primary-600 dark:text-primary-300 font-bold">
-                      {{ organizer.name.charAt(0) }}
-                    </span>
-                  </div>
-                  <div>
-                    <p class="font-medium text-gray-900 dark:text-white">{{ organizer.name }}</p>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ organizer.role }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HackathonActions
+              :id="id"
+              :hackathon="hackathon"
+              :is-registered="isRegistered"
+              :registration-loading="registrationLoading"
+              :is-hackathon-owner="isHackathonOwner"
+              :labels="{
+                registered: $t('hackathons.details.registered'),
+                registrationClosed: $t('hackathons.details.registrationClosed'),
+                hackathonCompleted: $t('hackathons.details.hackathonCompleted'),
+                registering: $t('hackathons.details.registering'),
+                registerNow: $t('hackathons.details.registerNow'),
+                alreadyRegistered: $t('hackathons.details.alreadyRegistered'),
+                editHackathon: $t('hackathons.details.editHackathon'),
+                viewProjects: $t('hackathons.details.viewProjects'),
+                shareHackathon: $t('hackathons.details.shareHackathon')
+              }"
+              @register="registerForHackathon"
+              @edit="editHackathon"
+              @share="shareHackathon"
+            />
           </div>
         </div>
       </div>
@@ -412,6 +244,11 @@ import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import HackathonEditForm from '~/components/HackathonEditForm.vue'
 import { resolveImageUrl } from '~/utils/imageUrl'
+import HackathonHero from '~/components/hackathons/HackathonHero.vue'
+import PrizeList from '~/components/hackathons/PrizeList.vue'
+import RulesSection from '~/components/hackathons/RulesSection.vue'
+import HackathonStats from '~/components/hackathons/HackathonStats.vue'
+import HackathonActions from '~/components/hackathons/HackathonActions.vue'
 
 const route = useRoute()
 const id = route.params.id as string
