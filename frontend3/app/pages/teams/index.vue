@@ -124,128 +124,31 @@
 
     <!-- Teams Grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
+      <TeamListCard
         v-for="team in filteredTeams"
         :key="team.id"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow duration-200"
-      >
-        <div class="p-6">
-          <!-- Team Header -->
-          <div class="flex items-start justify-between mb-4">
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ team.name }}
-              </h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {{ $t('teams.inHackathon') }}: {{ team.hackathon?.name || 'Unknown' }}
-              </p>
-            </div>
-            <span
-              :class="[
-                'px-2 py-1 text-xs font-medium rounded-full',
-                team.is_open
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-              ]"
-            >
-              {{ team.is_open ? $t('teams.open') : $t('teams.closed') }}
-            </span>
-          </div>
-
-          <!-- Team Description -->
-          <p class="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-            {{ team.description || $t('teams.noDescription') }}
-          </p>
-
-          <!-- Team Stats -->
-          <div class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4">
-            <div class="flex items-center">
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{{ team.member_count || 0 }} / {{ team.max_members }} {{ $t('teams.members') }}</span>
-            </div>
-            <div class="flex items-center">
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>{{ formatDate(team.created_at) }}</span>
-            </div>
-          </div>
-
-          <!-- Team Members Preview -->
-          <div v-if="getTeamMembers(team.id)?.length > 0" class="mb-4">
-            <div class="flex items-center mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {{ $t('teams.teamMembers') }}
-              </span>
-            </div>
-            <div class="flex -space-x-2">
-               <div
-                v-for="member in getTeamMembers(team.id).slice(0, 5)"
-                :key="member.id"
-                class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 border-2 border-white dark:border-gray-800 flex items-center justify-center overflow-hidden"
-                :title="member.user?.name || member.user?.username"
-              >
-                <img
-                  v-if="member.user?.avatar_url"
-                  :src="member.user.avatar_url"
-                  :alt="member.user?.name || member.user?.username"
-                  class="w-full h-full object-cover"
-                  @error="handleAvatarError"
-                />
-                <span
-                  v-else
-                  class="text-xs font-medium text-primary-600 dark:text-primary-400"
-                >
-                  {{ (member.user?.name || member.user?.username || '?').charAt(0).toUpperCase() }}
-                </span>
-              </div>
-              <div
-                v-if="getTeamMembers(team.id).length > 5"
-                class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center"
-              >
-                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  +{{ getTeamMembers(team.id).length - 5 }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
-            <button
-              @click="navigateTo(`/teams/${team.id}`)"
-              class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
-            >
-              {{ $t('teams.viewDetails') }}
-            </button>
-            
-            <div class="flex items-center space-x-2">
-              <button
-                v-if="isTeamMember(team.id)"
-                @click="leaveTeam(team.id)"
-                class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                {{ $t('teams.leaveTeam') }}
-              </button>
-              <button
-                v-else-if="team.is_open && !isTeamFull(team)"
-                @click="joinTeam(team.id)"
-                class="text-sm px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700"
-              >
-                {{ $t('teams.joinTeam') }}
-              </button>
-              <span
-                v-else-if="isTeamFull(team)"
-                class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-              >
-                {{ $t('teams.teamFull') }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+        :team="team"
+        :members="getTeamMembers(team.id)"
+        :is-member="isTeamMember(team.id)"
+        :is-full="isTeamFull(team)"
+        :format-date="formatDate"
+        :labels="{
+          inHackathon: $t('teams.inHackathon'),
+          unknown: 'Unknown',
+          open: $t('teams.open'),
+          closed: $t('teams.closed'),
+          noDescription: $t('teams.noDescription'),
+          members: $t('teams.members'),
+          viewDetails: $t('teams.viewDetails'),
+          leaveTeam: $t('teams.leaveTeam'),
+          joinTeam: $t('teams.joinTeam'),
+          teamFull: $t('teams.teamFull')
+        }"
+        @view="(id) => navigateTo(`/teams/${id}`)"
+        @join="joinTeam"
+        @leave="leaveTeam"
+        @avatar-error="handleAvatarError"
+      />
     </div>
 
     <!-- Pagination -->
@@ -280,6 +183,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useTeamStore } from '~/stores/team'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
+import TeamListCard from '~/components/teams/TeamListCard.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -340,7 +244,7 @@ function formatDate(dateString: string) {
 }
 
 function handleCreateTeamClick() {
-  if (!isAuthenticated) {
+  if (!isAuthenticated.value) {
     uiStore.showError('You must be logged in to create a team', 'Authentication Required')
     navigateTo('/login')
     return
