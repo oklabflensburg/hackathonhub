@@ -1,31 +1,11 @@
 <template>
   <div class="space-y-8">
-    <!-- Hero Section -->
-    <section
-      class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-500 to-purple-600 p-8 md:p-12 text-white">
-      <div class="relative z-10 max-w-3xl">
-        <h1 class="text-4xl md:text-5xl font-bold mb-4">
-          {{ t('home.hero.title') }}
-        </h1>
-        <p class="text-xl mb-8 opacity-90">
-          {{ t('home.hero.description') }}
-        </p>
-        <div class="flex flex-wrap gap-4">
-          <NuxtLink to="/hackathons" class="btn bg-white text-primary-600 hover:bg-gray-100">
-            {{ t('home.hero.exploreHackathons') }}
-          </NuxtLink>
-          <NuxtLink to="/create" class="btn bg-transparent border-2 border-white hover:bg-white/10">
-            {{ t('home.hero.createProject') }}
-          </NuxtLink>
-        </div>
-      </div>
-      <div
-        class="absolute top-0 right-0 w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 bg-white/10 rounded-full -translate-y-16 sm:-translate-y-24 md:-translate-y-32 translate-x-16 sm:translate-x-24 md:translate-x-32">
-      </div>
-      <div
-        class="absolute bottom-0 left-0 w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 bg-white/5 rounded-full translate-y-24 sm:translate-y-32 md:translate-y-48 -translate-x-24 sm:-translate-x-32 md:-translate-x-48">
-      </div>
-    </section>
+    <HomeHero
+      :title="t('home.hero.title')"
+      :description="t('home.hero.description')"
+      :explore-label="t('home.hero.exploreHackathons')"
+      :create-label="t('home.hero.createProject')"
+    />
 
     <!-- Loading and Error States -->
     <div v-if="loading" class="space-y-8">
@@ -66,45 +46,14 @@
     </div>
 
     <div v-if="!loading && !error">
-      <!-- Stats Section -->
-      <section class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-        <NuxtLink 
-          to="/hackathons"
-          class="card text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          role="link"
-          tabindex="0"
-        >
-          <div class="text-3xl font-bold text-primary-600 dark:text-primary-400 mb-2">{{ stats.activeHackathons }}</div>
-          <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.activeHackathons') }}</div>
-        </NuxtLink>
-        <NuxtLink 
-          to="/projects"
-          class="card text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          role="link"
-          tabindex="0"
-        >
-          <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">{{ stats.projectsSubmitted }}</div>
-          <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.projectsSubmitted') }}</div>
-        </NuxtLink>
-        <NuxtLink 
-          to="/projects?sort=votes"
-          class="card text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          role="link"
-          tabindex="0"
-        >
-          <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">{{ stats.totalVotes }}</div>
-          <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.totalVotes') }}</div>
-        </NuxtLink>
-        <NuxtLink 
-          to="/users"
-          class="card text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          role="link"
-          tabindex="0"
-        >
-          <div class="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">{{ stats.activeParticipants }}</div>
-          <div class="text-gray-600 dark:text-gray-400">{{ t('home.stats.activeParticipants') }}</div>
-        </NuxtLink>
-      </section>
+      <HomeStatsSection
+        :items="[
+          { to: '/hackathons', value: stats.activeHackathons, label: t('home.stats.activeHackathons'), valueClass: 'text-primary-600 dark:text-primary-400' },
+          { to: '/projects', value: stats.projectsSubmitted, label: t('home.stats.projectsSubmitted'), valueClass: 'text-green-600 dark:text-green-400' },
+          { to: '/projects?sort=votes', value: stats.totalVotes, label: t('home.stats.totalVotes'), valueClass: 'text-purple-600 dark:text-purple-400' },
+          { to: '/users', value: stats.activeParticipants, label: t('home.stats.activeParticipants'), valueClass: 'text-orange-600 dark:text-orange-400' }
+        ]"
+      />
 
       <!-- Featured Hackathons -->
       <section class="py-8">
@@ -115,55 +64,13 @@
           </NuxtLink>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div 
-            v-for="hackathon in featuredHackathons" 
-            :key="hackathon.id" 
-            class="card-hover group relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-            role="link"
-            :aria-label="`View details for ${hackathon.name}`"
-            tabindex="0"
-            @click="navigateToHackathon(hackathon.id)"
-            @keydown.enter="navigateToHackathon(hackathon.id)"
-            @keydown.space="navigateToHackathon(hackathon.id)"
-          >
-            <!-- Hackathon Image -->
-            <div class="w-full overflow-hidden rounded-t-lg mb-4 aspect-ratio-16-9">
-              <img :src="hackathon.imageUrl" :alt="hackathon.name" class="img-cover group-hover:scale-105 transition-transform duration-300" />
-            </div>
-            <div class="flex items-start justify-between mb-4">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400">
-                  {{ hackathon.name }}
-                </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ hackathon.organization }}</p>
-              </div>
-              <span class="badge badge-primary">{{ hackathon.status }}</span>
-            </div>
-            <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">
-              {{ hackathon.description }}
-            </p>
-            <div class="flex items-center justify-between text-sm">
-              <div class="flex items-center space-x-4">
-                <span class="flex items-center text-gray-500 dark:text-gray-400">
-                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {{ hackathon.duration }}
-                </span>
-                <span class="flex items-center text-gray-500 dark:text-gray-400">
-                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  {{ hackathon.participants }}
-                </span>
-              </div>
-              <span class="text-primary-600 dark:text-primary-400 font-medium">
-                {{ t('common.viewDetails') }}
-              </span>
-            </div>
-          </div>
+          <HomeHackathonCard
+            v-for="hackathon in featuredHackathons"
+            :key="hackathon.id"
+            :hackathon="hackathon"
+            :view-details-label="t('common.viewDetails')"
+            @open="navigateToHackathon"
+          />
         </div>
       </section>
 
@@ -176,74 +83,25 @@
           </NuxtLink>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div 
-            v-for="project in topProjects" 
-            :key="project.id" 
-            class="card-hover group relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-            role="link"
-            :aria-label="`View details for ${project.name}`"
-            tabindex="0"
-            @click="handleProjectCardClick(project.id, $event)"
-            @keydown.enter="navigateToProject(project.id)"
-            @keydown.space="navigateToProject(project.id)"
-          >
-            <!-- Project Image -->
-            <div class="relative w-full mb-4 overflow-hidden rounded-lg aspect-ratio-4-3">
-              <img :src="project.imageUrl" :alt="project.name"
-                class="img-cover transition-transform duration-300 group-hover:scale-105" />
-              <div class="absolute top-2 right-2">
-                <span class="badge badge-success">{{ project.hackathon }}</span>
-              </div>
-            </div>
-
-            <div class="flex items-start justify-between mb-3">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400">
-                  {{ project.name }}
-                </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('common.by') }} {{ project.author }}</p>
-              </div>
-            </div>
-            <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm line-clamp-2">
-              {{ project.description }}
-            </p>
-
-            <!-- Vote buttons need to stop event propagation -->
-            <div class="flex items-center justify-between" @click.stop>
-              <VoteButtons 
-                :project-id="project.id" 
-                :initial-upvotes="project.upvotes"
-                :initial-downvotes="project.downvotes" 
-                :initial-user-vote="project.userVote"
-                class="vote-button"
-              />
-              <div class="flex items-center space-x-2">
-                <span class="text-sm text-gray-500 dark:text-gray-400">
-                  {{ project.tech.join(', ') }}
-                </span>
-              </div>
-            </div>
-          </div>
+          <HomeProjectCard
+            v-for="project in topProjects"
+            :key="project.id"
+            :project="project"
+            :by-label="t('common.by')"
+            @open="handleProjectCardClick"
+            @open-direct="navigateToProject"
+          />
         </div>
       </section>
 
-      <!-- CTA Section -->
-      <section class="text-center py-12">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-          {{ t('home.cta.title') }}
-        </h2>
-        <p class="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
-          {{ t('home.cta.description') }}
-        </p>
-        <div class="flex flex-wrap justify-center gap-4">
-          <NuxtLink to="/create" class="btn btn-primary px-8 py-3 text-lg">
-            {{ t('home.cta.createProject') }}
-          </NuxtLink>
-          <button v-if="!isAuthenticated" @click="loginWithGitHub" class="btn btn-outline px-8 py-3 text-lg">
-            {{ t('auth.signUpWithGitHub') }}
-          </button>
-        </div>
-      </section>
+      <HomeCtaSection
+        :title="t('home.cta.title')"
+        :description="t('home.cta.description')"
+        :create-label="t('home.cta.createProject')"
+        :signup-label="t('auth.signUpWithGitHub')"
+        :is-authenticated="isAuthenticated"
+        @signup="loginWithGitHub"
+      />
     </div>
   </div>
 </template>
@@ -251,11 +109,16 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder, generateHackathonPlaceholder } from '~/utils/placeholderImages'
 import { resolveImageUrl } from '~/utils/imageUrl'
 import { useRouter } from '#imports'
+import HomeHero from '~/components/home/HomeHero.vue'
+import HomeStatsSection from '~/components/home/HomeStatsSection.vue'
+import HomeHackathonCard from '~/components/home/HomeHackathonCard.vue'
+import HomeProjectCard from '~/components/home/HomeProjectCard.vue'
+import HomeCtaSection from '~/components/home/HomeCtaSection.vue'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
