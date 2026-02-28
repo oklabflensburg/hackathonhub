@@ -30,14 +30,10 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Main content -->
           <div class="lg:col-span-2">
-            <!-- Description -->
-            <div class="mb-8">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ $t('hackathons.details.description')
-                }}</h2>
-              <div class="prose dark:prose-invert max-w-none">
-                <p class="text-gray-700 dark:text-gray-300">{{ hackathon.description }}</p>
-              </div>
-            </div>
+            <HackathonDescription
+              :title="$t('hackathons.details.description')"
+              :description="hackathon.description"
+            />
 
             <PrizeList
               :title="$t('hackathons.details.prizes')"
@@ -50,102 +46,31 @@
               :rules="hackathon.rules"
             />
 
-            <!-- Teams -->
-            <div class="mt-8">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                {{ $t('hackathons.details.teams') || 'Teams' }}
-              </h2>
-              <div v-if="loadingTeams" class="text-center py-8">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                 <p class="mt-2 text-gray-600 dark:text-gray-400">{{ $t('teams.loading') }}</p>
-              </div>
-              <div v-else-if="teamsError" class="text-center py-8">
-                <div v-if="teamsRequiresAuth" class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 mb-4">
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <div v-else class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 mb-4">
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <p class="text-gray-600 dark:text-gray-400">{{ teamsError }}</p>
-                <div v-if="teamsRequiresAuth">
-                  <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ $t('teams.loginRequiredToJoin') }}</p>
-                  <button @click="authStore.loginWithGitHub()" class="mt-2 btn btn-primary">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                    </svg>
-                    {{ $t('auth.loginWithGitHub') }}
-                  </button>
-                  <button @click="authStore.loginWithGoogle()" class="mt-2 ml-2 btn btn-outline">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
-                    </svg>
-                    {{ $t('auth.loginWithGoogle') }}
-                  </button>
-                  <NuxtLink to="/login" class="mt-2 ml-2 btn btn-outline">{{ $t('auth.loginWithEmail') }}</NuxtLink>
-                </div>
-                <div v-else>
-                  <button @click="fetchTeams" class="mt-4 btn btn-outline">{{ $t('errors.tryAgain') }}</button>
-                </div>
-              </div>
-              <div v-else-if="teams.length === 0" class="text-center py-8">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 mb-4">
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <p class="text-gray-600 dark:text-gray-400">{{ $t('teams.noTeamsForHackathon') }}</p>
-                <NuxtLink v-if="authStore.isAuthenticated" to="/teams/create" class="mt-4 btn btn-primary">
-                  {{ $t('teams.createFirstTeam') }}
-                </NuxtLink>
-              </div>
-              <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  v-for="team in teams"
-                  :key="team.id"
-                  class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
-                >
-                  <div class="flex items-center justify-between mb-2">
-                    <NuxtLink 
-                      :to="`/teams/${team.id}`"
-                      class="text-lg font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 hover:underline"
-                    >
-                      {{ team.name }}
-                    </NuxtLink>
-                    <span :class="[
-                      'px-2 py-1 text-xs font-medium rounded-full',
-                      team.is_open
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    ]">
-                      {{ team.is_open ? $t('common.open') : $t('common.closed') }}
-                    </span>
-                  </div>
-                  <p class="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
-                    {{ team.description || $t('common.noDescription') }}
-                  </p>
-                  <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                    <span class="flex items-center">
-                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {{ team.member_count || 0 }} / {{ team.max_members }} {{ $t('teams.members') }}
-                    </span>
-                    <span class="text-xs">
-                      Created {{ formatDate(team.created_at) }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div v-if="teams.length > 0" class="mt-6 text-center">
-                <NuxtLink :to="`/teams?hackathon_id=${id}`" class="btn btn-outline">
-                  {{ $t('hackathons.details.viewAllTeams') }}
-                </NuxtLink>
-              </div>
-            </div>
+            <ParticipantList
+              :title="$t('hackathons.details.teams') || 'Teams'"
+              :items="teams.slice(0, 5)"
+              :loading="loadingTeams"
+              :error="teamsError"
+              :requires-auth="teamsRequiresAuth"
+              :loading-label="$t('teams.loading')"
+              :auth-hint="$t('teams.loginRequiredToJoin')"
+              :github-label="$t('auth.loginWithGitHub')"
+              :google-label="$t('auth.loginWithGoogle')"
+              :email-label="$t('auth.loginWithEmail')"
+              :retry-label="$t('errors.tryAgain')"
+              :empty-label="$t('hackathons.details.noTeamsYet') || 'No teams have joined yet.'"
+              :open-label="$t('common.open')"
+              :closed-label="$t('common.closed')"
+              :no-description-label="$t('common.noDescription')"
+              :members-label="$t('teams.members')"
+              created-prefix="Created"
+              :view-all-label="$t('hackathons.details.viewAllTeams')"
+              :view-all-path="`/teams?hackathon_id=${id}`"
+              :format-date="formatDate"
+              @retry="fetchTeams"
+              @login-github="authStore.loginWithGitHub()"
+              @login-google="authStore.loginWithGoogle()"
+            />
           </div>
 
           <!-- Sidebar -->
@@ -245,10 +170,12 @@ import { useI18n } from 'vue-i18n'
 import HackathonEditForm from '~/components/HackathonEditForm.vue'
 import { resolveImageUrl } from '~/utils/imageUrl'
 import HackathonHero from '~/components/hackathons/HackathonHero.vue'
+import HackathonDescription from '~/components/hackathons/HackathonDescription.vue'
 import PrizeList from '~/components/hackathons/PrizeList.vue'
 import RulesSection from '~/components/hackathons/RulesSection.vue'
 import HackathonStats from '~/components/hackathons/HackathonStats.vue'
 import HackathonActions from '~/components/hackathons/HackathonActions.vue'
+import ParticipantList from '~/components/hackathons/ParticipantList.vue'
 
 const route = useRoute()
 const id = route.params.id as string
