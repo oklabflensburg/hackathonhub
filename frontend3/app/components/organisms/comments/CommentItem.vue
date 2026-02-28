@@ -15,7 +15,7 @@
 
         <div v-if="currentUserId === comment.user_id" class="flex items-center space-x-2">
           <button class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400" @click="$emit('edit', comment)">Edit</button>
-          <button class="text-sm text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" @click="$emit('delete', comment.id)">Delete</button>
+          <button class="text-sm text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" @click="showDeleteConfirm = true">Delete</button>
         </div>
       </div>
 
@@ -35,11 +35,25 @@
         </button>
       </div>
     </div>
+
+    <!-- Delete Confirmation Dialog -->
+    <ConfirmDialog
+      v-model="showDeleteConfirm"
+      title="Delete Comment"
+      description="Are you sure you want to delete this comment? This action cannot be undone."
+      confirm-text="Delete"
+      cancel-text="Cancel"
+      destructive
+      @confirm="handleDeleteConfirm"
+      @cancel="showDeleteConfirm = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import Avatar from '~/components/atoms/Avatar.vue'
+import ConfirmDialog from '~/components/organisms/ConfirmDialog.vue'
 import type { ProjectComment } from '~/composables/useComments'
 
 interface Props {
@@ -49,15 +63,22 @@ interface Props {
   formatDate: (value: string) => string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   currentUserId: undefined,
   isAuthenticated: false,
 })
 
-defineEmits<{
+const emit = defineEmits<{
   edit: [comment: ProjectComment]
   delete: [id: number]
   reply: [id: number]
   vote: [id: number, voteType: 'upvote' | 'downvote']
 }>()
+
+const showDeleteConfirm = ref(false)
+
+const handleDeleteConfirm = () => {
+  emit('delete', props.comment.id)
+  showDeleteConfirm.value = false
+}
 </script>

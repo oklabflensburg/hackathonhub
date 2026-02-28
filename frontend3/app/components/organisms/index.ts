@@ -3,3 +3,6 @@ export { default as ProjectDetailMainContent } from './projects/ProjectDetailMai
 export { default as ProjectDetailSidebar } from './projects/ProjectDetailSidebar.vue'
 export { default as AppFooterContent } from './layout/AppFooterContent.vue'
 export { default as AppHeaderBar } from './layout/AppHeaderBar.vue'
+export { default as ConfirmDialog } from './ConfirmDialog.vue'
+export { default as ProfileHeader } from './profile/ProfileHeader.vue'
+export { default as UserSettingsForm } from './profile/UserSettingsForm.vue'

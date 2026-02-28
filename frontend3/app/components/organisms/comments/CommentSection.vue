@@ -201,9 +201,7 @@ const handleSubmitReply = (commentId: number) => {
 }
 
 const confirmDelete = (commentId: number) => {
-  if (confirm(props.deleteConfirmLabel)) {
-    emit('remove', commentId)
-  }
+  emit('remove', commentId)
 }
 
 const handleVote = (commentId: number, voteType: 'upvote' | 'downvote') => {
