@@ -1,14 +1,13 @@
 <template>
   <div class="space-y-8">
     <!-- Page Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $t('projects.title') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-2">
-          {{ $t('projects.subtitle') }}
-        </p>
-      </div>
-      <div class="flex items-center space-x-4">
+    <PageHeader
+      :title="$t('projects.title')"
+      :subtitle="$t('projects.subtitle')"
+      :action-label="$t('projects.submitProject')"
+      action-link="/create"
+    >
+      <template #controls>
         <div class="relative">
           <input
             v-model="searchQuery"
@@ -26,75 +25,33 @@
           <option value="votes">{{ $t('projects.sortOptions.votes') }}</option>
           <option value="recent">{{ $t('projects.sortOptions.recent') }}</option>
         </select>
-        <NuxtLink to="/create" class="btn btn-primary">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          {{ $t('projects.submitProject') }}
-        </NuxtLink>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <!-- Selected Tags Section -->
-    <div v-if="selectedTags.length > 0" class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-      <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center">
-          <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-          </svg>
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('projects.filteringByTags') }}</span>
-        </div>
-        <button
-          @click="clearAllTags"
-          class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center"
-        >
-          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          {{ $t('projects.clearAll') }}
-        </button>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <span
-          v-for="tag in selectedTags"
-          :key="tag"
-          class="px-3 py-1.5 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-sm rounded-full flex items-center"
-        >
-          {{ tag }}
-          <button
-            @click="removeTag(tag)"
-            class="ml-2 text-primary-500 hover:text-primary-700 dark:hover:text-primary-200"
-          >
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </span>
-      </div>
-    </div>
+    <SelectedTags
+      v-if="selectedTags.length > 0"
+      :title="$t('projects.filteringByTags')"
+      :tags="selectedTags"
+      :clear-label="$t('projects.clearAll')"
+      @remove="removeTag"
+      @clear="clearAllTags"
+    />
 
     <!-- Loading State -->
-    <div v-if="loading && projects.length === 0" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-      <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $t('common.loading') }}</p>
-    </div>
+    <LoadingState
+      v-if="loading && projects.length === 0"
+      :message="$t('common.loading')"
+    />
 
     <!-- Error State -->
-    <div v-else-if="error" class="text-center py-12">
-      <div class="w-24 h-24 mx-auto mb-6 text-red-400">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.342 16.5c-.77.833.192 2.5 1.732 2.5z" />
-        </svg>
-      </div>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {{ $t('projects.errors.failedToLoad') }}
-      </h3>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">{{ error }}</p>
-      <button @click="fetchProjects" class="btn btn-primary">
-        {{ $t('common.tryAgain') }}
-      </button>
-    </div>
+    <ErrorState
+      v-else-if="error"
+      :title="$t('projects.errors.failedToLoad')"
+      :message="error"
+      :retry-label="$t('common.tryAgain')"
+      @retry="fetchProjects"
+    />
 
     <!-- Projects Grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -112,37 +69,25 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="filteredProjects.length === 0" class="text-center py-12">
-      <div class="w-24 h-24 mx-auto mb-6 text-gray-300 dark:text-gray-600">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-       <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {{ $t('projects.emptyState.noProjectsFound') }}
-      </h3>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">
-        {{ $t('projects.emptyState.description') }}
-      </p>
-      <NuxtLink to="/create" class="btn btn-primary">
-        {{ $t('projects.submitYourProject') }}
-      </NuxtLink>
-    </div>
+    <EmptyState
+      v-if="filteredProjects.length === 0"
+      :title="$t('projects.emptyState.noProjectsFound')"
+      :description="$t('projects.emptyState.description')"
+    >
+      <template #action>
+        <NuxtLink to="/create" class="btn btn-primary">
+          {{ $t('projects.submitYourProject') }}
+        </NuxtLink>
+      </template>
+    </EmptyState>
 
     <!-- Load More -->
-    <div v-if="filteredProjects.length > 0 && hasMore" class="text-center pt-8">
-      <button
-        @click="loadMore"
-        :disabled="loading"
-        class="btn btn-outline px-8"
-      >
-        <svg v-if="loading" class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-        {{ $t('projects.loadMore') }}
-      </button>
-    </div>
+    <LoadMore
+      v-if="filteredProjects.length > 0 && hasMore"
+      :label="$t('projects.loadMore')"
+      :loading="loading"
+      @load="loadMore"
+    />
   </div>
 </template>
 
@@ -151,7 +96,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'
-import ProjectListCard from '~/components/projects/ProjectListCard.vue'
+import { PageHeader, SelectedTags, LoadingState, ErrorState, EmptyState, LoadMore } from '~/components/molecules'
+import { ProjectListCard } from '~/components/organisms'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 import { resolveImageUrl } from '~/utils/imageUrl'
 
@@ -251,7 +197,7 @@ watch(selectedTags, (newTags) => {
   delete query.technologies
   
   if (validTags.length === 1) {
-    query.technology = validTags[0]
+    query.technology = validTags[0] as string
   } else if (validTags.length > 1) {
     query.technologies = validTags.join(',')
   }
@@ -283,7 +229,7 @@ const fetchProjects = async () => {
     if (selectedTags.value.length > 0) {
       const validTags = selectedTags.value.filter(tag => tag)
       if (validTags.length === 1) {
-        params.append('technology', validTags[0])
+        params.append('technology', validTags[0] as string)
       } else if (validTags.length > 1) {
         params.append('technologies', validTags.join(','))
       }
