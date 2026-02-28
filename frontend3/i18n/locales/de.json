@@ -719,7 +719,9 @@
       "teamProject": "Team-Projekt",
       "teamMembersCount": "{count} Mitglied | {count} Mitglieder",
       "viewTeam": "Team ansehen",
-      "deleteProject": "Projekt löschen"
+      "deleteProject": "Projekt löschen",
+      "noLinksProvided": "Für dieses Projekt wurden keine Links angegeben",
+      "projectCreator": "Projektersteller"
     },
     "details": {
       "notFoundTitle": "Projekt nicht gefunden",

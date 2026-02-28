@@ -631,7 +631,9 @@
       "teamProject": "Team Project",
       "teamMembersCount": "{count} member | {count} members",
       "viewTeam": "View Team",
-      "deleteProject": "Delete Project"
+      "deleteProject": "Delete Project",
+      "noLinksProvided": "No links provided for this project",
+      "projectCreator": "Project Creator"
     },
     "details": {
       "notFoundTitle": "Project Not Found",

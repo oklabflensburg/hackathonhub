@@ -1,1 +1,5 @@
 export { default as CommentSection } from './comments/CommentSection.vue'
+export { default as ProjectDetailMainContent } from './projects/ProjectDetailMainContent.vue'
+export { default as ProjectDetailSidebar } from './projects/ProjectDetailSidebar.vue'
+export { default as AppFooterContent } from './layout/AppFooterContent.vue'
+export { default as AppHeaderBar } from './layout/AppHeaderBar.vue'

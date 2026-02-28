@@ -82,19 +82,14 @@
 
           <CreatorInfo :project="project" :title="t('projects.detail.creator')" subtitle="Project Creator" />
 
-          <ProjectActions
+        <template #sidebar>
+          <ProjectDetailSidebar
             :project="project"
-            :can-edit="canEditProject"
-            :title="t('projects.detail.actions')"
-            :edit-label="t('projects.detail.editProject')"
-            :delete-label="t('projects.detail.deleteProject')"
-            :view-hackathon-label="t('projects.detail.viewHackathon')"
-            :view-team-label="t('projects.detail.viewTeam')"
-            :back-label="t('projects.detail.backToProjects')"
-            @delete="deleteProject"
+            :can-edit-project="canEditProject"
+            @delete-project="deleteProject"
           />
-        </div>
-      </div>
+        </template>
+      </DetailLayout>
     </div>
   </div>
 </template>
