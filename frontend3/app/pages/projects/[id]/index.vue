@@ -15,79 +15,70 @@
     <div v-else-if="project" class="max-w-6xl mx-auto px-0 sm:px-2 md:px-4 lg:px-6">
       <ProjectHeader :project="project" :show-voting="authStore.isAuthenticated" :format-date="formatDate" />
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 space-y-8">
-          <ProjectImage
-            :src="projectImage"
-            :alt="project.title"
-            :title="project.title"
-          />
+      <DetailLayout>
+        <template #main>
+          <div class="space-y-8">
+            <ProjectImage
+              :src="projectImage"
+              :alt="project.title"
+              :title="project.title"
+            />
 
-          <ProjectDescription
-            :title="t('projects.detail.description')"
-            :description="project.description"
-          />
+            <ProjectDescription
+              :title="t('projects.detail.description')"
+              :description="project.description"
+            />
 
-          <TechnologyTags :technologies="projectTechnologies" :title="t('projects.detail.technologies')" />
+            <TechnologyTags :technologies="projectTechnologies" :title="t('projects.detail.technologies')" />
 
-          <ProjectLinks
-            :title="t('projects.detail.links')"
-            :repository-label="t('projects.details.githubRepository')"
-            :live-label="t('projects.details.liveDemo')"
-            :empty-label="'No links provided for this project'"
-            :repository-url="project.repository_url"
-            :live-url="project.live_url"
-          />
+            <ProjectLinks
+              :title="t('projects.detail.links')"
+              :repository-label="t('projects.details.githubRepository')"
+              :live-label="t('projects.details.liveDemo')"
+              :empty-label="'No links provided for this project'"
+              :repository-url="project.repository_url"
+              :live-url="project.live_url"
+            />
 
-          <CommentSection
-            :title="t('projects.detail.comments')"
-            :comments="comments"
-            :loading="commentsLoading"
-            :submitting="submittingComment"
-            :error="commentsError"
-            :comment-count="projectCommentCount"
-            :current-user-id="Number(authStore.user?.id)"
-            :is-authenticated="authStore.isAuthenticated"
-            :format-date="formatDate"
-            :add-comment-placeholder="t('projects.comments.addCommentPlaceholder')"
-            :post-comment-label="t('projects.comments.postComment')"
-            :post-reply-label="t('projects.comments.postReply')"
-            :sign-in-to-comment-label="t('projects.comments.signInToComment')"
-            :empty-comments-label="t('projects.comments.noCommentsYet')"
-            :loading-comments-label="t('projects.comments.loadingComments')"
-            :error-comments-label="t('projects.comments.failedLoad')"
-            :retry-label="t('projects.comments.retry')"
-            :save-label="t('common.save')"
-            :comments-count-label="t('projects.comments.countLabel')"
-            :delete-confirm-label="t('projects.comments.deleteConfirm')"
-            @add="handleAddComment"
-            @update="handleUpdateComment"
-            @remove="handleDeleteComment"
-            @vote="handleVoteComment"
-            @reply="handleReplyComment"
-            @retry="fetchComments"
-          />
-        </div>
-
-        <div class="space-y-6">
-          <ProjectStats
-            :title="t('projects.detail.projectStats')"
-            :upvotes="project.upvote_count || 0"
-            :downvotes="project.downvote_count || 0"
-            :score="project.vote_score || 0"
-            :comments="project.comment_count || 0"
-            :views="project.view_count || 0"
-            :labels="{ upvotes: t('projects.detail.upvotes'), downvotes: t('projects.detail.downvotes'), score: t('projects.detail.totalScore'), comments: t('projects.detail.comments'), views: t('projects.detail.views') }"
-          />
-
-          <CreatorInfo :project="project" :title="t('projects.detail.creator')" subtitle="Project Creator" />
+            <CommentSection
+              :title="t('projects.detail.comments')"
+              :comments="comments"
+              :loading="commentsLoading"
+              :submitting="submittingComment"
+              :error="commentsError"
+              :comment-count="projectCommentCount"
+              :current-user-id="Number(authStore.user?.id)"
+              :is-authenticated="authStore.isAuthenticated"
+              :format-date="formatDate"
+              :add-comment-placeholder="t('projects.comments.addCommentPlaceholder')"
+              :post-comment-label="t('projects.comments.postComment')"
+              :post-reply-label="t('projects.comments.postReply')"
+              :sign-in-to-comment-label="t('projects.comments.signInToComment')"
+              :empty-comments-label="t('projects.comments.noCommentsYet')"
+              :loading-comments-label="t('projects.comments.loadingComments')"
+              :error-comments-label="t('projects.comments.failedLoad')"
+              :retry-label="t('projects.comments.retry')"
+              :save-label="t('common.save')"
+              :comments-count-label="t('projects.comments.countLabel')"
+              :delete-confirm-label="t('projects.comments.deleteConfirm')"
+              @add="handleAddComment"
+              @update="handleUpdateComment"
+              @remove="handleDeleteComment"
+              @vote="handleVoteComment"
+              @reply="handleReplyComment"
+              @retry="fetchComments"
+            />
+          </div>
+        </template>
 
         <template #sidebar>
-          <ProjectDetailSidebar
-            :project="project"
-            :can-edit-project="canEditProject"
-            @delete-project="deleteProject"
-          />
+          <div class="space-y-6">
+            <ProjectDetailSidebar
+              :project="project"
+              :can-edit-project="canEditProject"
+              @delete-project="deleteProject"
+            />
+          </div>
         </template>
       </DetailLayout>
     </div>
@@ -98,7 +89,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { format } from 'date-fns'
 import { useRoute, useRouter } from '#imports'
-import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '~/stores/auth'
 import { useVotingStore } from '~/stores/voting'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
@@ -107,13 +97,12 @@ import { useComments } from '~/composables/useComments'
 import ProjectHeader from '~/components/projects/ProjectHeader.vue'
 import TechnologyTags from '~/components/projects/TechnologyTags.vue'
 import ProjectLinks from '~/components/projects/ProjectLinks.vue'
-import ProjectStats from '~/components/projects/ProjectStats.vue'
-import CreatorInfo from '~/components/projects/CreatorInfo.vue'
-import ProjectActions from '~/components/projects/ProjectActions.vue'
 import CommentSection from '~/components/organisms/comments/CommentSection.vue'
 import LoadingSpinner from '~/components/atoms/LoadingSpinner.vue'
 import ProjectImage from '~/components/molecules/ProjectImage.vue'
 import ProjectDescription from '~/components/molecules/ProjectDescription.vue'
+import DetailLayout from '~/components/templates/DetailLayout.vue'
+import ProjectDetailSidebar from '~/components/organisms/projects/ProjectDetailSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()
