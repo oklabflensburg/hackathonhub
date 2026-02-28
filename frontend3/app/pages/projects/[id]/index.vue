@@ -138,7 +138,7 @@ const projectImage = computed(() => {
   return resolveImageUrl(project.value.image_path, useRuntimeConfig().public.apiUrl || 'http://localhost:8000')
 })
 
-const canEditProject = computed(() => Number(authStore.user?.id) === Number(project.value?.user_id))
+const canEditProject = computed(() => Number(authStore.user?.id) === Number(project.value?.owner_id))
 
 const formatDate = (value: string) => {
   try {
