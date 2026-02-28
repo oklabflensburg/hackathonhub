@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import ProjectStats from '~/components/projects/ProjectStats.vue'
+import { ProjectStats } from '~/components/molecules'
 import CreatorInfo from '~/components/projects/CreatorInfo.vue'
 import ProjectActions from '~/components/projects/ProjectActions.vue'
 
