@@ -690,7 +690,12 @@
       "postReply": "Antwort posten",
       "posting": "Wird gepostet...",
       "signInToComment": "Bitte melde dich an, um einen Kommentar zu hinterlassen",
-      "noCommentsYet": "Noch keine Kommentare. Sei der Erste, der kommentiert!"
+      "noCommentsYet": "Noch keine Kommentare. Sei der Erste, der kommentiert!",
+      "loadingComments": "Kommentare werden geladen...",
+      "failedLoad": "Kommentare konnten nicht geladen werden.",
+      "retry": "Erneut versuchen",
+      "countLabel": "Kommentare",
+      "deleteConfirm": "Möchtest du diesen Kommentar wirklich löschen?"
     },
     "detail": {
       "notFoundTitle": "Projekt nicht gefunden",
