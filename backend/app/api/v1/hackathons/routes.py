@@ -222,7 +222,7 @@ async def get_hackathon_projects(
     for project in projects:
         project_list.append({
             "id": project.id,
-            "name": project.name,
+            "title": project.title,
             "description": project.description,
             "team_id": project.team_id,
             "created_at": project.created_at

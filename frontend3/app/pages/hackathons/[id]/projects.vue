@@ -11,26 +11,17 @@
       </NuxtLink>
     </div>
 
-    <!-- Header -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-8">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ $t('hackathons.projects.title', { id })
-            }}</h1>
-          <p class="text-gray-600 dark:text-gray-400">
-            {{ $t('hackathons.projects.subtitle') }}
-          </p>
-        </div>
+    <!-- Page Header -->
+    <PageHeader
+      :title="$t('hackathons.projects.title', { id })"
+      :subtitle="$t('hackathons.projects.subtitle')"
+    >
+      <template #actions>
         <div class="flex items-center space-x-4">
-          <div class="relative">
-            <input type="text" :placeholder="$t('projects.searchPlaceholder')" class="input pl-10"
-              v-model="searchQuery" />
-            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none"
-              stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
+          <SearchBar
+            v-model="searchQuery"
+            :placeholder="$t('projects.searchPlaceholder')"
+          />
           <button class="btn btn-primary">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -38,11 +29,23 @@
             {{ $t('projects.submitProject') }}
           </button>
         </div>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
+
+    <!-- Loading State -->
+    <LoadingState v-if="loading" />
+
+    <!-- Error State -->
+    <ErrorState
+      v-else-if="error"
+      :title="$t('hackathons.failedToLoad')"
+      :message="error"
+      :action-label="$t('hackathons.tryAgain')"
+      @action="fetchProjects"
+    />
 
     <!-- Projects Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <HackathonProjectCard
         v-for="project in filteredProjects"
         :key="project.id"
@@ -53,33 +56,21 @@
           comments: $t('projects.stats.comments'),
           views: $t('projects.stats.views'),
           view: $t('projects.viewProject'),
-          vote: $t('votes.vote'),
           edit: $t('projects.editProject')
         }"
         @view="viewProject"
-        @vote="voteForProject"
         @edit="editProject"
       />
     </div>
 
     <!-- Empty State -->
-    <div v-if="filteredProjects.length === 0" class="text-center py-12">
-      <div class="w-24 h-24 mx-auto mb-6 text-gray-300 dark:text-gray-600">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-      </div>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {{ $t('projects.emptyState.noProjectsFound') }}
-      </h3>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">
-        {{ searchQuery ? $t('projects.emptyState.tryAdjustingSearch') : $t('projects.emptyState.beFirstToSubmit') }}
-      </p>
-      <button class="btn btn-primary">
-        {{ $t('projects.submitYourProject') }}
-      </button>
-    </div>
+    <EmptyState
+      v-if="!loading && !error && filteredProjects.length === 0"
+      :title="$t('projects.emptyState.noProjectsFound')"
+      :description="searchQuery ? $t('projects.emptyState.tryAdjustingSearch') : $t('projects.emptyState.beFirstToSubmit')"
+      :action-label="$t('projects.submitYourProject')"
+      @action="() => {}"
+    />
   </div>
 </template>
 
@@ -89,7 +80,13 @@ import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
+
 import HackathonProjectCard from '~/components/hackathons/HackathonProjectCard.vue'
+import PageHeader from '~/components/molecules/PageHeader.vue'
+import SearchBar from '~/components/molecules/SearchBar.vue'
+import LoadingState from '~/components/molecules/LoadingState.vue'
+import ErrorState from '~/components/molecules/ErrorState.vue'
+import EmptyState from '~/components/molecules/EmptyState.vue'
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -99,33 +96,26 @@ const { t } = useI18n()
 const id = route.params.id as string
 const searchQuery = ref('')
 const loading = ref(true)
-const error = ref(false)
+const error = ref<string | null>(null)
 const projects = ref<any[]>([])
 const isHackathonMember = ref(false)
 
 // Fetch real projects data from API
 const fetchProjects = async () => {
   loading.value = true
-  error.value = false
+  error.value = null
 
   try {
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-
-    // First, try to get projects for this specific hackathon
-    const response = await authStore.fetchWithAuth(`/api/projects?hackathon_id=${id}`)
+    // Get projects for this specific hackathon
+    const response = await authStore.fetchWithAuth(`/api/hackathons/${id}/projects`)
 
     if (!response.ok) {
-      // If no hackathon-specific endpoint, get all projects
-      const allResponse = await authStore.fetchWithAuth(`/api/projects`)
-      if (!allResponse.ok) {
-        throw new Error(`Failed to fetch projects: ${allResponse.status}`)
-      }
-      const allProjects = await allResponse.json()
-      // Filter projects by hackathon_id if available
-      projects.value = allProjects.filter((p: any) => p.hackathon_id === parseInt(id))
+      // If endpoint fails, treat as no projects (empty array)
+      projects.value = []
     } else {
       const hackathonProjects = await response.json()
-      projects.value = hackathonProjects
+      // API returns { projects: [], hackathon_id: number }
+      projects.value = hackathonProjects.projects || []
     }
 
     // If no projects found, use empty array
@@ -135,7 +125,7 @@ const fetchProjects = async () => {
 
   } catch (err) {
     console.error('Error fetching projects:', err)
-    error.value = true
+    error.value = err instanceof Error ? err.message : 'Failed to load projects'
     projects.value = []
     uiStore.showError('Failed to load projects', 'Unable to load hackathon projects. Please try again later.')
   } finally {
@@ -240,87 +230,7 @@ const filteredProjects = computed(() => {
   )
 })
 
-const voteForProject = async (projectId: number) => {
-  // Check if user is authenticated
-  if (!authStore.isAuthenticated) {
-    uiStore.showWarning(t('votes.pleaseLogin'), t('common.authenticationRequired'))
-    return
-  }
 
-  const displayProjects = transformedProjects.value
-  const project = displayProjects.find(p => p.id === projectId)
-  if (!project) return
-
-  try {
-    // Determine vote type based on current state
-    // Since this is a simple toggle vote (like/unlike), we'll use 'upvote' for like
-    const voteType = project.hasVoted ? 'remove' : 'upvote'
-    
-    if (voteType === 'remove') {
-      // Remove vote
-      const response = await authStore.fetchWithAuth(`/api/projects/${projectId}/vote`, {
-        method: 'DELETE'
-      })
-      
-      if (response.ok) {
-        project.hasVoted = false
-        project.votes -= 1
-        uiStore.showSuccess(t('votes.voteRemoved'))
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || t('votes.failedToVote'))
-      }
-    } else {
-      // Add upvote
-      const response = await authStore.fetchWithAuth(`/api/projects/${projectId}/vote`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ vote_type: 'upvote' })
-      })
-      
-      if (response.ok) {
-        project.hasVoted = true
-        project.votes += 1
-        uiStore.showSuccess(t('votes.upvotedSuccessfully'))
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || t('votes.failedToVote'))
-      }
-    }
-    
-    // Refresh project stats from API to ensure consistency
-    await fetchProjectVoteStats(projectId)
-  } catch (error) {
-    console.error('Error voting for project:', error)
-    uiStore.showError(
-      error instanceof Error ? error.message : t('votes.failedToVote'),
-      t('common.error')
-    )
-  }
-}
-
-// Helper function to fetch updated vote stats for a project
-const fetchProjectVoteStats = async (projectId: number) => {
-  try {
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-    const response = await authStore.fetchWithAuth(`/api/projects/${projectId}/vote-stats`)
-    
-    if (response.ok) {
-      const stats = await response.json()
-      const displayProjects = transformedProjects.value
-      const project = displayProjects.find(p => p.id === projectId)
-      if (project) {
-        project.votes = stats.upvotes || stats.total_score || 0
-        // Note: We don't have hasVoted info from public endpoint
-        // Would need user-specific endpoint to get user's vote status
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch vote stats:', err)
-  }
-}
 
 // Check if current user can edit this project
 const canEditProject = (project: any) => {

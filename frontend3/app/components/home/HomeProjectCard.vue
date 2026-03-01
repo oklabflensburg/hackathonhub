@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import VoteButtons from '~/components/VoteButtons.vue'
+import VoteButtons from '~/components/molecules/VoteButtons.vue'
 
 defineProps<{ project: any; byLabel: string }>()
 defineEmits<{ (e: 'open', id: number, ev: MouseEvent): void; (e: 'open-direct', id: number): void }>()

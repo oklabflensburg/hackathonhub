@@ -44,7 +44,7 @@
 import { computed } from 'vue'
 import Avatar from '~/components/atoms/Avatar.vue'
 import Tag from '~/components/atoms/Tag.vue'
-import VoteButtons from '~/components/VoteButtons.vue'
+import VoteButtons from '~/components/molecules/VoteButtons.vue'
 
 interface Props {
   project: any

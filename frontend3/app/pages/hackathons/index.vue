@@ -1,66 +1,48 @@
 <template>
   <div class="space-y-8">
     <!-- Page Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $t('hackathons.title') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-2">
-          {{ $t('hackathons.subtitle') }}
-        </p>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div class="relative">
-          <input v-model="searchQuery" type="text" :placeholder="$t('hackathons.searchPlaceholder')"
-            class="input pl-10" />
-          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none"
-            stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+    <PageHeader
+      :title="$t('hackathons.title')"
+      :subtitle="$t('hackathons.subtitle')"
+    >
+      <template #actions>
+        <div class="flex items-center space-x-4">
+          <div class="relative">
+            <input v-model="searchQuery" type="text" :placeholder="$t('hackathons.searchPlaceholder')"
+              class="input pl-10" />
+            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none"
+              stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <NuxtLink to="/create?tab=hackathon" class="btn btn-primary">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            {{ $t('hackathons.createHackathon') }}
+          </NuxtLink>
         </div>
-        <NuxtLink to="/create?tab=hackathon" class="btn btn-primary">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          {{ $t('hackathons.createHackathon') }}
-        </NuxtLink>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <!-- Filter Tabs -->
-    <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
-      <button v-for="filter in filters" :key="filter.value" @click="activeFilter = filter.value" :class="[
-        'px-4 py-2 rounded-lg font-medium transition-colors',
-        activeFilter === filter.value
-          ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-      ]">
-        {{ filter.label }}
-      </button>
-    </div>
+    <FilterTabs
+      :filters="filters"
+      v-model="activeFilter"
+    />
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-      <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $t('hackathons.loading') }}</p>
-    </div>
+    <LoadingState v-if="isLoading" />
 
     <!-- Error State -->
-    <div v-else-if="error" class="text-center py-12">
-      <div class="w-24 h-24 mx-auto mb-6 text-red-400">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.342 16.5c-.77.833.192 2.5 1.732 2.5z" />
-        </svg>
-      </div>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {{ $t('hackathons.failedToLoad') }}
-      </h3>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">{{ error }}</p>
-      <button @click="() => { fetchHackathons(1) }" class="btn btn-primary">
-        {{ $t('hackathons.tryAgain') }}
-      </button>
-    </div>
+    <ErrorState
+      v-else-if="error"
+      :title="$t('hackathons.failedToLoad')"
+      :message="error"
+      :action-label="$t('hackathons.tryAgain')"
+      @action="() => { fetchHackathons(1) }"
+    />
 
     <!-- Hackathons Grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -78,23 +60,13 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="!isLoading && !error && filteredHackathons.length === 0" class="text-center py-12">
-      <div class="w-24 h-24 mx-auto mb-6 text-gray-300 dark:text-gray-600">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-      </div>
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {{ $t('hackathons.noHackathonsFound') }}
-      </h3>
-      <p class="text-gray-600 dark:text-gray-400 mb-6">
-        {{ $t('hackathons.noHackathonsDescription') }}
-      </p>
-      <button @click="resetFilters" class="btn btn-primary">
-        {{ $t('hackathons.resetFilters') }}
-      </button>
-    </div>
+    <EmptyState
+      v-if="!isLoading && !error && filteredHackathons.length === 0"
+      :title="$t('hackathons.noHackathonsFound')"
+      :description="$t('hackathons.noHackathonsDescription')"
+      :action-label="$t('hackathons.resetFilters')"
+      @action="resetFilters"
+    />
 
     <!-- Pagination -->
     <div v-if="!isLoading && !error && filteredHackathons.length > 0"
@@ -150,7 +122,12 @@ import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'
 import { generateHackathonPlaceholder } from '~/utils/placeholderImages'
-import HackathonListCard from '~/components/hackathons/HackathonListCard.vue'
+import HackathonListCard from '~/components/organisms/hackathons/HackathonListCard.vue'
+import PageHeader from '~/components/molecules/PageHeader.vue'
+import FilterTabs from '~/components/molecules/FilterTabs.vue'
+import LoadingState from '~/components/molecules/LoadingState.vue'
+import ErrorState from '~/components/molecules/ErrorState.vue'
+import EmptyState from '~/components/molecules/EmptyState.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -171,14 +148,14 @@ const pageSize = ref(9) // Show 9 hackathons per page (3x3 grid)
 const totalHackathons = ref(0)
 const hasMore = ref(true)
 
-const filters = [
+const filters = computed(() => [
   { label: t('hackathons.filters.all'), value: 'all' },
   { label: t('hackathons.filters.active'), value: 'active' },
   { label: t('hackathons.filters.upcoming'), value: 'upcoming' },
   { label: t('hackathons.filters.completed'), value: 'completed' },
   { label: t('hackathons.filters.online'), value: 'online' },
   { label: t('hackathons.filters.inPerson'), value: 'in-person' }
-]
+])
 
 // Initialize search query from URL parameter
 onMounted(() => {

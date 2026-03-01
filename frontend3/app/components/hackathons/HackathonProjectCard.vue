@@ -32,14 +32,15 @@
 
       <div class="flex items-center justify-between gap-2">
         <button @click="$emit('view', project.id)" class="btn btn-outline btn-sm">{{ labels.view }}</button>
-        <button @click="$emit('vote', project.id)" class="btn btn-primary btn-sm">{{ labels.vote }}</button>
-        <button v-if="canEdit" @click="$emit('edit', project)" class="btn btn-outline btn-sm">{{ labels.edit }}</button>
+        <VoteButtons :project-id="project.id" :initial-upvotes="project.votes" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import VoteButtons from '~/components/molecules/VoteButtons.vue'
+
 defineProps<{ project: any; canEdit: boolean; labels: Record<string, string> }>()
-defineEmits<{ (e: 'view', id: number): void; (e: 'vote', id: number): void; (e: 'edit', project: any): void }>()
+defineEmits<{ (e: 'view', id: number): void }>()
 </script>
