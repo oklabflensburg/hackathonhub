@@ -173,6 +173,16 @@ async def create_push_subscription(
     return new_subscription
 
 
+@router.get("/unread-count")
+async def get_unread_count(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Get count of unread notifications for the current user."""
+    count = notification_repository.count_unread(db, current_user.id)
+    return {"count": count}
+
+
 @router.get("/{notification_id}", response_model=UserNotification)
 async def get_notification(
     notification_id: int,

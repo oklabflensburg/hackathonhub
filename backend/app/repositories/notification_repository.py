@@ -64,6 +64,13 @@ class NotificationRepository(BaseRepository[UserNotification]):
         db.commit()
         return result
 
+    def count_unread(self, db: Session, user_id: int) -> int:
+        """Count unread notifications for a user."""
+        return db.query(self.model).filter(
+            self.model.user_id == user_id,
+            self.model.read_at.is_(None)
+        ).count()
+
 
 class NotificationPreferenceRepository(
     BaseRepository[UserNotificationPreference]
