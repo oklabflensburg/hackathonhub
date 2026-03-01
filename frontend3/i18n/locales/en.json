@@ -590,6 +590,10 @@
       "beFirstToSubmit": "Be the first to submit a project for this hackathon!"
     },
     "loadMore": "Load More Projects",
+    "showing": "Showing",
+    "of": "of",
+    "projects": "projects",
+    "loadedProjects": "loaded projects",
     "errors": {
       "failedToFetch": "Failed to fetch projects",
       "failedToLoad": "Failed to load projects",
@@ -1052,5 +1056,9 @@
     "pushEnabledSuccess": "Push notifications enabled successfully",
     "pushEnableError": "Failed to enable push notifications",
     "saveError": "Failed to save settings"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next"
   }
 }

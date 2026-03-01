@@ -71,49 +71,25 @@
     />
 
     <!-- Pagination -->
-    <div v-if="!isLoading && !error && filteredHackathons.length > 0"
-      class="flex items-center justify-between pt-8 border-t border-gray-200 dark:border-gray-700">
-      <div class="text-sm text-gray-600 dark:text-gray-400">
+    <Pagination
+      v-if="!isLoading && !error && filteredHackathons.length > 0"
+      :total="totalHackathons"
+      :per-page="pageSize"
+      :current-page="currentPage"
+      :show-info="true"
+      @page-change="goToPage"
+      class="pt-8 border-t border-gray-200 dark:border-gray-700"
+    >
+      <template #info="{ start, end, total }">
         <template v-if="searchQuery || activeFilter !== 'all'">
           {{ $t('hackathons.showing') }} {{ filteredHackathons.length }} {{ $t('hackathons.of') }} {{ hackathons.length
           }} {{ $t('hackathons.loadedHackathons') }}
         </template>
         <template v-else>
-          {{ $t('hackathons.showing') }} {{ ((currentPage - 1) * pageSize) + 1 }}-{{ Math.min(currentPage * pageSize,
-          totalHackathons) }} {{ $t('hackathons.of') }} {{ totalHackathons }} {{ $t('hackathons.hackathons') }}
+          {{ $t('hackathons.showing') }} {{ start }}-{{ end }} {{ $t('hackathons.of') }} {{ total }} {{ $t('hackathons.hackathons') }}
         </template>
-      </div>
-      <div class="flex items-center space-x-2">
-        <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1"
-          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-
-        <!-- Show page numbers -->
-        <template v-for="page in getPageNumbers()" :key="page">
-          <button v-if="page === '...'" disabled class="px-3 py-1 rounded-lg text-gray-400">
-            ...
-          </button>
-          <button v-else @click="goToPage(page as number)" :class="[
-            'px-3 py-1 rounded-lg',
-            currentPage === page
-              ? 'bg-primary-600 text-white'
-              : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-          ]">
-            {{ page }}
-          </button>
-        </template>
-
-        <button @click="goToPage(currentPage + 1)" :disabled="!hasMore"
-          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </div>
+      </template>
+    </Pagination>
   </div>
 </template>
 
@@ -123,13 +99,14 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'
-import { generateHackathonPlaceholder } from '~/utils/placeholderImages'
+import { generatePlaceholderImage } from '~/utils/placeholderImages'
 import HackathonListCard from '~/components/organisms/hackathons/HackathonListCard.vue'
 import PageHeader from '~/components/molecules/PageHeader.vue'
 import FilterTabs from '~/components/molecules/FilterTabs.vue'
 import LoadingState from '~/components/molecules/LoadingState.vue'
 import ErrorState from '~/components/molecules/ErrorState.vue'
 import EmptyState from '~/components/molecules/EmptyState.vue'
+import Pagination from '~/components/molecules/Pagination.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -251,10 +228,10 @@ const fetchHackathons = async (page: number = 1) => {
       if (tags.length === 0) tags.push('General', 'Technology')
 
       // Transform image URL to use backend API URL if needed
-      let image = h.image_url ? h.image_url : generateHackathonPlaceholder({
-        id: h.id,
-        name: h.name
-      })
+      let image = h.image_url ? h.image_url : generatePlaceholderImage(
+        h.id,
+        h.name || 'Hackathon'
+      )
       if (image && !image.startsWith('http')) {
         if (image.startsWith('/')) {
           image = `${config.public.apiUrl}${image}`

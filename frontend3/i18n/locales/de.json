@@ -678,6 +678,10 @@
       "beFirstToSubmit": "Sei der Erste, der ein Projekt für diesen Hackathon einreicht!"
     },
     "loadMore": "Weitere Projekte laden",
+    "showing": "Zeigt",
+    "of": "von",
+    "projects": "Projekte",
+    "loadedProjects": "geladene Projekte",
     "errors": {
       "failedToFetch": "Projekte konnten nicht abgerufen werden",
       "failedToLoad": "Projekte konnten nicht geladen werden",
@@ -1140,5 +1144,9 @@
     "pushEnabledSuccess": "Push-Benachrichtigungen erfolgreich aktiviert",
     "pushEnableError": "Fehler beim Aktivieren von Push-Benachrichtigungen",
     "saveError": "Fehler beim Speichern der Einstellungen"
+  },
+  "pagination": {
+    "previous": "Zurück",
+    "next": "Weiter"
   }
 }
