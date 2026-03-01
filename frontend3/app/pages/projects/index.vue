@@ -97,7 +97,7 @@
           {{ $t('projects.loadedProjects') }}
         </template>
         <template v-else>
-          {{ $t('projects.showing') }} {{ start }}-{{ end }} {{ $t('projects.of') }} {{ total }} {{ $t('projects.projects') }}
+          {{ $t('projects.showing') }} {{ start }}-{{ end }} {{ $t('projects.of') }} {{ total }} {{ $t('projects.projectsLabel') }}
         </template>
       </template>
     </Pagination>

@@ -680,7 +680,7 @@
     "loadMore": "Weitere Projekte laden",
     "showing": "Zeigt",
     "of": "von",
-    "projects": "Projekte",
+    "projectsLabel": "Projekte",
     "loadedProjects": "geladene Projekte",
     "errors": {
       "failedToFetch": "Projekte konnten nicht abgerufen werden",

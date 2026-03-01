@@ -592,7 +592,7 @@
     "loadMore": "Load More Projects",
     "showing": "Showing",
     "of": "of",
-    "projects": "projects",
+    "projectsLabel": "projects",
     "loadedProjects": "loaded projects",
     "errors": {
       "failedToFetch": "Failed to fetch projects",
