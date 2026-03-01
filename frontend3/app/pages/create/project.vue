@@ -185,3 +185,7 @@ const resetProjectForm = () => {
   newTech.value = ''
 }
 </script>
+
+<style scoped>
+/* No custom card styles needed - using Card component */
+</style>

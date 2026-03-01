@@ -4,8 +4,10 @@
     <PageHeader
       :title="$t('hackathons.title')"
       :subtitle="$t('hackathons.subtitle')"
+      :action-label="$t('hackathons.createHackathon')"
+      action-link="/create/hackathon"
     >
-      <template #actions>
+      <template #controls>
         <div class="flex items-center space-x-4">
           <div class="relative">
             <input v-model="searchQuery" type="text" :placeholder="$t('hackathons.searchPlaceholder')"
@@ -16,12 +18,12 @@
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <NuxtLink to="/create?tab=hackathon" class="btn btn-primary">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            {{ $t('hackathons.createHackathon') }}
-          </NuxtLink>
+          <select v-model="sortBy" class="input">
+            <option value="newest">{{ $t('hackathons.sortOptions.newest') }}</option>
+            <option value="popular">{{ $t('hackathons.sortOptions.popular') }}</option>
+            <option value="upcoming">{{ $t('hackathons.sortOptions.upcoming') }}</option>
+            <option value="active">{{ $t('hackathons.sortOptions.active') }}</option>
+          </select>
         </div>
       </template>
     </PageHeader>
@@ -137,6 +139,7 @@ const route = useRoute()
 const router = useRouter()
 const config = useRuntimeConfig()
 const searchQuery = ref('')
+const sortBy = ref('popular')
 const activeFilter = ref('all')
 const hackathons = ref<any[]>([])
 const isLoading = ref(true)
@@ -349,6 +352,33 @@ const filteredHackathons = computed(() => {
     }
   }
 
+  // Apply sorting
+  if (sortBy.value === 'newest') {
+    // Sort by ID descending (assuming higher ID = newer)
+    filtered = [...filtered].sort((a, b) => b.id - a.id)
+  } else if (sortBy.value === 'popular') {
+    // Sort by participant count descending (if available)
+    filtered = [...filtered].sort((a, b) => {
+      const aParticipants = parseInt(a.participants) || 0
+      const bParticipants = parseInt(b.participants) || 0
+      return bParticipants - aParticipants
+    })
+  } else if (sortBy.value === 'upcoming') {
+    // Sort by start date ascending (closest first)
+    filtered = [...filtered].sort((a, b) => {
+      const aDate = new Date(a.startDate || 0)
+      const bDate = new Date(b.startDate || 0)
+      return aDate.getTime() - bDate.getTime()
+    })
+  } else if (sortBy.value === 'active') {
+    // Keep active filter already applied, but sort by end date ascending (ending soon)
+    filtered = [...filtered].sort((a, b) => {
+      const aDate = new Date(a.endDate || 0)
+      const bDate = new Date(b.endDate || 0)
+      return aDate.getTime() - bDate.getTime()
+    })
+  }
+
   return filtered
 })
 
@@ -361,5 +391,4 @@ const resetFilters = () => {
 const navigateToHackathon = (hackathonId: number) => {
   router.push(`/hackathons/${hackathonId}`)
 }
-
 </script>
