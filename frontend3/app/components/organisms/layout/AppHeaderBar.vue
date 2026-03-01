@@ -112,10 +112,6 @@ const navLinks = computed(() => {
     { to: '/projects', label: t('appHeader.projects') },
   ]
 
-  if (authStore.isAuthenticated) {
-    links.push({ to: '/create', label: t('appHeader.create') })
-  }
-
   return links
 })
 

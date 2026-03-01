@@ -7,7 +7,7 @@
     />
 
     <!-- Hackathon Form -->
-    <div class="card">
+    <Card>
       <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">{{ $t('create.hackathonForm.title') }}</h2>
       <HackathonForm
         v-model="hackathonForm"
@@ -19,7 +19,7 @@
         @image-upload="handleHackathonImageUpload"
         @remove-image="removeHackathonImage"
       />
-    </div>
+    </Card>
   </div>
 </template>
 
@@ -27,6 +27,7 @@
 import { ref } from '#imports'
 import HackathonForm from '@/components/organisms/forms/HackathonForm.vue'
 import PageHeader from '@/components/molecules/PageHeader.vue'
+import Card from '@/components/atoms/Card.vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
@@ -213,9 +214,3 @@ const resetHackathonForm = () => {
   newTag.value = ''
 }
 </script>
-
-<style scoped>
-.card {
-  @apply bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6;
-}
-</style>

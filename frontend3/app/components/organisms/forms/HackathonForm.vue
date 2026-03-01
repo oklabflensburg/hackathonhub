@@ -284,8 +284,13 @@ let isUpdatingFromParent = false
 
 // Watch for prop changes
 watch(() => props.modelValue, (newValue) => {
+  console.log('Parent modelValue changed:', newValue)
   isUpdatingFromParent = true
-  formData.value = { ...newValue }
+  // Create a deep copy to avoid sharing references, especially for arrays
+  formData.value = {
+    ...newValue,
+    tags: [...newValue.tags]
+  }
   // Use nextTick to reset flag after potential emit from formData watch
   nextTick(() => {
     isUpdatingFromParent = false
@@ -294,10 +299,16 @@ watch(() => props.modelValue, (newValue) => {
 
 // Emit updates
 watch(formData, (newValue, oldValue) => {
-  if (isUpdatingFromParent) return
+  if (isUpdatingFromParent) {
+    console.log('Skipping emit because update is from parent')
+    return
+  }
   // Prevent infinite loop by checking if value actually changed
   if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+    console.log('formData changed, emitting update:', newValue)
     emit('update:modelValue', newValue)
+  } else {
+    console.log('formData changed but identical, skipping emit')
   }
 }, { deep: true })
 
@@ -308,9 +319,15 @@ watch(() => formData.value.tags, (newTags, oldTags) => {
 
 // Methods
 const addTag = () => {
+  console.log('addTag called, newTag:', newTag.value)
   if (newTag.value.trim() && !formData.value.tags.includes(newTag.value.trim())) {
-    formData.value.tags.push(newTag.value.trim())
+    console.log('Adding tag:', newTag.value.trim())
+    // Use immutable update to avoid mutating the original array
+    formData.value.tags = [...formData.value.tags, newTag.value.trim()]
     newTag.value = ''
+    console.log('Tags after add:', formData.value.tags)
+  } else {
+    console.log('Tag not added (empty or duplicate)')
   }
 }
 

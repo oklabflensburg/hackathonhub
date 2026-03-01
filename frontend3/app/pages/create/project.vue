@@ -7,7 +7,7 @@
     />
 
     <!-- Project Form -->
-    <div class="card">
+    <Card>
       <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">{{ $t('create.projectForm.title') }}</h2>
       <ProjectForm
         v-model="projectForm"
@@ -21,7 +21,7 @@
         @reset="resetProjectForm"
         @retry-hackathons="fetchHackathons"
       />
-    </div>
+    </Card>
   </div>
 </template>
 
@@ -29,6 +29,7 @@
 import { ref, onMounted } from '#imports'
 import ProjectForm from '@/components/organisms/forms/ProjectForm.vue'
 import PageHeader from '@/components/molecules/PageHeader.vue'
+import Card from '@/components/atoms/Card.vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
@@ -79,27 +80,6 @@ const fetchHackathons = async () => {
   } finally {
     hackathonsLoading.value = false
   }
-}
-
-// Project form methods
-const addTech = () => {
-  if (newTech.value.trim() && !projectForm.value.techStack.includes(newTech.value.trim())) {
-    projectForm.value.techStack.push(newTech.value.trim())
-    newTech.value = ''
-  }
-}
-
-const removeTech = (tech: string) => {
-  projectForm.value.techStack = projectForm.value.techStack.filter(t => t !== tech)
-}
-
-const addTeamMember = () => {
-  projectForm.value.teamMembers.push({ name: '', email: '' })
-}
-
-const removeTeamMember = (index: number) => {
-  if (projectForm.value.teamMembers.length <= 1) return
-  projectForm.value.teamMembers.splice(index, 1)
 }
 
 // Form submission
@@ -205,9 +185,3 @@ const resetProjectForm = () => {
   newTech.value = ''
 }
 </script>
-
-<style scoped>
-.card {
-  @apply bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6;
-}
-</style>
