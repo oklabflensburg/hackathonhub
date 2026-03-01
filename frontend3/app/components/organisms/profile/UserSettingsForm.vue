@@ -6,7 +6,7 @@
         <div v-if="avatarUrl && !avatarPreview"
           class="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
           <img :src="avatarUrl" :alt="username" class="w-full h-full object-cover object-top"
-            style="object-position: top" @error="$emit('avatar-error')" />
+            style="object-position: top" @error="$emit('avatar-error', $event)" />
         </div>
         <div v-else-if="avatarPreview"
           class="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg">
@@ -216,7 +216,7 @@ const usernameInitial = computed(() => {
 
 defineEmits<{
   'avatar-change': [event: Event]
-  'avatar-error': []
+  'avatar-error': [event: Event]
   'connect-github': []
   cancel: []
   save: []

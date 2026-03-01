@@ -15,62 +15,49 @@
     <PageHeader
       :title="$t('hackathons.projects.title', { id })"
       :subtitle="$t('hackathons.projects.subtitle')"
+    />
+
+    <!-- Project List Organism -->
+    <ProjectListOrganism
+      :projects="transformedProjects"
+      :loading="loading"
+      :error="error"
+      :search-query="searchQuery"
+      :search-placeholder="$t('projects.searchPlaceholder')"
+      :submit-button-text="$t('projects.submitProject')"
+      :loading-text="$t('hackathons.loadingProjects')"
+      :error-title="$t('hackathons.failedToLoad')"
+      :retry-button-text="$t('hackathons.tryAgain')"
+      :empty-title="$t('projects.emptyState.noProjectsFound')"
+      :empty-description="searchQuery ? $t('projects.emptyState.tryAdjustingSearch') : $t('projects.emptyState.beFirstToSubmit')"
+      :user-id="authStore.user?.id"
+      :hackathon-id="Number(id)"
+      :is-hackathon-member="isHackathonMember"
+      @update:search-query="searchQuery = $event"
+      @submit-project="handleSubmitProject"
+      @retry="fetchProjects"
+      @view-project="viewProject"
+      @edit-project="editProject"
     >
-      <template #actions>
-        <div class="flex items-center space-x-4">
-          <SearchBar
-            v-model="searchQuery"
-            :placeholder="$t('projects.searchPlaceholder')"
-          />
-          <button class="btn btn-primary">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            {{ $t('projects.submitProject') }}
-          </button>
-        </div>
+      <!-- Custom project card slot for hackathon-specific cards -->
+      <template #project-card="{ projects, canEdit }">
+        <HackathonProjectCard
+          v-for="project in projects"
+          :key="project.id"
+          :project="project"
+          :can-edit="canEdit(project)"
+          :labels="{
+            votes: $t('projects.stats.votes'),
+            comments: $t('projects.stats.comments'),
+            views: $t('projects.stats.views'),
+            view: $t('projects.viewProject'),
+            edit: $t('projects.editProject')
+          }"
+          @view="viewProject"
+          @edit="editProject"
+        />
       </template>
-    </PageHeader>
-
-    <!-- Loading State -->
-    <LoadingState v-if="loading" />
-
-    <!-- Error State -->
-    <ErrorState
-      v-else-if="error"
-      :title="$t('hackathons.failedToLoad')"
-      :message="error"
-      :action-label="$t('hackathons.tryAgain')"
-      @action="fetchProjects"
-    />
-
-    <!-- Projects Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <HackathonProjectCard
-        v-for="project in filteredProjects"
-        :key="project.id"
-        :project="project"
-        :can-edit="canEditProject(project)"
-        :labels="{
-          votes: $t('projects.stats.votes'),
-          comments: $t('projects.stats.comments'),
-          views: $t('projects.stats.views'),
-          view: $t('projects.viewProject'),
-          edit: $t('projects.editProject')
-        }"
-        @view="viewProject"
-        @edit="editProject"
-      />
-    </div>
-
-    <!-- Empty State -->
-    <EmptyState
-      v-if="!loading && !error && filteredProjects.length === 0"
-      :title="$t('projects.emptyState.noProjectsFound')"
-      :description="searchQuery ? $t('projects.emptyState.tryAdjustingSearch') : $t('projects.emptyState.beFirstToSubmit')"
-      :action-label="$t('projects.submitYourProject')"
-      @action="() => {}"
-    />
+    </ProjectListOrganism>
   </div>
 </template>
 
@@ -83,10 +70,7 @@ import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
 import HackathonProjectCard from '~/components/hackathons/HackathonProjectCard.vue'
 import PageHeader from '~/components/molecules/PageHeader.vue'
-import SearchBar from '~/components/molecules/SearchBar.vue'
-import LoadingState from '~/components/molecules/LoadingState.vue'
-import ErrorState from '~/components/molecules/ErrorState.vue'
-import EmptyState from '~/components/molecules/EmptyState.vue'
+import ProjectListOrganism from '~/components/organisms/projects/ProjectListOrganism.vue'
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -304,6 +288,17 @@ const editProject = async (project: any) => {
       uiStore.showError(t('projects.updateError'), t('common.updateError'))
     }
   }
+}
+
+// Handle submit project action
+const handleSubmitProject = () => {
+  if (!authStore.isAuthenticated) {
+    uiStore.showWarning(t('projects.errors.loginToSubmit'), t('common.authenticationRequired'))
+    return
+  }
+  
+  // Navigate to project creation page for this hackathon
+  navigateTo(`/projects/create?hackathon=${id}`)
 }
 
 // Check if current user is registered/teamed for this hackathon
