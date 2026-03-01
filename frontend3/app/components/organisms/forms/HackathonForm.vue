@@ -1,34 +1,34 @@
 <template>
   <form @submit.prevent="$emit('submit', formData)" class="space-y-6">
     <!-- Hackathon Name -->
-    <FormField :label="nameLabel" :required="true" :error="errors.name">
+    <FormField :label="t('create.hackathonForm.fields.hackathonName')" :required="true" :error="errors.name">
       <Input
         v-model="formData.name"
         type="text"
-        :placeholder="namePlaceholder"
+        :placeholder="t('create.hackathonForm.fields.namePlaceholder')"
         :error="!!errors.name"
         required
       />
     </FormField>
 
     <!-- Description -->
-    <FormField :label="descriptionLabel" :required="true" :error="errors.description">
+    <FormField :label="t('create.hackathonForm.fields.description')" :required="true" :error="errors.description">
       <textarea
         v-model="formData.description"
         rows="4"
         class="input"
-        :placeholder="descriptionPlaceholder"
+        :placeholder="t('create.hackathonForm.fields.descriptionPlaceholder')"
         :class="{ 'input-error': errors.description }"
         required
       />
     </FormField>
 
     <!-- Organization -->
-    <FormField :label="organizerLabel" :required="true" :error="errors.organization">
+    <FormField :label="t('create.hackathonForm.fields.organizer')" :required="true" :error="errors.organization">
       <Input
         v-model="formData.organization"
         type="text"
-        :placeholder="organizerPlaceholder"
+        :placeholder="t('create.hackathonForm.fields.organizerPlaceholder')"
         :error="!!errors.organization"
         required
       />
@@ -36,7 +36,7 @@
 
     <!-- Dates -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <FormField :label="startDateLabel" :required="true" :error="errors.startDate">
+      <FormField :label="t('create.hackathonForm.fields.startDate')" :required="true" :error="errors.startDate">
         <Input
           v-model="formData.startDate"
           type="datetime-local"
@@ -44,7 +44,7 @@
           required
         />
       </FormField>
-      <FormField :label="endDateLabel" :required="true" :error="errors.endDate">
+      <FormField :label="t('create.hackathonForm.fields.endDate')" :required="true" :error="errors.endDate">
         <Input
           v-model="formData.endDate"
           type="datetime-local"
@@ -55,7 +55,7 @@
     </div>
 
     <!-- Location -->
-    <FormField :label="locationLabel" :required="true" :error="errors.locationType">
+    <FormField :label="t('create.hackathonForm.fields.location')" :required="true" :error="errors.locationType">
       <div class="flex space-x-4">
         <label class="flex items-center">
           <input
@@ -65,7 +65,7 @@
             class="mr-2"
             :disabled="disabled"
           />
-          <span class="text-gray-700 dark:text-gray-300">{{ onlineText }}</span>
+          <span class="text-gray-700 dark:text-gray-300">{{ t('hackathons.filters.online') }}</span>
         </label>
         <label class="flex items-center">
           <input
@@ -75,14 +75,14 @@
             class="mr-2"
             :disabled="disabled"
           />
-          <span class="text-gray-700 dark:text-gray-300">{{ inPersonText }}</span>
+          <span class="text-gray-700 dark:text-gray-300">{{ t('hackathons.filters.inPerson') }}</span>
         </label>
       </div>
       <Input
         v-if="formData.locationType === 'in-person'"
         v-model="formData.location"
         type="text"
-        :placeholder="locationPlaceholder"
+        :placeholder="t('create.hackathonForm.fields.locationPlaceholder')"
         :error="!!errors.location"
         class="mt-3"
         required
@@ -90,18 +90,18 @@
     </FormField>
 
     <!-- Prize Pool -->
-    <FormField :label="prizePoolLabel" :error="errors.prizePool">
+    <FormField :label="t('create.hackathonForm.fields.prizePool')" :error="errors.prizePool">
       <Input
         v-model="formData.prizePool"
         type="text"
-        :placeholder="prizePoolPlaceholder"
+        :placeholder="t('create.hackathonForm.fields.prizePoolPlaceholder')"
         :error="!!errors.prizePool"
         :disabled="disabled"
       />
     </FormField>
 
     <!-- Tags -->
-    <FormField :label="tagsLabel">
+    <FormField :label="t('create.hackathonForm.fields.tags')">
       <div class="flex flex-wrap gap-2 mb-2">
         <Tag
           v-for="tag in formData.tags"
@@ -117,7 +117,7 @@
         <Input
           v-model="newTag"
           type="text"
-          :placeholder="tagsPlaceholder"
+          :placeholder="t('create.hackathonForm.fields.tagsPlaceholder')"
           :disabled="disabled"
           class="rounded-r-none"
           @keydown.enter.prevent="addTag"
@@ -129,25 +129,25 @@
           class="rounded-l-none"
           :disabled="disabled || !newTag.trim()"
         >
-          {{ addText }}
+          {{ t('create.hackathonForm.fields.add') }}
         </Button>
       </div>
     </FormField>
 
     <!-- Rules & Guidelines -->
-    <FormField :label="rulesLabel" :error="errors.rules">
+    <FormField :label="t('create.hackathonForm.fields.rules')" :error="errors.rules">
       <textarea
         v-model="formData.rules"
         rows="4"
         class="input"
-        :placeholder="rulesPlaceholder"
+        :placeholder="t('create.hackathonForm.fields.rulesPlaceholder')"
         :class="{ 'input-error': errors.rules }"
         :disabled="disabled"
       />
     </FormField>
 
     <!-- Image Upload -->
-    <FormField :label="hackathonImageLabel">
+    <FormField :label="t('create.hackathonForm.fields.hackathonImage')">
       <div
         @click="triggerImageUpload"
         class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
@@ -158,18 +158,18 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            {{ clickToUploadText }}
+            {{ t('create.hackathonForm.fields.clickToUpload') }}
           </p>
           <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-            {{ imageRequirementsText }}
+            {{ t('create.hackathonForm.fields.imageRequirements') }}
           </p>
         </div>
         <div v-else class="space-y-2">
           <div class="w-32 h-32 mx-auto rounded-lg overflow-hidden">
-            <img :src="formData.image_url" :alt="imageAltText" class="w-full h-full object-cover" />
+            <img :src="formData.image_url" :alt="t('create.hackathonForm.fields.imageAlt')" class="w-full h-full object-cover" />
           </div>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            {{ imageUploadedText }}
+            {{ t('create.hackathonForm.fields.imageUploaded') }}
           </p>
           <Button
             type="button"
@@ -179,7 +179,7 @@
             class="text-red-600 dark:text-red-400"
             :disabled="disabled"
           >
-            {{ removeImageText }}
+            {{ t('create.hackathonForm.fields.removeImage') }}
           </Button>
         </div>
         <input
@@ -193,11 +193,11 @@
     </FormField>
 
     <!-- Contact Information -->
-    <FormField :label="contactEmailLabel" :required="true" :error="errors.contactEmail">
+    <FormField :label="t('create.hackathonForm.fields.contactEmail')" :required="true" :error="errors.contactEmail">
       <Input
         v-model="formData.contactEmail"
         type="email"
-        :placeholder="emailPlaceholder"
+        :placeholder="t('create.hackathonForm.fields.emailPlaceholder')"
         :error="!!errors.contactEmail"
         required
         :disabled="disabled"
@@ -212,7 +212,7 @@
         variant="secondary"
         :disabled="disabled"
       >
-        {{ resetText }}
+        {{ t('create.projectForm.buttons.reset') }}
       </Button>
       <Button
         type="submit"
@@ -220,7 +220,7 @@
         :disabled="disabled"
         variant="primary"
       >
-        {{ submitText }}
+        {{ t('create.hackathonForm.buttons.submit') }}
       </Button>
     </div>
   </form>
@@ -228,6 +228,7 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import FormField from '@/components/molecules/FormField.vue'
 import Input from '@/components/atoms/Input.vue'
 import Button from '@/components/atoms/Button.vue'
@@ -256,72 +257,15 @@ interface Props {
   submitting?: boolean
   disabled?: boolean
   errors?: Record<string, string>
-  // Labels
-  nameLabel?: string
-  namePlaceholder?: string
-  descriptionLabel?: string
-  descriptionPlaceholder?: string
-  organizerLabel?: string
-  organizerPlaceholder?: string
-  startDateLabel?: string
-  endDateLabel?: string
-  locationLabel?: string
-  onlineText?: string
-  inPersonText?: string
-  locationPlaceholder?: string
-  prizePoolLabel?: string
-  prizePoolPlaceholder?: string
-  tagsLabel?: string
-  tagsPlaceholder?: string
-  addText?: string
-  rulesLabel?: string
-  rulesPlaceholder?: string
-  hackathonImageLabel?: string
-  clickToUploadText?: string
-  imageRequirementsText?: string
-  imageAltText?: string
-  imageUploadedText?: string
-  removeImageText?: string
-  contactEmailLabel?: string
-  emailPlaceholder?: string
-  resetText?: string
-  submitText?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   submitting: false,
   disabled: false,
-  errors: () => ({}),
-  nameLabel: 'Hackathon Name',
-  namePlaceholder: 'Enter hackathon name',
-  descriptionLabel: 'Description',
-  descriptionPlaceholder: 'Describe your hackathon...',
-  organizerLabel: 'Organizer',
-  organizerPlaceholder: 'Organization or company name',
-  startDateLabel: 'Start Date',
-  endDateLabel: 'End Date',
-  locationLabel: 'Location',
-  onlineText: 'Online',
-  inPersonText: 'In-person',
-  locationPlaceholder: 'Enter location (city, venue, etc.)',
-  prizePoolLabel: 'Prize Pool',
-  prizePoolPlaceholder: 'e.g., $10,000',
-  tagsLabel: 'Tags',
-  tagsPlaceholder: 'Add a tag',
-  addText: 'Add',
-  rulesLabel: 'Rules & Guidelines',
-  rulesPlaceholder: 'Add rules and guidelines for participants...',
-  hackathonImageLabel: 'Hackathon Image',
-  clickToUploadText: 'Click to upload image',
-  imageRequirementsText: 'PNG, JPG, GIF up to 5MB',
-  imageAltText: 'Hackathon preview',
-  imageUploadedText: 'Image uploaded',
-  removeImageText: 'Remove Image',
-  contactEmailLabel: 'Contact Email',
-  emailPlaceholder: 'contact@example.com',
-  resetText: 'Reset',
-  submitText: 'Create Hackathon'
+  errors: () => ({})
 })
+
+const { t } = useI18n()
 
 // Emits
 const emit = defineEmits<{
@@ -355,6 +299,11 @@ watch(formData, (newValue, oldValue) => {
   if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
     emit('update:modelValue', newValue)
   }
+}, { deep: true })
+
+// Debug: log tags changes
+watch(() => formData.value.tags, (newTags, oldTags) => {
+  console.log('Tags changed:', oldTags, '->', newTags)
 }, { deep: true })
 
 // Methods
