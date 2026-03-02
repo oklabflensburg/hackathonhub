@@ -1,6 +1,6 @@
 <template>
   <div v-if="loading" class="container mx-auto px-4 py-8 text-center">
-    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    <LoadingSpinner size="lg" color="primary" />
     <p class="mt-4 text-gray-600 dark:text-gray-400">Loading team...</p>
   </div>
 
@@ -17,12 +17,10 @@
 
   <div v-else-if="team" class="container mx-auto px-4 py-8 max-w-2xl">
     <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Team: {{ team.name }}</h1>
-      <p class="text-gray-600 dark:text-gray-400 mt-2">
-        Update your team details and settings
-      </p>
-    </div>
+    <PageHeader
+      :title="`Edit Team: ${team.name}`"
+      subtitle="Update your team details and settings"
+    />
 
     <TeamForm
       :form="form"
@@ -65,6 +63,8 @@ import { useTeamStore } from '~/stores/team'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import TeamForm from '~/components/teams/TeamForm.vue'
+import PageHeader from '~/components/molecules/PageHeader.vue'
+import LoadingSpinner from '~/components/atoms/LoadingSpinner.vue'
 
 const route = useRoute()
 const router = useRouter()

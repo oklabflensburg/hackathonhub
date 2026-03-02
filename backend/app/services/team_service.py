@@ -13,6 +13,7 @@ from app.repositories.team_repository import (
     TeamRepository, TeamMemberRepository, TeamInvitationRepository
 )
 from app.repositories.user_repository import UserRepository
+from app.services.notification_service import NotificationService
 
 
 class TeamService:
@@ -23,6 +24,7 @@ class TeamService:
         self.member_repo = TeamMemberRepository()
         self.invitation_repo = TeamInvitationRepository()
         self.user_repo = UserRepository()
+        self.notification_service = NotificationService()
 
     def get_teams(
         self, db: Session, skip: int = 0, limit: int = 100
@@ -154,8 +156,11 @@ class TeamService:
             return None
 
         # Check for existing pending invitation
-        existing_invitation = self.invitation_repo.get_pending_by_team_and_user(
-            db, team_id, invitation_create.invitee_id)
+        existing_invitation = (
+            self.invitation_repo.get_pending_by_team_and_user(
+                db, team_id, invitation_create.invitee_id
+            )
+        )
         if existing_invitation:
             return TeamInvitationSchema.model_validate(existing_invitation)
 
@@ -166,6 +171,21 @@ class TeamService:
         invitation_data["status"] = "pending"
 
         invitation = self.invitation_repo.create(db, obj_in=invitation_data)
+
+        # Send notification to invited user
+        try:
+            self.notification_service.send_team_invitation_notification(
+                db=db,
+                team_id=team_id,
+                invited_user_id=invitation_create.invitee_id,
+                inviter_id=inviter_id,
+                language="en"  # Default language
+            )
+        except Exception as e:
+            # Log error but don't fail the invitation creation
+            import logging
+            logging.error(f"Failed to send team invitation notification: {e}")
+
         return TeamInvitationSchema.model_validate(invitation)
 
     def accept_team_invitation(
@@ -182,6 +202,21 @@ class TeamService:
         # Update invitation status
         invitation.status = "accepted"
         db.commit()
+
+        # Send notification to team owner about accepted invitation
+        try:
+            self.notification_service.send_team_member_added_notification(
+                db=db,
+                team_id=invitation.team_id,
+                user_id=user_id,
+                added_by_id=user_id,  # User added themselves by accepting
+                language="en"
+            )
+        except Exception as e:
+            import logging
+            logging.error(
+                f"Failed to send team member added notification: {e}"
+            )
 
         # Add user to team
         return self.add_team_member(
@@ -201,6 +236,23 @@ class TeamService:
 
         invitation.status = "declined"
         db.commit()
+
+        # Send notification to team owner about declined invitation
+        try:
+            self.notification_service.\
+                send_team_invitation_declined_notification(
+                    db=db,
+                    team_id=invitation.team_id,
+                    invited_user_id=user_id,
+                    inviter_id=invitation.inviter_id,
+                    language="en"
+                )
+        except Exception as e:
+            import logging
+            logging.error(
+                f"Failed to send team invitation declined notification: {e}"
+            )
+
         return True
 
     def get_team_invitations(

@@ -95,6 +95,10 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
                 "Cannot leave team as the sole owner. "
                 "Transfer ownership or delete team."
             ),
+            "validation_sole_owner_cannot_leave": (
+                "Cannot leave team as the sole owner. "
+                "Transfer ownership or delete team."
+            ),
             "only_owners_or_admins_can_create_invitations": (
                 "Only team owners or admins can create invitations"
             ),
@@ -312,6 +316,10 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
                 "Nur Team-Besitzer kann einen anderen Besitzer entfernen"
             ),
             "sole_owner_cannot_leave": (
+                "Kann Team nicht verlassen als einziger Besitzer. "
+                "Übertrage Besitz oder lösche das Team."
+            ),
+            "validation_sole_owner_cannot_leave": (
                 "Kann Team nicht verlassen als einziger Besitzer. "
                 "Übertrage Besitz oder lösche das Team."
             ),

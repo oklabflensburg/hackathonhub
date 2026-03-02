@@ -549,11 +549,11 @@ export const useTeamStore = defineStore('team', () => {
       }
 
       const data = await response.json()
-      uiStore.showSuccess('Invitation sent successfully')
+      // Erfolgsmeldung wird vom aufrufenden Composable angezeigt
       return data
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to send invitation'
-      uiStore.showError(errorMsg, 'Invitation Error')
+      // Fehler wird vom aufrufenden Composable behandelt
       throw err
     }
   }

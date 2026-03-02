@@ -21,13 +21,20 @@ router = APIRouter()
 
 @router.get("", response_model=list[User])
 async def get_users(
+    username: str = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    """Get all users."""
+    """Get users with optional username filter."""
     user_service = UserService()
-    return user_service.get_users(db, skip=skip, limit=limit)
+    
+    if username:
+        # Search users by username (case-insensitive partial match)
+        return user_service.search_users(db, username, limit)
+    else:
+        # Get all users with pagination
+        return user_service.get_users(db, skip=skip, limit=limit)
 
 
 @router.get("/me", response_model=User)
