@@ -100,12 +100,18 @@ class ProjectService:
 
     @invalidate_cache()
     def update_project(
-        self, db: Session, project_id: int, project_update: ProjectUpdate
+        self, db: Session, project_id: int, project_update: ProjectUpdate,
+        user_id: int, locale: str = "en"
     ) -> Optional[ProjectSchema]:
-        """Update a project."""
+        """Update a project with ownership check."""
         project = self.project_repo.get(db, project_id)
         if not project:
             return None
+
+        # Check ownership
+        if project.owner_id != user_id:
+            from app.i18n.helpers import raise_forbidden
+            raise_forbidden(locale, "update", entity="project")
 
         update_data = project_update.model_dump(exclude_unset=True)
         updated_project = self.project_repo.update(
@@ -113,11 +119,18 @@ class ProjectService:
         return ProjectSchema.model_validate(updated_project)
 
     @invalidate_cache()
-    def delete_project(self, db: Session, project_id: int) -> bool:
-        """Delete a project."""
+    def delete_project(
+        self, db: Session, project_id: int, user_id: int, locale: str = "en"
+    ) -> bool:
+        """Delete a project with ownership check."""
         project = self.project_repo.get(db, project_id)
         if not project:
             return False
+
+        # Check ownership
+        if project.owner_id != user_id:
+            from app.i18n.helpers import raise_forbidden
+            raise_forbidden(locale, "delete", entity="project")
 
         self.project_repo.delete(db, id=project_id)
         return True

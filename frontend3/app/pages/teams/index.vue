@@ -152,27 +152,15 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="teams.length > 0" class="mt-8 flex items-center justify-between">
-      <button
-        @click="prevPage"
-        :disabled="currentPage === 1"
-        class="btn btn-outline"
-        :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
-      >
-        {{ $t('teams.previous') }}
-      </button>
-      <span class="text-gray-600 dark:text-gray-400">
-        {{ $t('teams.page', { page: currentPage }) }}
-      </span>
-      <button
-        @click="nextPage"
-        :disabled="teams.length < pageSize"
-        class="btn btn-outline"
-        :class="{ 'opacity-50 cursor-not-allowed': teams.length < pageSize }"
-      >
-        {{ $t('teams.next') }}
-      </button>
-    </div>
+    <Pagination
+      v-if="teams.length > 0"
+      :total="totalFilteredTeams"
+      :per-page="pageSize"
+      :current-page="currentPage"
+      :show-info="false"
+      @page-change="changePage"
+      class="mt-8"
+    />
   </div>
 </template>
 
@@ -184,6 +172,7 @@ import { useTeamStore } from '~/stores/team'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import TeamListCard from '~/components/teams/TeamListCard.vue'
+import Pagination from '~/components/molecules/Pagination.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -232,6 +221,32 @@ const filteredTeams = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
   return filtered.slice(start, end)
+})
+
+// Total filtered teams (without pagination)
+const totalFilteredTeams = computed(() => {
+  let filtered = teams.value
+
+  // Apply search filter
+  if (filters.value.search) {
+    const searchLower = filters.value.search.toLowerCase()
+    filtered = filtered.filter(team =>
+      team.name.toLowerCase().includes(searchLower) ||
+      team.description?.toLowerCase().includes(searchLower)
+    )
+  }
+
+  // Apply hackathon filter
+  if (filters.value.hackathon_id) {
+    filtered = filtered.filter(team => team.hackathon_id === Number(filters.value.hackathon_id))
+  }
+
+  // Apply open/closed filter
+  if (filters.value.is_open !== '') {
+    filtered = filtered.filter(team => team.is_open === (filters.value.is_open === 'true' || filters.value.is_open === true))
+  }
+
+  return filtered.length
 })
 
 // Methods
@@ -339,16 +354,8 @@ async function leaveTeam(teamId: number) {
   }
 }
 
-function prevPage() {
-  if (currentPage.value > 1) {
-    currentPage.value--
-  }
-}
-
-function nextPage() {
-  if (filteredTeams.value.length === pageSize.value) {
-    currentPage.value++
-  }
+function changePage(page: number) {
+  currentPage.value = page
 }
 
 // Lifecycle

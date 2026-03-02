@@ -204,7 +204,7 @@ def refresh_tokens(refresh_token: str, db: Session, locale: str = "en"):
         "access_token": new_tokens["access_token"],
         "refresh_token": new_tokens["refresh_token"],
         "token_type": "bearer",
-        "user": User.from_orm(user)
+        "user": User.model_validate(user)
     }
 
 

@@ -20,8 +20,13 @@ const authMiddlewareFunction = defineNuxtRouteMiddleware((to, from) => {
   
   // Protect authenticated routes (redirect unauthenticated users to login)
   const protectedRoutes = ['/profile', '/my-projects', '/my-votes', '/create']
-  
-  if (!isAuthenticated && protectedRoutes.includes(to.path)) {
+
+  // Check if the route is protected (exact match or starts with /create/)
+  const isProtected = protectedRoutes.some(route =>
+    to.path === route || to.path.startsWith(route + '/')
+  )
+
+  if (!isAuthenticated && isProtected) {
     return navigateTo('/login')
   }
 })

@@ -48,19 +48,21 @@
       </NuxtLink>
 
       <!-- Create (Center with accent) -->
-      <NuxtLink
-        v-if="isAuthenticated"
-        to="/create"
-        class="flex flex-col items-center justify-center p-3 -mt-6 rounded-full
-               bg-gradient-to-br from-primary-500 to-purple-600
-               text-white shadow-lg hover:shadow-xl
-               transition-all duration-200 hover:-translate-y-1"
-      >
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-        <span class="text-xs font-medium mt-1">{{ $t('navigation.create') }}</span>
-      </NuxtLink>
+      <ClientOnly>
+        <NuxtLink
+          v-if="isAuthenticated"
+          to="/create"
+          class="flex flex-col items-center justify-center p-3 -mt-6 rounded-full
+                 bg-gradient-to-br from-primary-500 to-purple-600
+                 text-white shadow-lg hover:shadow-xl
+                 transition-all duration-200 hover:-translate-y-1"
+        >
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          <span class="text-xs font-medium mt-1">{{ $t('navigation.create') }}</span>
+        </NuxtLink>
+      </ClientOnly>
 
       <!-- Profile -->
       <NuxtLink

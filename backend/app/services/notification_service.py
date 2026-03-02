@@ -190,6 +190,22 @@ class NotificationService:
         )
         return True
 
+    def send_team_invitation_declined_notification(
+        self,
+        db: Session,
+        team_id: int,
+        invited_user_id: int,
+        inviter_id: int,
+        language: str = "en"
+    ) -> bool:
+        """Send notification for declined team invitation."""
+        # Placeholder implementation
+        logger.info(
+            f"Team invitation declined notification: team={team_id}, "
+            f"invited_user={invited_user_id}, inviter={inviter_id}"
+        )
+        return True
+
     def send_project_created_notification(
         self,
         db: Session,

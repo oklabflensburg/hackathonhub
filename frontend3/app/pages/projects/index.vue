@@ -81,13 +81,26 @@
       </template>
     </EmptyState>
 
-    <!-- Load More -->
-    <LoadMore
-      v-if="filteredProjects.length > 0 && hasMore"
-      :label="$t('projects.loadMore')"
-      :loading="loading"
-      @load="loadMore"
-    />
+    <!-- Pagination -->
+    <Pagination
+      v-if="!loading && !error && filteredProjects.length > 0"
+      :total="totalProjects"
+      :per-page="pageSize"
+      :current-page="currentPage"
+      :show-info="true"
+      @page-change="goToPage"
+      class="mt-8"
+    >
+      <template #info="{ start, end, total }">
+        <template v-if="searchQuery || selectedTags.length > 0">
+          {{ $t('projects.showing') }} {{ filteredProjects.length }} {{ $t('projects.of') }} {{ projects.length }}
+          {{ $t('projects.loadedProjects') }}
+        </template>
+        <template v-else>
+          {{ $t('projects.showing') }} {{ start }}-{{ end }} {{ $t('projects.of') }} {{ total }} {{ $t('projects.projectsLabel') }}
+        </template>
+      </template>
+    </Pagination>
   </div>
 </template>
 
@@ -96,7 +109,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from '#imports'
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'
-import { PageHeader, SelectedTags, LoadingState, ErrorState, EmptyState, LoadMore } from '~/components/molecules'
+import { PageHeader, SelectedTags, LoadingState, ErrorState, EmptyState, Pagination } from '~/components/molecules'
 import { ProjectListCard } from '~/components/organisms'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 import { resolveImageUrl } from '~/utils/imageUrl'
@@ -112,7 +125,9 @@ const sortBy = ref('popular')
 const loading = ref(false)
 const projects = ref<any[]>([])
 const error = ref<string | null>(null)
-const hasMore = ref(true)
+const currentPage = ref(1)
+const pageSize = ref(24)
+const totalProjects = ref(0)
 
 const config = useRuntimeConfig()
 const apiUrl = config.public.apiUrl
@@ -204,15 +219,16 @@ watch(selectedTags, (newTags) => {
   router.replace({ query })
 }, { deep: true })
 
-// Fetch projects from API with optional search
-const fetchProjects = async () => {
+// Fetch projects from API with optional search and pagination
+const fetchProjects = async (page: number = currentPage.value) => {
   loading.value = true
   error.value = null
   try {
+    const skip = (page - 1) * pageSize.value
     // Build query parameters
     const params = new URLSearchParams()
-    params.append('skip', '0')
-    params.append('limit', '24')
+    params.append('skip', skip.toString())
+    params.append('limit', pageSize.value.toString())
     if (searchQuery.value) {
       params.append('search', searchQuery.value)
     }
@@ -241,9 +257,12 @@ const fetchProjects = async () => {
     }
     const data = await response.json()
     
-    // Check if we got fewer projects than requested (end of data)
-    if (data.length < 24) {
-      hasMore.value = false
+    // Estimate total projects based on whether we got a full page
+    if (data.length < pageSize.value) {
+      totalProjects.value = skip + data.length
+    } else {
+      // Assume there are more projects than we can see
+      totalProjects.value = skip + data.length + pageSize.value
     }
     
     // Transform API data to match frontend structure
@@ -279,6 +298,13 @@ const fetchProjects = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Navigate to a specific page
+const goToPage = (page: number) => {
+  if (page < 1 || page === currentPage.value) return
+  currentPage.value = page
+  fetchProjects(page)
 }
 
 // Tag handling functions
@@ -335,74 +361,6 @@ const openProject = (projectId: number) => {
   router.push(`/projects/${projectId}`)
 }
 
-const loadMore = async () => {
-  loading.value = true
-  try {
-    // Calculate skip based on current number of projects
-    const skip = projects.value.length
-    const limit = 12 // Load 12 more projects
-    
-    // Build query parameters including user filter if present
-    const params = new URLSearchParams()
-    params.append('skip', skip.toString())
-    params.append('limit', limit.toString())
-    if (route.query.user) {
-      const userParam = Array.isArray(route.query.user)
-        ? route.query.user[0]
-        : route.query.user
-      if (userParam) {
-        params.append('user', userParam as string)
-      }
-    }
-    
-    const response = await authStore.fetchWithAuth(`/api/projects?${params.toString()}`)
-    if (!response.ok) {
-      throw new Error(`${t('projects.errors.failedToLoadMore')}: ${response.status}`)
-    }
-    
-    const data = await response.json()
-    
-    // Check if we got fewer projects than requested (end of data)
-    if (data.length < limit) {
-      hasMore.value = false
-    }
-    
-    // Transform API data to match frontend structure
-    const newProjects = data.map((project: any) => ({
-      id: project.id,
-      name: project.title,
-      author: project.owner?.name || t('common.unknown'),
-      hackathon: project.hackathon?.name || t('common.unknownHackathon'),
-      status: project.status === 'active' ? 'Submitted' : 
-              project.status === 'winner' ? 'Winner' :
-              project.status === 'finalist' ? 'Finalist' : 'Submitted',
-       description: project.description || t('common.noDescription'),
-      tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
-        image: project.image_path ? resolveImageUrl(project.image_path, config.public.apiUrl || 'http://localhost:8000') : generateProjectPlaceholder({
-          id: project.id,
-          title: project.title
-        }),
-      demo: project.live_url || null,
-      github: project.repository_url || null,
-      views: project.view_count || 0,
-      comments: project.comment_count || 0,
-      upvotes: project.upvote_count || 0,
-      downvotes: project.downvote_count || 0,
-      userVote: null,
-      team: project.owner ? [{ id: project.owner.id, name: project.owner.name }] : []
-    }))
-    
-    // Add new projects to existing list
-    projects.value = [...projects.value, ...newProjects]
-    
-  } catch (err: any) {
-    console.error('Error loading more projects:', err)
-    uiStore.showError('Failed to load more projects', 'Unable to load more projects. Please try again.')
-    // Show error to user (could add error state UI)
-  } finally {
-    loading.value = false
-  }
-}
 </script>
 
 <style scoped>

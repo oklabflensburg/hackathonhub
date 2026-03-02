@@ -31,7 +31,7 @@ async def get_current_user(
         raise_not_found(locale, "user")
 
     # Convert to User schema first (avoids relationship errors)
-    user_schema = schemas.User.from_orm(db_user)
+    user_schema = schemas.User.model_validate(db_user)
     # Create UserWithDetails from User schema (extra fields will be None)
     user_with_details = schemas.UserWithDetails(**user_schema.model_dump())
 
@@ -43,13 +43,13 @@ async def get_current_user(
     # Convert team memberships to schema
     user_with_details.teams = []
     for membership in team_memberships:
-        team_member_schema = schemas.TeamMember.from_orm(membership)
+        team_member_schema = schemas.TeamMember.model_validate(membership)
         # Include team details
         team = db.query(models.Team).filter(
             models.Team.id == membership.team_id
         ).first()
         if team:
-            team_member_schema.team = schemas.Team.from_orm(team)
+            team_member_schema.team = schemas.Team.model_validate(team)
         user_with_details.teams.append(team_member_schema)
 
     # Get user's projects
@@ -57,7 +57,7 @@ async def get_current_user(
         models.Project.owner_id == db_user.id
     ).all()
     user_with_details.projects = [
-        schemas.Project.from_orm(project) for project in user_projects
+        schemas.Project.model_validate(project) for project in user_projects
     ]
 
     # Get user's votes
@@ -65,7 +65,7 @@ async def get_current_user(
         models.Vote.user_id == db_user.id
     ).all()
     user_with_details.votes = [
-        schemas.Vote.from_orm(vote) for vote in user_votes
+        schemas.Vote.model_validate(vote) for vote in user_votes
     ]
 
     # Get user's comments
@@ -73,7 +73,7 @@ async def get_current_user(
         models.Comment.user_id == db_user.id
     ).all()
     user_with_details.comments = [
-        schemas.Comment.from_orm(comment) for comment in user_comments
+        schemas.Comment.model_validate(comment) for comment in user_comments
     ]
 
     # Get user's hackathon registrations
@@ -81,7 +81,7 @@ async def get_current_user(
         models.HackathonRegistration.user_id == db_user.id
     ).all()
     user_with_details.hackathon_registrations = [
-        schemas.HackathonRegistration.from_orm(reg)
+        schemas.HackathonRegistration.model_validate(reg)
         for reg in user_registrations
     ]
 
@@ -100,7 +100,7 @@ async def get_user_votes(
         models.Vote.user_id == current_user.id
     ).all()
 
-    return [schemas.Vote.from_orm(vote) for vote in user_votes]
+    return [schemas.Vote.model_validate(vote) for vote in user_votes]
 
 
 @router.get("/me/registrations",
@@ -116,7 +116,7 @@ async def get_user_registrations(
         models.HackathonRegistration.user_id == current_user.id
     ).all()
 
-    return [schemas.HackathonRegistration.from_orm(reg)
+    return [schemas.HackathonRegistration.model_validate(reg)
             for reg in user_registrations]
 
 

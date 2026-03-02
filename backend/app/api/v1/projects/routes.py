@@ -17,9 +17,10 @@ from app.repositories.project_repository import VoteRepository
 from app.repositories.project_repository import CommentRepository
 from app.i18n.dependencies import get_locale
 from app.i18n.helpers import (
-    raise_not_found, raise_forbidden, raise_bad_request,
+    raise_not_found, raise_bad_request,
     raise_internal_server_error
 )
+from app.i18n.translations import get_translation
 
 router = APIRouter()
 
@@ -103,22 +104,8 @@ async def update_project(
     locale: str = Depends(get_locale)
 ):
     """Update a project."""
-    # Note: The service should handle permission checking
-    # For now, we'll check ownership here
-    project = project_service.get_project(db, project_id)
-    if not project:
-        raise_not_found(locale, "project")
-
-    # Check ownership (simplified - should be in service)
-    # TODO: Move permission logic to service layer
-    from app.repositories.project_repository import ProjectRepository
-    project_repo = ProjectRepository()
-    db_project = project_repo.get(db, project_id)
-    if db_project.owner_id != current_user.id:
-        raise_forbidden(locale, "update", entity="project")
-
     updated_project = project_service.update_project(
-        db, project_id, project_update
+        db, project_id, project_update, current_user.id, locale
     )
     if not updated_project:
         raise_not_found(locale, "project")
@@ -134,21 +121,14 @@ async def delete_project(
     locale: str = Depends(get_locale)
 ):
     """Delete a project."""
-    # Check ownership first
-    from app.repositories.project_repository import ProjectRepository
-    project_repo = ProjectRepository()
-    project = project_repo.get(db, project_id)
-    if not project:
-        raise_not_found(locale, "project")
-
-    if project.owner_id != current_user.id:
-        raise_forbidden(locale, "delete", entity="project")
-
-    success = project_service.delete_project(db, project_id)
+    success = project_service.delete_project(
+        db, project_id, current_user.id, locale
+    )
     if not success:
         raise_internal_server_error(locale, "delete", entity="project")
 
-    return {"message": "Project deleted successfully"}
+    message = get_translation("success.project_deleted", locale)
+    return {"message": message}
 
 
 @router.post("/{project_id}/vote")
@@ -330,8 +310,9 @@ async def increment_project_view(
     db.commit()
     db.refresh(project)
 
+    message = get_translation("success.view_count_incremented", locale)
     return {
-        "message": "View count incremented",
+        "message": message,
         "view_count": project.view_count
     }
 
@@ -367,8 +348,9 @@ async def remove_vote(
     project = project_repository.get(db, project_id)
     db.refresh(project)  # Ensure we have latest values
 
+    message = get_translation("success.vote_removed", locale)
     return {
-        "message": "Vote removed successfully",
+        "message": message,
         "project_stats": {
             "project_id": project_id,
             "upvotes": getattr(project, 'upvote_count', 0),
@@ -444,4 +426,4 @@ async def create_project_comment(
     # Create the comment
     new_comment = comment_repository.create(db, obj_in=comment_data)
 
-    return Comment.from_orm(new_comment)
+    return Comment.model_validate(new_comment)

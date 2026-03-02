@@ -678,6 +678,10 @@
       "beFirstToSubmit": "Sei der Erste, der ein Projekt für diesen Hackathon einreicht!"
     },
     "loadMore": "Weitere Projekte laden",
+    "showing": "Zeigt",
+    "of": "von",
+    "projectsLabel": "Projekte",
+    "loadedProjects": "geladene Projekte",
     "errors": {
       "failedToFetch": "Projekte konnten nicht abgerufen werden",
       "failedToLoad": "Projekte konnten nicht geladen werden",
@@ -832,6 +836,7 @@
     "joinedTeamSuccess": "Du bist dem Team beigetreten!",
     "teamClosedMessage": "Dieses Team ist geschlossen. Bitte fordere eine Einladung vom Team-Besitzer an.",
     "closedTeam": "Geschlossenes Team",
+    "confirmLeaveTeamTitle": "Team verlassen",
     "confirmLeaveTeam": "Bist du sicher, dass du dieses Team verlassen möchtest?",
     "leftTeamSuccess": "Du hast das Team verlassen",
     "confirmRemoveMember": "Bist du sicher, dass du dieses Mitglied aus dem Team entfernen möchtest?",
@@ -841,6 +846,9 @@
     "userNotFound": "Benutzer nicht gefunden",
     "invitationSentTo": "Einladung gesendet an {username}",
     "invitationError": "Einladungsfehler",
+    "invitationFailed": "Einladung fehlgeschlagen",
+    "permissionDenied": "Zugriff verweigert",
+    "onlyOwnersCanInvite": "Nur Team-Besitzer können Mitglieder einladen",
     "confirmDeleteTeam": "Bist du sicher, dass du dieses Team löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
     "teamDeletedSuccess": "Team erfolgreich gelöscht",
     "teamFor": "Team für {hackathon}",
@@ -1140,5 +1148,9 @@
     "pushEnabledSuccess": "Push-Benachrichtigungen erfolgreich aktiviert",
     "pushEnableError": "Fehler beim Aktivieren von Push-Benachrichtigungen",
     "saveError": "Fehler beim Speichern der Einstellungen"
+  },
+  "pagination": {
+    "previous": "Zurück",
+    "next": "Weiter"
   }
 }
