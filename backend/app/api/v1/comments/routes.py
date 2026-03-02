@@ -49,7 +49,7 @@ async def update_comment(
         db, db_obj=comment, obj_in=update_data
     )
 
-    return Comment.from_orm(updated_comment)
+    return Comment.model_validate(updated_comment)
 
 
 @router.delete("/{comment_id}")
