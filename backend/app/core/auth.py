@@ -1,7 +1,7 @@
 """
 Authentication utilities for JWT token handling and user authentication.
 """
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -16,6 +16,7 @@ from app.repositories.user_repository import (
 from app.domain.schemas.user import TokenData, User
 from app.core.database import get_db
 from app.i18n.helpers import raise_i18n_http_exception
+from app.utils.cookies import get_auth_token_from_cookies
 
 load_dotenv()
 
@@ -244,6 +245,78 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
         token_data = verify_token(token, credentials_exception)
+
+        # Try to find user by username (stored in token sub field)
+        user_repository = UserRepository()
+        user = user_repository.get_by_username(
+            db, username=token_data.username)
+        if user is None:
+            # Fallback: try to find by email (for backward compatibility)
+            user = user_repository.get_by_email(
+                db, email=token_data.username)
+            if user is None:
+                raise_i18n_http_exception(
+                    locale=locale,
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    translation_key="errors.could_not_validate_credentials",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
+        return user
+    except JWTError:
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.could_not_validate_credentials",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+
+async def get_current_user_with_cookies(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+    locale: str = "en"
+):
+    """
+    Get current user from access token, checking both Authorization header
+    and cookies for backward compatibility.
+    """
+    # First check Authorization header
+    if token:
+        auth_token = token
+    else:
+        # Fallback to cookies
+        auth_token = get_auth_token_from_cookies(request)
+    
+    if not auth_token:
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.not_authenticated",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    try:
+        # Decode token to check type
+        payload = jwt.decode(auth_token, SECRET_KEY, algorithms=[ALGORITHM])
+        token_type = payload.get("type")
+
+        # Only accept access tokens
+        if token_type != "access":
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.could_not_validate_credentials",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+
+        # Use existing verify_token for backward compatibility
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        token_data = verify_token(auth_token, credentials_exception)
 
         # Try to find user by username (stored in token sub field)
         user_repository = UserRepository()

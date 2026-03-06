@@ -667,6 +667,86 @@ export const useTeamStore = defineStore('team', () => {
     }
   }
 
+  // Join a team (for open teams)
+  async function joinTeam(teamId: number) {
+    try {
+      const response = await fetchWithAuth(`/api/teams/${teamId}/join`, {
+        method: 'POST'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || `Failed to join team: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      // Add user to team members cache
+      const currentMembers = teamMembers.value.get(teamId) || []
+      teamMembers.value.set(teamId, [...currentMembers, data])
+      
+      // Update team in teams list
+      const teamIndex = teams.value.findIndex(t => t.id === teamId)
+      if (teamIndex !== -1 && teams.value[teamIndex]) {
+        // Update member count
+        const team = teams.value[teamIndex]
+        teams.value[teamIndex] = {
+          ...team,
+          member_count: (team.member_count || 0) + 1
+        }
+      }
+      
+      uiStore.showSuccess('Successfully joined the team')
+      return data
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to join team'
+      uiStore.showError(errorMsg, 'Team Join Error')
+      throw err
+    }
+  }
+
+  // Leave a team
+  async function leaveTeam(teamId: number) {
+    try {
+      const response = await fetchWithAuth(`/api/teams/${teamId}/leave`, {
+        method: 'POST'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || `Failed to leave team: ${response.status}`)
+      }
+
+      // Remove user from team members cache
+      const currentMembers = teamMembers.value.get(teamId) || []
+      teamMembers.value.set(teamId, currentMembers.filter(member => member.user_id !== authStore.user?.id))
+      
+      // Update team in teams list
+      const teamIndex = teams.value.findIndex(t => t.id === teamId)
+      if (teamIndex !== -1 && teams.value[teamIndex]) {
+        // Update member count
+        const team = teams.value[teamIndex]
+        teams.value[teamIndex] = {
+          ...team,
+          member_count: Math.max(0, (team.member_count || 1) - 1)
+        }
+      }
+      
+      // Remove team from user's teams list if they're no longer a member
+      const isStillMember = teamMembers.value.get(teamId)?.some(member => member.user_id === authStore.user?.id)
+      if (!isStillMember) {
+        teams.value = teams.value.filter(t => t.id !== teamId)
+      }
+      
+      uiStore.showSuccess('Successfully left the team')
+      return true
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to leave team'
+      uiStore.showError(errorMsg, 'Team Leave Error')
+      throw err
+    }
+  }
+
   // Initialize store with user's teams from auth store
   function initializeFromUser(user: any) {
     if (user?.teams) {
@@ -726,6 +806,8 @@ export const useTeamStore = defineStore('team', () => {
     fetchHackathonTeams,
     fetchTeamProjects,
     fetchUserTeamsForHackathon,
+    joinTeam,
+    leaveTeam,
     initializeFromUser,
     clear
   }

@@ -5,7 +5,7 @@
       :title="$t('projects.title')"
       :subtitle="$t('projects.subtitle')"
       :action-label="$t('projects.submitProject')"
-      action-link="/create"
+      action-link="/create/project"
     >
       <template #controls>
         <div class="relative">

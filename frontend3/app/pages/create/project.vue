@@ -20,6 +20,8 @@
         @submit="submitProject"
         @reset="resetProjectForm"
         @retry-hackathons="fetchHackathons"
+        @image-upload="handleProjectImageUpload"
+        @remove-image="removeProjectImage"
       />
     </Card>
   </div>
@@ -33,6 +35,7 @@ import Card from '@/components/atoms/Card.vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import { uploadFile } from '@/utils/fileUpload'
 
 // Project form
 const projectForm = ref({
@@ -45,7 +48,8 @@ const projectForm = ref({
   demoUrl: '',
   teamMembers: [
     { name: '', email: '' }
-  ]
+  ],
+  image_url: ''
 })
 
 // State
@@ -82,6 +86,38 @@ const fetchHackathons = async () => {
   }
 }
 
+// Image upload handling
+const uploadingImage = ref(false)
+
+const handleProjectImageUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  uploadingImage.value = true
+  try {
+    // Upload file to backend via upload endpoint
+    const result = await uploadFile(file, { type: 'project' })
+    projectForm.value.image_url = result.url
+    uiStore.showSuccess('Bild hochgeladen', 'Das Bild wurde erfolgreich hochgeladen.')
+  } catch (error) {
+    console.error('Image upload failed:', error)
+    let errorMessage = 'Unbekannter Fehler beim Hochladen'
+    if (error instanceof Error) {
+      errorMessage = error.message
+    }
+    uiStore.showError('Upload fehlgeschlagen', errorMessage)
+    // Reset file input to allow re-selection
+    if (target) target.value = ''
+  } finally {
+    uploadingImage.value = false
+  }
+}
+
+const removeProjectImage = () => {
+  projectForm.value.image_url = ''
+}
+
 // Form submission
 const submitProject = async (formData: any) => {
   submitting.value = true
@@ -112,7 +148,7 @@ const submitProject = async (formData: any) => {
       github_url: formData.githubUrl,
       demo_url: formData.demoUrl,
       // team_members would be handled separately in a real app
-      image_path: null, // Would be set after image upload
+      image_path: formData.image_url || null,
       // owner_id will be set by backend based on current user
     }
     
@@ -180,7 +216,8 @@ const resetProjectForm = () => {
     demoUrl: '',
     teamMembers: [
       { name: '', email: '' }
-    ]
+    ],
+    image_url: ''
   }
   newTech.value = ''
 }

@@ -470,6 +470,7 @@
       "views": "Aufrufe",
       "projects": "Projekte",
       "teams": "Teams",
+      "noTeamsYet": "Noch keine Teams beigetreten.",
       "viewAllTeams": "Alle Teams anzeigen",
       "registrationDeadline": "Anmeldefrist",
       "location": "Standort",
@@ -923,7 +924,32 @@
     "noTeamsForHackathon": "Keine Teams für diesen Hackathon",
     "createTeamToCollaborate": "Erstelle ein Team, um mit anderen an Projekten zusammenzuarbeiten",
     "createNewTeam": "Neues Team erstellen",
-    "viewTeamDetails": "Teamdetails anzeigen"
+    "viewTeamDetails": "Teamdetails anzeigen",
+    "actions": {
+      "inviteMembers": "Mitglieder einladen",
+      "settings": "Einstellungen"
+    },
+    "stats": {
+      "members": "Mitglieder",
+      "projects": "Projekte",
+      "active": "Aktiv",
+      "votes": "Stimmen"
+    },
+    "hackathonTeam": "Hackathon-Team",
+    "page": {
+      "title": "Teams",
+      "searchPlaceholder": "Teams suchen...",
+      "createTeam": "Team erstellen",
+      "gridView": "Rasteransicht",
+      "listView": "Listenansicht",
+      "emptyTitle": "Keine Teams gefunden",
+      "emptyMessage": "Es wurden keine Teams gefunden, die deinen Suchkriterien entsprechen.",
+      "stats": "Statistiken",
+      "totalTeams": "Gesamte Teams",
+      "totalMembers": "Gesamte Mitglieder",
+      "activeTeams": "Aktive Teams",
+      "publicTeams": "Öffentliche Teams"
+    }
   },
   "myVotes": {
     "title": "Meine Bewertungen",
@@ -1024,6 +1050,7 @@
         "location": "Ort",
         "locationPlaceholder": "Online oder physische Adresse",
         "prizePool": "Preisgeld",
+        "prizePoolPlaceholder": "z.B. 10.000 €",
         "prizePlaceholder": "z.B. 10.000 €",
         "maxParticipants": "Maximale Teilnehmer",
         "participantsPlaceholder": "z.B. 100",
@@ -1035,6 +1062,7 @@
         "websitePlaceholder": "https://hackathon.beispiel.com",
         "tags": "Tags",
         "tagsPlaceholder": "Tags durch Kommas getrennt hinzufügen (z.B. KI, Web3, Mobile)",
+        "add": "Hinzufügen",
         "rules": "Regeln & Richtlinien",
         "rulesPlaceholder": "Liste alle Regeln, Richtlinien oder Anforderungen für Teilnehmer auf",
         "hackathonImage": "Hackathon-Bild",
@@ -1043,10 +1071,12 @@
         "imageUploaded": "Bild erfolgreich hochgeladen",
         "uploading": "Wird hochgeladen...",
         "uploadingProgress": "Bild wird hochgeladen...",
+        "imageAlt": "Hackathon-Bild",
         "removeImage": "Bild entfernen"
       },
       "buttons": {
         "reset": "Zurücksetzen",
+        "submit": "Hackathon erstellen",
         "createHackathon": "Hackathon erstellen",
         "creating": "Wird erstellt..."
       }

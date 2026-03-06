@@ -39,6 +39,9 @@
 
     <div v-else-if="items.length === 0" class="text-center py-8">
       <p class="text-gray-600 dark:text-gray-400">{{ emptyLabel }}</p>
+      <div v-if="emptyActionLabel && emptyActionPath" class="mt-4">
+        <NuxtLink :to="emptyActionPath" class="btn btn-primary">{{ emptyActionLabel }}</NuxtLink>
+      </div>
     </div>
 
     <div v-else class="space-y-4">
@@ -84,6 +87,8 @@ defineProps<{
   emailLabel: string
   retryLabel: string
   emptyLabel: string
+  emptyActionLabel?: string
+  emptyActionPath?: string
   openLabel: string
   closedLabel: string
   noDescriptionLabel: string

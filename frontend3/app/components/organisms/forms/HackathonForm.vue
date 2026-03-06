@@ -100,6 +100,106 @@
       />
     </FormField>
 
+    <!-- Prizes -->
+    <FormField :label="t('hackathons.details.prizes')" :error="errors.prizes">
+      <div class="space-y-3">
+        <div v-for="(prize, index) in formData.prizes" :key="index"
+          class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg">
+          <div class="flex justify-between items-start mb-2">
+            <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('hackathons.details.prizeNumber', {
+              number: Number(index) + 1 }) }}</span>
+            <button type="button" @click="removePrize(index)"
+              class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+              :disabled="disabled">
+              {{ t('hackathons.details.remove') }}
+            </button>
+          </div>
+
+          <div class="space-y-2">
+            <div>
+              <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{
+                t('hackathons.details.prizeName') }}</label>
+              <input v-model="prize.name" type="text"
+                :placeholder="t('hackathons.details.prizeNamePlaceholder')"
+                class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                :disabled="disabled" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{ t('common.description')
+                }}</label>
+              <input v-model="prize.description" type="text"
+                :placeholder="t('hackathons.details.prizeDescriptionPlaceholder')"
+                class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                :disabled="disabled" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{
+                t('hackathons.details.value') }}</label>
+              <input v-model="prize.value" type="text"
+                :placeholder="t('hackathons.details.prizeAmountPlaceholder')"
+                class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                :disabled="disabled" />
+            </div>
+          </div>
+        </div>
+
+        <div v-if="formData.prizes.length === 0"
+          class="text-center py-4 text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+          {{ t('hackathons.details.noPrizesAdded') }}
+        </div>
+
+        <Button type="button" @click="addPrize" variant="secondary" size="sm" :disabled="disabled" class="w-full">
+          + {{ t('hackathons.details.addPrize') }}
+        </Button>
+      </div>
+    </FormField>
+
+    <!-- Organizers -->
+    <FormField :label="t('hackathons.details.organizers')" :error="errors.organizers">
+      <div class="space-y-3">
+        <div v-for="(organizer, index) in formData.organizers" :key="index"
+          class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg">
+          <div class="flex justify-between items-start mb-2">
+            <span class="font-medium text-gray-700 dark:text-gray-300">{{
+              t('hackathons.details.organizerNumber', { number: Number(index) + 1 }) }}</span>
+            <button type="button" @click="removeOrganizer(index)"
+              class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+              :disabled="disabled">
+              {{ t('hackathons.details.remove') }}
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{
+                t('hackathons.details.name') }}</label>
+              <input v-model="organizer.name" type="text"
+                :placeholder="t('hackathons.details.organizerNamePlaceholder')"
+                class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                :disabled="disabled" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">{{
+                t('hackathons.details.role') }}</label>
+              <input v-model="organizer.role" type="text"
+                :placeholder="t('hackathons.details.organizerRolePlaceholder')"
+                class="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                :disabled="disabled" />
+            </div>
+          </div>
+        </div>
+
+        <div v-if="formData.organizers.length === 0"
+          class="text-center py-4 text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+          {{ t('hackathons.details.noOrganizersAdded') }}
+        </div>
+
+        <Button type="button" @click="addOrganizer" variant="secondary" size="sm" :disabled="disabled" class="w-full">
+          + {{ t('hackathons.details.addOrganizer') }}
+        </Button>
+      </div>
+    </FormField>
+
     <!-- Tags -->
     <FormField :label="t('create.hackathonForm.fields.tags')">
       <div class="flex flex-wrap gap-2 mb-2">
@@ -119,12 +219,12 @@
           type="text"
           :placeholder="t('create.hackathonForm.fields.tagsPlaceholder')"
           :disabled="disabled"
-          class="rounded-r-none"
+          class="rounded-r-none flex-1"
           @keydown.enter.prevent="addTag"
         />
         <Button
           type="button"
-          @click="addTag"
+          @click.prevent="addTag"
           variant="primary"
           class="rounded-l-none"
           :disabled="disabled || !newTag.trim()"
@@ -235,6 +335,17 @@ import Button from '@/components/atoms/Button.vue'
 import Tag from '@/components/atoms/Tag.vue'
 
 // Props
+interface Prize {
+  name: string
+  description: string
+  value: string
+}
+
+interface Organizer {
+  name: string
+  role: string
+}
+
 interface HackathonFormData {
   name: string
   description: string
@@ -248,6 +359,8 @@ interface HackathonFormData {
   rules: string
   contactEmail: string
   image_url: string
+  prizes: Prize[]
+  organizers: Organizer[]
 }
 
 interface Props {
@@ -278,7 +391,11 @@ const emit = defineEmits<{
 
 // Local state
 const newTag = ref('')
-const formData = ref({ ...props.modelValue })
+const formData = ref({
+  ...props.modelValue,
+  prizes: props.modelValue.prizes || [],
+  organizers: props.modelValue.organizers || []
+})
 const imageInput = ref<HTMLInputElement | null>(null)
 let isUpdatingFromParent = false
 
@@ -318,12 +435,17 @@ watch(() => formData.value.tags, (newTags, oldTags) => {
 }, { deep: true })
 
 // Methods
-const addTag = () => {
+const addTag = (event?: Event) => {
+  if (event) event.preventDefault()
   console.log('addTag called, newTag:', newTag.value)
   if (newTag.value.trim() && !formData.value.tags.includes(newTag.value.trim())) {
     console.log('Adding tag:', newTag.value.trim())
-    // Use immutable update to avoid mutating the original array
-    formData.value.tags = [...formData.value.tags, newTag.value.trim()]
+    // Use immutable update for the entire formData to avoid reactivity issues
+    const updatedTags = [...formData.value.tags, newTag.value.trim()]
+    formData.value = {
+      ...formData.value,
+      tags: updatedTags
+    }
     newTag.value = ''
     console.log('Tags after add:', formData.value.tags)
   } else {
@@ -333,7 +455,49 @@ const addTag = () => {
 
 const removeTag = (tag: string) => {
   if (props.disabled) return
-  formData.value.tags = formData.value.tags.filter(t => t !== tag)
+  const updatedTags = formData.value.tags.filter(t => t !== tag)
+  formData.value = {
+    ...formData.value,
+    tags: updatedTags
+  }
+}
+
+// Prize methods
+const addPrize = () => {
+  if (props.disabled) return
+  formData.value = {
+    ...formData.value,
+    prizes: [...formData.value.prizes, { name: '', description: '', value: '' }]
+  }
+}
+
+const removePrize = (index: number) => {
+  if (props.disabled) return
+  const updatedPrizes = [...formData.value.prizes]
+  updatedPrizes.splice(index, 1)
+  formData.value = {
+    ...formData.value,
+    prizes: updatedPrizes
+  }
+}
+
+// Organizer methods
+const addOrganizer = () => {
+  if (props.disabled) return
+  formData.value = {
+    ...formData.value,
+    organizers: [...formData.value.organizers, { name: '', role: '' }]
+  }
+}
+
+const removeOrganizer = (index: number) => {
+  if (props.disabled) return
+  const updatedOrganizers = [...formData.value.organizers]
+  updatedOrganizers.splice(index, 1)
+  formData.value = {
+    ...formData.value,
+    organizers: updatedOrganizers
+  }
 }
 
 const triggerImageUpload = () => {

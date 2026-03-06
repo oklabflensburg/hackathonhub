@@ -39,9 +39,9 @@ export function normalizeUploadPathForApi(imagePath: string | null | undefined):
   const raw = imagePath.trim()
   if (!raw) return null
 
+  // Keep absolute URLs as-is
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    const parsed = new URL(raw)
-    return normalizeUploadPathForApi(parsed.pathname)
+    return raw
   }
 
   if (raw.startsWith('/static/uploads/')) return raw

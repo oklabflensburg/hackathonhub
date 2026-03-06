@@ -31,6 +31,7 @@ import Card from '@/components/atoms/Card.vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import { uploadFile } from '@/utils/fileUpload'
 
 // Hackathon form
 const hackathonForm = ref({
@@ -50,7 +51,7 @@ const hackathonForm = ref({
 
 // State
 const submitting = ref(false)
-const newTag = ref('')
+const uploadingImage = ref(false)
 
 // Refs for file inputs
 const hackathonImageInput = ref<HTMLInputElement | null>(null)
@@ -60,32 +61,32 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
 
-// Hackathon form methods
-const addTag = () => {
-  if (newTag.value.trim() && !hackathonForm.value.tags.includes(newTag.value.trim())) {
-    hackathonForm.value.tags.push(newTag.value.trim())
-    newTag.value = ''
-  }
-}
-
-const removeTag = (tag: string) => {
-  hackathonForm.value.tags = hackathonForm.value.tags.filter(t => t !== tag)
-}
-
 const triggerHackathonImageUpload = () => {
   hackathonImageInput.value?.click()
 }
 
-const handleHackathonImageUpload = (event: Event) => {
+const handleHackathonImageUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-  if (file) {
-    // In a real app, you would upload the file and get a URL
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      hackathonForm.value.image_url = e.target?.result as string
+  if (!file) return
+
+  uploadingImage.value = true
+  try {
+    // Upload file to backend via upload endpoint
+    const result = await uploadFile(file, { type: 'hackathon' })
+    hackathonForm.value.image_url = result.url
+    uiStore.showSuccess('Bild hochgeladen', 'Das Bild wurde erfolgreich hochgeladen.')
+  } catch (error) {
+    console.error('Image upload failed:', error)
+    let errorMessage = 'Unbekannter Fehler beim Hochladen'
+    if (error instanceof Error) {
+      errorMessage = error.message
     }
-    reader.readAsDataURL(file)
+    uiStore.showError('Upload fehlgeschlagen', errorMessage)
+    // Reset file input to allow re-selection
+    if (target) target.value = ''
+  } finally {
+    uploadingImage.value = false
   }
 }
 
@@ -211,7 +212,6 @@ const resetHackathonForm = () => {
     contactEmail: '',
     image_url: ''
   }
-  newTag.value = ''
 }
 </script>
 

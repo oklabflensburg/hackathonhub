@@ -3,19 +3,7 @@ import { useTeamStore } from '~/stores/team'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from '#imports'
-
-export interface TeamMember {
-  id: number
-  user_id: number
-  user?: {
-    id: number
-    name: string
-    username: string
-    avatar_url?: string
-  }
-  role: 'owner' | 'member'
-  joined_at: string
-}
+import type { TeamMember } from '~/stores/team'
 
 export interface UseTeamMembersOptions {
   teamId: Ref<number | string>
@@ -85,10 +73,7 @@ export function useTeamMembers(options: UseTeamMembersOptions) {
       // Get members from store
       const storeMembers = teamStore.teamMembers.get(Number(teamId.value)) || []
       members.value = storeMembers.map((member: any) => ({
-        id: member.id,
-        user_id: member.user_id,
-        user: member.user,
-        role: member.role,
+        ...member,
         joined_at: member.joined_at || member.created_at,
       }))
     } catch (err) {

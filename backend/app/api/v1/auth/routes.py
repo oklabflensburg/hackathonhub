@@ -2,7 +2,7 @@
 Authentication API routes.
 """
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, Response
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -24,6 +24,7 @@ from app.i18n.helpers import (
     raise_bad_request,
     raise_i18n_http_exception
 )
+from app.utils.cookies import set_auth_cookies, clear_auth_cookies
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -32,6 +33,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 @router.post("/login", response_model=TokenWithRefresh)
 async def login(
     login_data: UserLogin,
+    response: Response,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
@@ -62,9 +64,21 @@ async def login(
         )
 
     # Extract tokens from auth result
+    access_token = auth_result.get("access_token", "")
+    refresh_token = auth_result.get("refresh_token", "")
+    
+    # Set HTTP-Only cookies for SSR compatibility
+    set_auth_cookies(
+        response=response,
+        auth_token=access_token,
+        refresh_token=refresh_token,
+        secure=False  # In development, set to False for local testing
+    )
+
+    # Return tokens in JSON response (for backward compatibility)
     return TokenWithRefresh(
-        access_token=auth_result.get("access_token", ""),
-        refresh_token=auth_result.get("refresh_token", ""),
+        access_token=access_token,
+        refresh_token=refresh_token,
         token_type=auth_result.get("token_type", "bearer")
     )
 
@@ -72,6 +86,7 @@ async def login(
 @router.post("/login/json", response_model=TokenWithRefresh)
 async def login_json(
     login_data: UserLogin,
+    response: Response,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
@@ -102,9 +117,21 @@ async def login_json(
         )
 
     # Extract tokens from auth result
+    access_token = auth_result.get("access_token", "")
+    refresh_token = auth_result.get("refresh_token", "")
+    
+    # Set HTTP-Only cookies for SSR compatibility
+    set_auth_cookies(
+        response=response,
+        auth_token=access_token,
+        refresh_token=refresh_token,
+        secure=False  # In development, set to False for local testing
+    )
+
+    # Return tokens in JSON response (for backward compatibility)
     return TokenWithRefresh(
-        access_token=auth_result.get("access_token", ""),
-        refresh_token=auth_result.get("refresh_token", ""),
+        access_token=access_token,
+        refresh_token=refresh_token,
         token_type=auth_result.get("token_type", "bearer")
     )
 
@@ -128,11 +155,12 @@ async def refresh_token(
 @router.post("/logout")
 async def logout(
     token: str = Depends(oauth2_scheme),
+    response: Response = None,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
     """
-    Logout by revoking a refresh token.
+    Logout by revoking a refresh token and clearing auth cookies.
     """
     token_info = verify_refresh_token(token, db)
     success = auth_service.revoke_refresh_token(db, token_info["token_id"])
@@ -142,6 +170,10 @@ async def logout(
             status_code=status.HTTP_400_BAD_REQUEST,
             translation_key="errors.invalid_refresh_token"
         )
+
+    # Clear auth cookies if response is available
+    if response:
+        clear_auth_cookies(response)
 
     return {"message": "Successfully logged out"}
 

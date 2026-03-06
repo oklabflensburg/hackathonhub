@@ -59,6 +59,8 @@
               :email-label="$t('auth.loginWithEmail')"
               :retry-label="$t('errors.tryAgain')"
               :empty-label="$t('hackathons.details.noTeamsYet') || 'No teams have joined yet.'"
+              :empty-action-label="$t('teams.createTeam')"
+              :empty-action-path="`/teams/create?hackathon_id=${id}`"
               :open-label="$t('common.open')"
               :closed-label="$t('common.closed')"
               :no-description-label="$t('common.noDescription')"
@@ -167,15 +169,15 @@ import { format } from 'date-fns'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
-import HackathonEditForm from '~/components/HackathonEditForm.vue'
+import HackathonEditForm from '~/components/organisms/hackathons/HackathonEditForm.vue'
 import { resolveImageUrl } from '~/utils/imageUrl'
-import HackathonHero from '~/components/hackathons/HackathonHero.vue'
-import HackathonDescription from '~/components/hackathons/HackathonDescription.vue'
-import PrizeList from '~/components/hackathons/PrizeList.vue'
-import RulesSection from '~/components/hackathons/RulesSection.vue'
-import HackathonStats from '~/components/hackathons/HackathonStats.vue'
-import HackathonActions from '~/components/hackathons/HackathonActions.vue'
-import ParticipantList from '~/components/hackathons/ParticipantList.vue'
+import HackathonHero from '~/components/organisms/hackathons/HackathonHero.vue'
+import HackathonDescription from '~/components/organisms/hackathons/HackathonDescription.vue'
+import PrizeList from '~/components/organisms/hackathons/PrizeList.vue'
+import RulesSection from '~/components/organisms/hackathons/RulesSection.vue'
+import HackathonStats from '~/components/organisms/hackathons/HackathonStats.vue'
+import HackathonActions from '~/components/organisms/hackathons/HackathonActions.vue'
+import ParticipantList from '~/components/organisms/hackathons/ParticipantList.vue'
 
 const route = useRoute()
 const id = route.params.id as string

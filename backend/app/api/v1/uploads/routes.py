@@ -24,8 +24,12 @@ async def upload_file(
         if not relative_url:
             relative_url = f"/static/uploads/{type}s/{file.filename}"
 
+        # Convert to absolute URL
+        base_url = str(request.base_url).rstrip('/')
+        absolute_url = f"{base_url}{relative_url}"
+
         return {
-            "url": relative_url,
+            "url": absolute_url,
             "filename": file.filename,
             "message": "File uploaded successfully"
         }

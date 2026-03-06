@@ -1,6 +1,6 @@
 <template>
   <div v-if="loading" class="container mx-auto px-4 py-8 text-center">
-    <LoadingSpinner size="lg" color="primary" />
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
     <p class="mt-4 text-gray-600 dark:text-gray-400">Loading team...</p>
   </div>
 
@@ -12,47 +12,151 @@
     </div>
     <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Error Loading Team</h3>
     <p class="text-gray-600 dark:text-gray-400 mb-6">{{ error }}</p>
-    <button @click="loadTeam" class="btn btn-outline">Try Again</button>
+    <button @click="loadTeam" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+      Try Again
+    </button>
   </div>
 
   <div v-else-if="team" class="container mx-auto px-4 py-8 max-w-2xl">
     <!-- Header -->
-    <PageHeader
-      :title="`Edit Team: ${team.name}`"
-      subtitle="Update your team details and settings"
-    />
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Edit Team: {{ team.name }}</h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-2">Update your team details and settings</p>
+    </div>
 
-    <TeamForm
-      :form="form"
-      :hackathons="hackathons"
-      :loading="teamStore.isLoading"
-      :loading-hackathons="loadingHackathons"
-      :error="teamStore.error"
-      :form-valid="formValid"
-      :show-delete="true"
-      :labels="{
-        teamName: 'Team Name',
-        teamNamePlaceholder: 'Enter team name',
-        teamNameHelp: '',
-        description: 'Description',
-        descriptionPlaceholder: 'Describe your team goals, skills, or project ideas',
-        descriptionHelp: '',
-        hackathon: 'Hackathon',
-        selectHackathon: 'Select a hackathon',
-        hackathonHelp: '',
-        maxMembers: 'Maximum Members',
-        maxMembersHelp: `Current members: ${members.length}. You cannot set max members below current count.`,
-        openTeam: 'Open Team',
-        openTeamHelp: 'Open teams can be joined by other users. Closed teams require invitations.',
-        cancel: 'Cancel',
-        delete: 'Delete Team',
-        saving: 'Saving...',
-        submit: 'Save Changes'
-      }"
-      @submit="updateTeam"
-      @cancel="cancel"
-      @delete="deleteTeam"
-    />
+    <!-- Simple Edit Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <form @submit.prevent="updateTeam">
+        <!-- Team Name -->
+        <div class="mb-6">
+          <label for="team-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Team Name *
+          </label>
+          <input
+            id="team-name"
+            v-model="form.name"
+            type="text"
+            required
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-gray-100"
+            placeholder="Enter team name"
+          />
+        </div>
+
+        <!-- Description -->
+        <div class="mb-6">
+          <label for="team-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Description
+          </label>
+          <textarea
+            id="team-description"
+            v-model="form.description"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-gray-100"
+            placeholder="Describe your team goals, skills, or project ideas"
+          />
+        </div>
+
+        <!-- Hackathon -->
+        <div class="mb-6">
+          <label for="hackathon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Hackathon *
+          </label>
+          <select
+            id="hackathon"
+            v-model="form.hackathon_id"
+            required
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-gray-100"
+          >
+            <option value="" disabled>Select a hackathon</option>
+            <option v-for="hackathon in hackathons" :key="hackathon.id" :value="hackathon.id">
+              {{ hackathon.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Max Members -->
+        <div class="mb-6">
+          <label for="max-members" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Maximum Members (Current: {{ members.length }})
+          </label>
+          <div class="flex items-center space-x-4">
+            <input
+              id="max-members"
+              v-model="form.max_members"
+              type="range"
+              :min="members.length"
+              max="10"
+              class="flex-1"
+            />
+            <span class="text-lg font-medium text-gray-700 dark:text-gray-300">{{ form.max_members }}</span>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            You cannot set max members below current count.
+          </p>
+        </div>
+
+        <!-- Open Team -->
+        <div class="mb-8">
+          <div class="flex items-center">
+            <input
+              id="open-team"
+              v-model="form.is_open"
+              type="checkbox"
+              class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
+            />
+            <label for="open-team" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+              Open Team
+            </label>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Open teams can be joined by other users. Closed teams require invitations.
+          </p>
+        </div>
+
+        <!-- Error Message -->
+        <div v-if="teamStore.error" class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+          <p class="text-sm text-red-600 dark:text-red-400">{{ teamStore.error }}</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div>
+            <button
+              type="button"
+              @click="deleteTeam"
+              class="px-4 py-2 border border-red-300 dark:border-red-700 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30"
+            >
+              Delete Team
+            </button>
+          </div>
+          <div class="flex space-x-4">
+            <button
+              type="button"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+              @click="cancel"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="teamStore.isLoading || !formValid"
+              class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span v-if="teamStore.isLoading" class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Saving...
+              </span>
+              <span v-else>
+                Save Changes
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -62,9 +166,6 @@ import { useRoute, useRouter } from '#app'
 import { useTeamStore } from '~/stores/team'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
-import TeamForm from '~/components/teams/TeamForm.vue'
-import PageHeader from '~/components/molecules/PageHeader.vue'
-import LoadingSpinner from '~/components/atoms/LoadingSpinner.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -186,6 +287,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.container {
+  max-width: 42rem;
+}
+
 input[type="range"] {
   -webkit-appearance: none;
   height: 6px;

@@ -1,0 +1,429 @@
+<template>
+  <div class="team-management">
+    <!-- Loading State -->
+    <div v-if="loading" class="space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
+        <div class="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
+        <div class="space-y-3">
+          <div class="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full"></div>
+          <div class="h-4 bg-gray-300 dark:bg-gray-700 rounded w-2/3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div
+      v-else-if="error"
+      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6"
+    >
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg
+            class="h-5 w-5 text-red-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-300">
+            {{ errorTitle || $t('teams.management.errorTitle') }}
+          </h3>
+          <div class="mt-2 text-sm text-red-700 dark:text-red-400">
+            <p>{{ error }}</p>
+          </div>
+          <div class="mt-4">
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:text-red-300 dark:bg-red-900/30 dark:hover:bg-red-900/50"
+              @click="handleRetry"
+            >
+              {{ $t('common.retry') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div v-else class="space-y-6">
+      <!-- Team Header -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <!-- Team Banner -->
+        <div
+          v-if="team.bannerUrl"
+          class="h-48 bg-gradient-to-r from-blue-500 to-purple-600 relative"
+        >
+          <img
+            :src="team.bannerUrl"
+            :alt="`${team.name} banner`"
+            class="w-full h-full object-cover"
+          />
+          <div class="absolute inset-0 bg-black bg-opacity-30"></div>
+          <div class="absolute bottom-4 left-6 right-6">
+            <div class="flex items-end justify-between">
+              <div class="flex items-end space-x-4">
+                <!-- Team Avatar -->
+                <div class="relative">
+                  <div
+                    v-if="team.avatarUrl"
+                    class="w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 bg-white dark:bg-gray-700 overflow-hidden"
+                  >
+                    <img
+                      :src="team.avatarUrl"
+                      :alt="team.name"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div
+                    v-else
+                    class="w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center"
+                  >
+                    <span class="text-white text-3xl font-bold">
+                      {{ getInitials(team.name) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Team Info -->
+                <div class="pb-2">
+                  <div class="flex items-center space-x-3">
+                    <h1 class="text-3xl font-bold text-white">
+                      {{ team.name }}
+                    </h1>
+                    <TeamBadge
+                      :visibility="team.visibility"
+                      :status="team.status"
+                      size="lg"
+                    />
+                  </div>
+                  <p
+                    v-if="team.description"
+                    class="text-white text-opacity-90 mt-2 max-w-2xl"
+                  >
+                    {{ team.description }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex space-x-2 pb-2">
+                <button
+                  v-if="canEditTeam"
+                  class="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  @click="handleEditTeam"
+                >
+                  {{ $t('teams.management.editTeam') }}
+                </button>
+                <button
+                  v-if="canDeleteTeam"
+                  class="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                  @click="handleDeleteTeam"
+                >
+                  {{ $t('teams.management.deleteTeam') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          v-else
+          class="h-48 bg-gradient-to-r from-blue-500 to-purple-600 relative"
+        >
+          <div class="absolute bottom-4 left-6 right-6">
+            <div class="flex items-end justify-between">
+              <div class="flex items-end space-x-4">
+                <!-- Team Avatar -->
+                <div class="relative">
+                  <div
+                    class="w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center"
+                  >
+                    <span class="text-white text-3xl font-bold">
+                      {{ getInitials(team.name) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Team Info -->
+                <div class="pb-2">
+                  <div class="flex items-center space-x-3">
+                    <h1 class="text-3xl font-bold text-white">
+                      {{ team.name }}
+                    </h1>
+                    <TeamBadge
+                      :visibility="team.visibility"
+                      :status="team.status"
+                      size="lg"
+                    />
+                  </div>
+                  <p
+                    v-if="team.description"
+                    class="text-white text-opacity-90 mt-2 max-w-2xl"
+                  >
+                    {{ team.description }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex space-x-2 pb-2">
+                <button
+                  v-if="canEditTeam"
+                  class="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  @click="handleEditTeam"
+                >
+                  {{ $t('teams.management.editTeam') }}
+                </button>
+                <button
+                  v-if="canDeleteTeam"
+                  class="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                  @click="handleDeleteTeam"
+                >
+                  {{ $t('teams.management.deleteTeam') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Management Tabs -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200 dark:border-gray-700">
+          <nav class="flex -mb-px">
+            <button
+              v-for="tab in tabs"
+              :key="tab.id"
+              :class="[
+                'px-6 py-4 text-sm font-medium border-b-2 transition-colors',
+                activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              ]"
+              @click="activeTab = tab.id"
+            >
+              {{ tab.label }}
+              <span
+                v-if="tab.badge"
+                :class="[
+                  'ml-2 px-2 py-0.5 text-xs rounded-full',
+                  activeTab === tab.id
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                ]"
+              >
+                {{ tab.badge }}
+              </span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="p-6">
+          <!-- Members Tab -->
+          <div v-if="activeTab === 'members'">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {{ $t('teams.management.members') }}
+                <span class="text-gray-500 dark:text-gray-400">
+                  ({{ teamMembers.length }})
+                </span>
+              </h2>
+              <button
+                v-if="canInviteMembers"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                @click="handleInviteMember"
+              >
+                {{ $t('teams.management.inviteMember') }}
+              </button>
+            </div>
+
+            <!-- Members List -->
+            <TeamMemberList
+              :members="teamMembers"
+              :current-user-id="currentUserId"
+              :can-manage-members="canManageMembers"
+              @remove-member="handleRemoveMember"
+              @update-role="handleUpdateMemberRole"
+              @view-profile="handleViewProfile"
+            />
+
+            <!-- Invitations Section -->
+            <div v-if="invitations.length > 0" class="mt-8">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                {{ $t('teams.management.pendingInvitations') }}
+                <span class="text-gray-500 dark:text-gray-400">
+                  ({{ invitations.length }})
+                </span>
+              </h3>
+              <div class="space-y-4">
+                <TeamInvitationCard
+                  v-for="invitation in invitations"
+                  :key="invitation.id"
+                  :invitation="invitation"
+                  :current-user-id="currentUserId"
+                  :can-manage-invitations="canManageInvitations"
+                  @accept="handleAcceptInvitation(invitation)"
+                  @reject="handleRejectInvitation(invitation)"
+                  @cancel="handleCancelInvitation(invitation)"
+                  @resend="handleResendInvitation(invitation)"
+                  @view-profile="handleViewProfile"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Tab -->
+          <div v-else-if="activeTab === 'settings'">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">
+              {{ $t('teams.management.settings') }}
+            </h2>
+
+            <!-- Team Settings Form -->
+            <div class="space-y-6">
+              <!-- Basic Information -->
+              <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
+                <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  {{ $t('teams.management.basicInformation') }}
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {{ $t('teams.management.teamName') }}
+                    </label>
+                    <div class="text-gray-900 dark:text-gray-100 font-medium">
+                      {{ team.name }}
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {{ $t('teams.management.slug') }}
+                    </label>
+                    <div class="text-gray-900 dark:text-gray-100 font-medium">
+                      {{ team.slug }}
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {{ $t('teams.management.visibility') }}
+                    </label>
+                    <div>
+                      <TeamBadge
+                        :visibility="team.visibility"
+                        :status="team.status"
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {{ $t('teams.management.maxMembers') }}
+                    </label>
+                    <div class="text-gray-900 dark:text-gray-100 font-medium">
+                      {{ team.maxMembers || $t('teams.management.unlimited') }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Danger Zone -->
+              <div
+                v-if="canDeleteTeam"
+                class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6"
+              >
+                <h3 class="text-md font-medium text-red-800 dark:text-red-300 mb-4">
+                  {{ $t('teams.management.dangerZone') }}
+                </h3>
+                <p class="text-red-700 dark:text-red-400 mb-4">
+                  {{ $t('teams.management.deleteWarning') }}
+                </p>
+                <button
+                  class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                  @click="handleDeleteTeam"
+                >
+                  {{ $t('teams.management.deleteTeam') }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Projects Tab -->
+          <div v-else-if="activeTab === 'projects'">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {{ $t('teams.management.projects') }}
+                <span class="text-gray-500 dark:text-gray-400">
+                  ({{ team.stats?.projectCount || 0 }})
+                </span>
+              </h2>
+              <button
+                v-if="canCreateProjects"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                @click="handleCreateProject"
+              >
+                {{ $t('teams.management.createProject') }}
+              </button>
+            </div>
+
+            <!-- Projects List -->
+            <div v-if="projects.length > 0" class="space-y-4">
+              <div
+                v-for="project in projects"
+                :key="project.id"
+                class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h4 class="font-medium text-gray-900 dark:text-gray-100">
+                      {{ project.title }}
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {{ project.description }}
+                    </p>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <button
+                      class="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                      @click="handleViewProject(project)"
+                    >
+                      {{ $t('common.view') }}
+                    </button>
+                    <button
+                      v-if="canEditProjects"
+                      class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      @click="handleEditProject(project)"
+                    >
+                      {{ $t('common.edit') }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-center py-12">
+              <div class="text-gray-400 dark:text-gray-600 mb-4">
+                <svg
+                  class="w-16 h-16 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                {{ $t('teams.management.noProjects') }}
+              </h3>
+              <p class="text-gray-500

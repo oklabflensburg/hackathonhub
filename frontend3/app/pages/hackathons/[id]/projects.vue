@@ -68,7 +68,7 @@ import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
-import HackathonProjectCard from '~/components/hackathons/HackathonProjectCard.vue'
+import HackathonProjectCard from '~/components/organisms/hackathons/HackathonProjectCard.vue'
 import PageHeader from '~/components/molecules/PageHeader.vue'
 import ProjectListOrganism from '~/components/organisms/projects/ProjectListOrganism.vue'
 

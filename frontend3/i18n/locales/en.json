@@ -468,6 +468,7 @@
       "views": "Views",
       "projects": "Projects",
       "teams": "Teams",
+      "noTeamsYet": "No teams have joined yet.",
       "viewAllTeams": "View All Teams",
       "registrationDeadline": "Registration Deadline",
       "location": "Location",
@@ -835,7 +836,32 @@
     "noTeamsForHackathon": "No teams for this hackathon",
     "createTeamToCollaborate": "Create a team to collaborate with others on projects",
     "createNewTeam": "Create New Team",
-    "viewTeamDetails": "View team details"
+    "viewTeamDetails": "View team details",
+    "actions": {
+      "inviteMembers": "Invite members",
+      "settings": "Settings"
+    },
+    "stats": {
+      "members": "Members",
+      "projects": "Projects",
+      "active": "Active",
+      "votes": "Votes"
+    },
+    "hackathonTeam": "Hackathon Team",
+    "page": {
+      "title": "Teams",
+      "searchPlaceholder": "Search teams...",
+      "createTeam": "Create Team",
+      "gridView": "Grid view",
+      "listView": "List view",
+      "emptyTitle": "No teams found",
+      "emptyMessage": "No teams match your search criteria.",
+      "stats": "Statistics",
+      "totalTeams": "Total Teams",
+      "totalMembers": "Total Members",
+      "activeTeams": "Active Teams",
+      "publicTeams": "Public Teams"
+    }
   },
   "myVotes": {
     "title": "My Votes",
@@ -936,6 +962,7 @@
         "location": "Location",
         "locationPlaceholder": "Online or physical address",
         "prizePool": "Prize Pool",
+        "prizePoolPlaceholder": "e.g., $10,000",
         "prizePlaceholder": "e.g., $10,000",
         "maxParticipants": "Maximum Participants",
         "participantsPlaceholder": "e.g., 100",
@@ -947,6 +974,7 @@
         "websitePlaceholder": "https://hackathon.example.com",
         "tags": "Tags",
         "tagsPlaceholder": "Add tags separated by commas (e.g., AI, Web3, Mobile)",
+        "add": "Add",
         "rules": "Rules & Guidelines",
         "rulesPlaceholder": "List any rules, guidelines, or requirements for participants",
         "hackathonImage": "Hackathon Image",
@@ -955,10 +983,12 @@
         "imageUploaded": "Image uploaded successfully",
         "uploading": "Uploading...",
         "uploadingProgress": "Uploading image...",
+        "imageAlt": "Hackathon image",
         "removeImage": "Remove image"
       },
       "buttons": {
         "reset": "Reset",
+        "submit": "Create Hackathon",
         "createHackathon": "Create Hackathon",
         "creating": "Creating..."
       }

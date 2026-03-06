@@ -79,7 +79,7 @@
           type="text"
           :placeholder="t('create.projectForm.fields.techPlaceholder')"
           :disabled="disabled"
-          class="rounded-r-none"
+          class="rounded-r-none flex-1"
           @keydown.enter.prevent="addTech"
         />
         <Button
@@ -91,6 +91,52 @@
         >
           {{ t('create.projectForm.fields.add') }}
         </Button>
+      </div>
+    </FormField>
+
+    <!-- Image Upload -->
+    <FormField :label="t('create.projectForm.fields.projectImage')">
+      <div
+        @click="triggerImageUpload"
+        class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
+        :class="{ 'border-primary-500 dark:border-primary-400': formData.image_url }"
+      >
+        <div v-if="!formData.image_url">
+          <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            {{ t('create.projectForm.fields.clickToUpload') }}
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            {{ t('create.projectForm.fields.imageRequirements') }}
+          </p>
+        </div>
+        <div v-else class="space-y-2">
+          <div class="w-32 h-32 mx-auto rounded-lg overflow-hidden">
+            <img :src="formData.image_url" :alt="t('create.projectForm.fields.projectImage')" class="w-full h-full object-cover" />
+          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            {{ t('create.projectForm.fields.imageUploaded') }}
+          </p>
+          <Button
+            type="button"
+            @click.stop="$emit('remove-image')"
+            variant="ghost"
+            size="sm"
+            class="text-red-600 dark:text-red-400"
+            :disabled="disabled"
+          >
+            {{ t('create.projectForm.fields.removeImage') }}
+          </Button>
+        </div>
+        <input
+          ref="imageInput"
+          type="file"
+          accept="image/*"
+          class="hidden"
+          @change="$emit('image-upload', $event)"
+        />
       </div>
     </FormField>
 
@@ -231,6 +277,7 @@ interface ProjectFormData {
   githubUrl: string
   demoUrl: string
   teamMembers: TeamMember[]
+  image_url: string
 }
 
 interface Hackathon {
@@ -269,11 +316,14 @@ const emit = defineEmits<{
   'submit': [data: ProjectFormData]
   'reset': []
   'retry-hackathons': []
+  'image-upload': [event: Event]
+  'remove-image': []
 }>()
 
 // Local state
 const newTech = ref('')
 const formData = ref({ ...props.modelValue })
+const imageInput = ref<HTMLInputElement | null>(null)
 let isUpdatingFromParent = false
 
 // Watch for prop changes
@@ -321,6 +371,12 @@ const addTeamMember = () => {
 const removeTeamMember = (index: number) => {
   if (props.disabled || formData.value.teamMembers.length <= 1) return
   formData.value.teamMembers.splice(index, 1)
+}
+
+const triggerImageUpload = () => {
+  console.log('triggerImageUpload called, disabled:', props.disabled, 'imageInput:', imageInput.value)
+  if (props.disabled) return
+  imageInput.value?.click()
 }
 </script>
 

@@ -556,10 +556,11 @@ export const useAuthStore = defineStore('auth', () => {
     let userData: User | null = null
 
     if (typeof window === 'undefined') {
-      // Server-side: we can't check localStorage, but we could check cookies
-      // For now, we'll leave token as null on server
-      // This means isAuthenticated will be false on server, true on client for logged-in users
-      // This causes hydration mismatches but is the current limitation
+      // Server-side: try to read cookies using useCookie
+      // Note: useCookie is a Nuxt composable that works in middleware and plugins
+      // but not directly in stores. We'll handle server-side auth in middleware instead.
+      // For now, we'll leave token as null on server to avoid hydration mismatches.
+      // The middleware will handle server-side redirects based on cookies.
       return
     } else {
       // Client-side: check for tokens in URL (from OAuth callback)
@@ -591,7 +592,34 @@ export const useAuthStore = defineStore('auth', () => {
         }
         return
       } else {
-        // Check preferences store for existing tokens
+        // Check cookies first for SSR compatibility
+        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=')
+          acc[key] = value
+          return acc
+        }, {} as Record<string, string>)
+
+        const cookieAuthToken = cookies.auth_token
+        const cookieRefreshToken = cookies.refresh_token
+
+        if (cookieAuthToken) {
+          // Use tokens from cookies
+          token.value = cookieAuthToken
+          refreshToken.value = cookieRefreshToken || ''
+          
+          // Also store in preferences store for backward compatibility
+          const preferences = usePreferencesStore()
+          preferences.auth.setTokens(cookieAuthToken, cookieRefreshToken || '')
+          
+          // Fetch user info with the token
+          fetchUserWithToken(cookieAuthToken)
+          
+          // Start background token refresh timer
+          startBackgroundTokenRefresh()
+          return
+        }
+
+        // Fallback to preferences store for existing tokens
         const preferences = usePreferencesStore()
         const storedTokens = preferences.auth.tokens
         const storedUser = preferences.auth.user

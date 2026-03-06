@@ -1,5 +1,5 @@
 <template>
-  <div v-if="shouldShow" class="team-invite-section bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6 mb-6">
+  <div v-if="shouldShow" class="team-invite-section">
     <!-- Before form slot -->
     <slot name="before-form"></slot>
 

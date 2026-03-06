@@ -178,6 +178,23 @@ If issues arise:
 3. Base64 images can be restored from backups
 4. File system images can be manually migrated if needed
 
+## Recent Fix: Hackathon Creation Form Image Upload
+
+**Date:** 2026-03-04  
+**Issue:** The hackathon creation form was still using base64 data URLs for image uploads, causing API validation errors.
+
+**Solution:** Updated `frontend3/app/pages/create/hackathon.vue` to use the existing `uploadFile` utility:
+- Modified `handleHackathonImageUpload` function to upload files via `/api/upload` endpoint
+- Added proper error handling and user feedback
+- The uploaded URL is now stored in `image_url` field (not base64)
+- Added loading state (`uploadingImage`) for better UX
+
+**Files Modified:**
+- `frontend3/app/pages/create/hackathon.vue` – Added import and async upload logic
+- `plans/fix_hackathon_image_upload.md` – Detailed implementation plan
+
+**Result:** The error "Base64 data URLs are not allowed for image fields" no longer occurs. Images are uploaded via the proper endpoint and stored as file paths.
+
 ## Conclusion
 
 The refactoring successfully eliminates database blob storage while maintaining backward compatibility. The new system is more performant, scalable, and maintainable while providing a better user experience with upload progress indicators and error handling.

@@ -2,12 +2,94 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from './auth'
 
-// SSR-safe localStorage wrapper
+// SSR-safe cookie access using Nuxt's useCookie composable
+// We need to import it dynamically to avoid SSR issues
+let useCookie: (key: string, options?: any) => { value: any } = () => ({ value: null })
+
+// Initialize useCookie only when needed to avoid SSR issues
+const initUseCookie = () => {
+  if (typeof window !== 'undefined') {
+    // Client-side: use the actual useCookie from Nuxt
+    try {
+      // @ts-ignore - We'll import it dynamically
+      const { useCookie: nuxtUseCookie } = require('#imports')
+      useCookie = nuxtUseCookie
+    } catch (error) {
+      console.warn('Failed to import useCookie, falling back to document.cookie')
+      // Fallback implementation using document.cookie
+      useCookie = (key: string, options?: any) => {
+        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+          const [k, v] = cookie.trim().split('=')
+          acc[k] = decodeURIComponent(v)
+          return acc
+        }, {} as Record<string, string>)
+        
+        const cookieValue = cookies[key] || null
+        
+        return {
+          get value() {
+            return cookieValue
+          },
+          set value(newValue: any) {
+            if (newValue === null || newValue === undefined) {
+              // Delete cookie
+              document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+            } else {
+              // Set cookie
+              const maxAge = options?.maxAge || 60 * 60 * 24 * 7 // 7 days default
+              const sameSite = options?.sameSite || 'lax'
+              const secure = options?.secure || process.env.NODE_ENV === 'production'
+              const path = options?.path || '/'
+              
+              let cookieStr = `${key}=${encodeURIComponent(newValue)}; max-age=${maxAge}; path=${path}; sameSite=${sameSite}`
+              if (secure) {
+                cookieStr += '; secure'
+              }
+              document.cookie = cookieStr
+            }
+          }
+        }
+      }
+    }
+  } else {
+    // Server-side: we need to access cookies via headers
+    // This is handled by Nuxt's useCookie automatically
+    // We'll use a mock for now, actual implementation will be provided by Nuxt
+    useCookie = (key: string, options?: any) => {
+      // Server-side cookies are handled by Nuxt middleware
+      return { value: null }
+    }
+  }
+}
+
+// Initialize on first use
+let isInitialized = false
+const getUseCookie = () => {
+  if (!isInitialized) {
+    initUseCookie()
+    isInitialized = true
+  }
+  return useCookie
+}
+
+// SSR-safe storage wrapper that uses cookies for auth tokens and localStorage for other data
 class SSRStorage {
   private isClient = typeof window !== 'undefined'
   private cleanedKeys = new Set<string>() // Track keys we've already cleaned up
 
   getItem<T>(key: string, defaultValue: T | null = null): T | null {
+    // Special handling for auth tokens: use cookies for SSR compatibility
+    if (key === 'auth_token' || key === 'refresh_token') {
+      // Use useCookie for server-side reading
+      const cookie = getUseCookie()(key)
+      const value = cookie.value
+      if (!value || value === 'undefined' || value === 'null') return defaultValue
+      
+      // Tokens are stored as plain strings, not JSON
+      return value as T
+    }
+    
+    // For other keys, use localStorage on client only
     if (!this.isClient) return defaultValue
     
     const item = localStorage.getItem(key)
@@ -47,6 +129,18 @@ class SSRStorage {
   }
 
   setItem<T>(key: string, value: T): void {
+    // Special handling for auth tokens: store in cookies for SSR compatibility
+    if (key === 'auth_token' || key === 'refresh_token') {
+      const cookie = getUseCookie()(key, {
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+      })
+      cookie.value = value as string
+      return
+    }
+    
+    // For other keys, use localStorage on client only
     if (!this.isClient) return
     try {
       // Handle undefined/null values by removing the item instead
@@ -70,6 +164,14 @@ class SSRStorage {
   }
 
   removeItem(key: string): void {
+    // Special handling for auth tokens: remove cookies
+    if (key === 'auth_token' || key === 'refresh_token') {
+      const cookie = getUseCookie()(key)
+      cookie.value = null
+      return
+    }
+    
+    // For other keys, use localStorage on client only
     if (!this.isClient) return
     try {
       localStorage.removeItem(key)
@@ -79,6 +181,13 @@ class SSRStorage {
   }
 
   clear(): void {
+    // Clear auth tokens from cookies
+    const authTokenCookie = getUseCookie()('auth_token')
+    const refreshTokenCookie = getUseCookie()('refresh_token')
+    authTokenCookie.value = null
+    refreshTokenCookie.value = null
+    
+    // Clear localStorage on client only
     if (!this.isClient) return
     try {
       localStorage.clear()

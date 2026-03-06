@@ -43,7 +43,7 @@
 
           <LanguageSwitcher />
 
-          <div v-if="authStore.isAuthenticated" class="relative">
+          <div v-if="authStore.isAuthenticated" class="relative" ref="userMenuContainer">
             <UserAvatarButton
               :avatar-url="authStore.user?.avatar_url"
               :username="username"
@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
 import { useRoute } from '#imports'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '~/stores/auth'
@@ -104,6 +104,7 @@ const uiStore = useUIStore()
 
 const isUserMenuOpen = ref(false)
 const username = computed(() => authStore.user?.username || authStore.user?.name || 'User')
+const userMenuContainer = ref<HTMLElement | null>(null)
 
 const navLinks = computed(() => {
   const links = [
@@ -124,4 +125,31 @@ const handleLogout = async () => {
   await authStore.logout()
   isUserMenuOpen.value = false
 }
+
+const closeUserMenu = () => {
+  isUserMenuOpen.value = false
+}
+
+// Klick-außerhalb-Listener
+const handleClickOutside = (event: MouseEvent) => {
+  if (userMenuContainer.value && !userMenuContainer.value.contains(event.target as Node)) {
+    closeUserMenu()
+  }
+}
+
+watch(isUserMenuOpen, (newValue) => {
+  if (newValue) {
+    // Füge Event-Listener hinzu, mit einer kleinen Verzögerung um sofortige Auslösung zu vermeiden
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside)
+    }, 0)
+  } else {
+    document.removeEventListener('click', handleClickOutside)
+  }
+})
+
+// Aufräumen beim Unmount
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
