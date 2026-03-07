@@ -1,7 +1,5 @@
 <template>
-  <ClientOnly>
-    <AppHeaderBar />
-  </ClientOnly>
+  <AppHeaderBar />
 </template>
 
 <script setup lang="ts">

@@ -18,12 +18,15 @@
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <select v-model="sortBy" class="input">
-            <option value="newest">{{ $t('hackathons.sortOptions.newest') }}</option>
-            <option value="popular">{{ $t('hackathons.sortOptions.popular') }}</option>
-            <option value="upcoming">{{ $t('hackathons.sortOptions.upcoming') }}</option>
-            <option value="active">{{ $t('hackathons.sortOptions.active') }}</option>
-          </select>
+          <Select
+            v-model="sortBy"
+            :options="[
+              { value: 'newest', label: $t('hackathons.sortOptions.newest') },
+              { value: 'popular', label: $t('hackathons.sortOptions.popular') },
+              { value: 'upcoming', label: $t('hackathons.sortOptions.upcoming') },
+              { value: 'active', label: $t('hackathons.sortOptions.active') }
+            ]"
+          />
         </div>
       </template>
     </PageHeader>
@@ -47,7 +50,7 @@
     />
 
     <!-- Hackathons Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <Grid cols="3" gap="lg">
       <HackathonListCard
         v-for="hackathon in filteredHackathons"
         :key="hackathon.id"
@@ -59,7 +62,7 @@
         :view-details-label="$t('hackathons.viewDetails')"
         @open="navigateToHackathon"
       />
-    </div>
+    </Grid>
 
     <!-- Empty State -->
     <EmptyState
@@ -107,6 +110,8 @@ import LoadingState from '~/components/molecules/LoadingState.vue'
 import ErrorState from '~/components/molecules/ErrorState.vue'
 import EmptyState from '~/components/molecules/EmptyState.vue'
 import Pagination from '~/components/molecules/Pagination.vue'
+import Select from '~/components/atoms/Select.vue'
+import Grid from '~/components/molecules/Grid.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()

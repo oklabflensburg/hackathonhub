@@ -53,15 +53,19 @@
         </NuxtLink>
 
         <!-- Search -->
-        <button
-          @click="toggleSearch"
+        <Button
+          variant="ghost"
+          size="sm"
           class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 flex-1 max-w-20 text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-300"
+          @click="toggleSearch"
         >
-          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <template #icon-left>
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </template>
           <span class="text-xs font-medium">{{ $t('navigation.search') }}</span>
-        </button>
+        </Button>
       </div>
     </div>
   </nav>
@@ -82,28 +86,34 @@
           class="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-500"
           @keyup.enter="performSearch"
         />
-        <button @click="closeSearch" class="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <Button variant="ghost" size="sm" class="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" @click="closeSearch">
+          <template #icon-left>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </template>
+        </Button>
       </div>
        <div class="text-sm text-gray-500 dark:text-gray-400 text-center">
         {{ $t('navigation.searchInstructions') }}
       </div>
       <div class="mt-3 flex flex-wrap gap-2">
-        <button
-          @click="searchProjects"
+        <Button
+          variant="primary"
+          size="xs"
           class="text-xs px-3 py-1.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-800/50 transition-colors"
+          @click="searchProjects"
         >
           {{ $t('navigation.searchProjects') }}
-        </button>
-        <button
-          @click="searchHackathons"
+        </Button>
+        <Button
+          variant="primary"
+          size="xs"
           class="text-xs px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors"
+          @click="searchHackathons"
         >
           {{ $t('navigation.searchHackathons') }}
-        </button>
+        </Button>
       </div>
     </div>
   </div>
@@ -114,6 +124,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from '#imports'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '~/stores/auth'
+import Button from '~/components/atoms/Button.vue'
 
 const { t } = useI18n()
 

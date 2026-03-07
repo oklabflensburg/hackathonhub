@@ -1,7 +1,7 @@
 <template>
   <footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-8">
-    <div class="container mx-auto px-3 sm:px-4 md:px-6 py-10">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <Container class="py-10" :size="'2xl'">
+      <Grid cols="4" gap="lg">
         <FooterLinkGroup :title="t('footer.quickLinks')" :links="quickLinks" />
         <FooterLinkGroup :title="t('footer.resources')" :links="resourceLinks" />
 
@@ -25,7 +25,7 @@
           @update:email="newsletterEmail = $event"
           @submit="subscribeToNewsletter"
         />
-      </div>
+      </Grid>
 
       <div class="border-t border-gray-200 dark:border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
         <p class="text-gray-600 dark:text-gray-400 text-sm">{{ t('footer.copyright', { year: currentYear }) }}</p>
@@ -35,7 +35,7 @@
           <a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm transition-colors">{{ t('footer.cookiePolicy') }}</a>
         </div>
       </div>
-    </div>
+    </Container>
   </footer>
 </template>
 
@@ -46,6 +46,8 @@ import { useUIStore } from '~/stores/ui'
 import { usePreferencesStore } from '~/stores/preferences'
 import FooterLinkGroup from '~/components/molecules/FooterLinkGroup.vue'
 import NewsletterForm from '~/components/molecules/NewsletterForm.vue'
+import Container from '~/components/atoms/Container.vue'
+import Grid from '~/components/molecules/Grid.vue'
 
 const { t } = useI18n()
 const uiStore = useUIStore()

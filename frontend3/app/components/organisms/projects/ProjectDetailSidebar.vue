@@ -1,18 +1,7 @@
 <template>
   <ProjectStats
     :title="t('projects.detail.projectStats')"
-    :upvotes="project.upvote_count || 0"
-    :downvotes="project.downvote_count || 0"
-    :score="project.vote_score || 0"
-    :comments="project.comment_count || 0"
-    :views="project.view_count || 0"
-    :labels="{
-      upvotes: t('projects.detail.upvotes'),
-      downvotes: t('projects.detail.downvotes'),
-      score: t('projects.detail.totalScore'),
-      comments: t('projects.detail.comments'),
-      views: t('projects.detail.views')
-    }"
+    :stats="stats"
   />
 
   <CreatorInfo :project="project" :title="t('projects.detail.creator')" :subtitle="t('projects.detail.projectCreator')" />
@@ -31,18 +20,31 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ProjectStats } from '~/components/molecules'
-import CreatorInfo from '~/components/projects/CreatorInfo.vue'
-import ProjectActions from '~/components/projects/ProjectActions.vue'
+import CreatorInfo from '~/components/organisms/pages/projects/CreatorInfo.vue'
+import ProjectActions from '~/components/organisms/pages/projects/ProjectActions.vue'
 
 interface Props {
   project: any
   canEditProject: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 defineEmits<{ 'delete-project': [] }>()
 
 const { t } = useI18n()
+
+const stats = computed(() => ({
+  votes: (props.project.upvote_count || 0) + (props.project.downvote_count || 0),
+  voteChange: 0, // Not available from API
+  comments: props.project.comment_count || 0,
+  views: props.project.view_count || 0,
+  shares: 0, // Not available
+  engagementRate: 0, // Not available
+  createdAt: props.project.created_at || props.project.createdAt || new Date().toISOString(),
+  updatedAt: props.project.updated_at || props.project.updatedAt,
+  status: 'published' as const // Match the expected type
+}))
 </script>

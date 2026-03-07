@@ -36,33 +36,17 @@
       />
       
       <!-- Select Input -->
-      <select
+      <Select
         v-else-if="type === 'select'"
         :id="filterId"
-        :value="modelValue"
+        :modelValue="(modelValue as string | number) || ''"
         :disabled="disabled"
         :required="required"
         :aria-label="ariaLabel"
-        class="filter-select w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-offset-1 transition-colors appearance-none"
         :class="selectClasses"
+        :options="selectOptions"
         @change="handleSelectChange"
-      >
-        <option
-          v-if="showDefaultOption"
-          value=""
-          :disabled="required"
-        >
-          {{ defaultOptionText || 'Select an option' }}
-        </option>
-        <option
-          v-for="option in options"
-          :key="option.value"
-          :value="option.value"
-          :disabled="option.disabled"
-        >
-          {{ option.label }}
-        </option>
-      </select>
+      />
       
       <!-- Checkbox Group -->
       <div
@@ -74,12 +58,10 @@
           :key="option.value"
           class="checkbox-item flex items-center gap-2 cursor-pointer"
         >
-          <input
-            type="checkbox"
-            :value="option.value"
-            :checked="isChecked(option.value)"
+          <Checkbox
+            :modelValue="isChecked(option.value)"
+            :label="''"
             :disabled="disabled || option.disabled"
-            class="checkbox-input h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
             @change="handleCheckboxChange(option.value, $event)"
           />
           <span class="checkbox-label text-sm text-gray-700 dark:text-gray-300">
@@ -104,13 +86,12 @@
           :key="option.value"
           class="radio-item flex items-center gap-2 cursor-pointer"
         >
-          <input
-            type="radio"
+          <Radio
+            :modelValue="modelValue as string | number"
             :value="option.value"
-            :checked="modelValue === option.value"
+            :label="''"
             :disabled="disabled || option.disabled"
-            class="radio-input h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600"
-            @change="handleRadioChange(option.value)"
+            @update:modelValue="handleRadioChange"
           />
           <span class="radio-label text-sm text-gray-700 dark:text-gray-300">
             {{ option.label }}
@@ -276,6 +257,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import Select from '~/components/atoms/Select.vue'
+import Checkbox from '~/components/atoms/Checkbox.vue'
+import Radio from '~/components/atoms/Radio.vue'
 
 interface FilterOption {
   value: string | number
@@ -462,6 +446,27 @@ const selectedValues = computed(() => {
   return [props.modelValue]
 })
 
+// Computed: Select options with default option
+const selectOptions = computed(() => {
+  const options: { value: string | number; label: string; disabled?: boolean }[] = []
+  
+  if (props.showDefaultOption) {
+    options.push({
+      value: '',
+      label: props.defaultOptionText || 'Select an option',
+      disabled: props.required
+    })
+  }
+  
+  options.push(...props.options.map(opt => ({
+    value: opt.value,
+    label: opt.label,
+    disabled: opt.disabled
+  })))
+  
+  return options
+})
+
 // Helper Functions
 const isChecked = (value: string | number) => {
   if (!props.modelValue || !Array.isArray(props.modelValue)) return false
@@ -489,10 +494,9 @@ const handleBlur = () => {
   emit('blur')
 }
 
-const handleSelectChange = (event: Event) => {
-  const target = event.target as HTMLSelectElement
-  emit('update:modelValue', target.value)
-  emit('change', target.value)
+const handleSelectChange = (value: string | number) => {
+  emit('update:modelValue', value)
+  emit('change', value)
 }
 
 const handleCheckboxChange = (value: string | number, event: Event) => {

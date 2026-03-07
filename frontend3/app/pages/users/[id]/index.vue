@@ -147,8 +147,8 @@ import { useRoute } from '#app'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import ImprovedStatsCard from '~/components/ImprovedStatsCard.vue'
-import UserProfileOverview from '~/components/users/UserProfileOverview.vue'
-import UserProfileSidebar from '~/components/users/UserProfileSidebar.vue'
+import UserProfileOverview from '~/components/organisms/pages/users/UserProfileOverview.vue'
+import UserProfileSidebar from '~/components/organisms/pages/users/UserProfileSidebar.vue'
 
 const { t } = useI18n()
 const route = useRoute()

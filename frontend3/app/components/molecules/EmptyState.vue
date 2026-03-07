@@ -1,27 +1,54 @@
 <template>
-  <div class="text-center py-12">
-    <div class="w-24 h-24 mx-auto mb-6 text-gray-300 dark:text-gray-600">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
+  <div class="flex flex-col items-center justify-center py-12 text-center">
+    <div class="mb-4">
+      <Icon :name="icon" :size="size === 'lg' ? 48 : size === 'md' ? 32 : 24" class="text-gray-400" />
     </div>
-    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-      {{ title }}
-    </h3>
-    <p class="text-gray-600 dark:text-gray-400 mb-6">
-      {{ description }}
-    </p>
-    <slot name="action">
-      <!-- Default action slot -->
-    </slot>
+    <h3 v-if="title" class="text-lg font-medium text-gray-900 mb-2">{{ title }}</h3>
+    <p v-if="message" class="text-gray-600 max-w-md mb-6">{{ message }}</p>
+    <div v-if="showAction" class="flex gap-2">
+      <Button v-if="actionLabel" :variant="actionVariant" @click="action">
+        {{ actionLabel }}
+      </Button>
+      <Button v-if="secondaryActionLabel" variant="ghost" @click="secondaryAction">
+        {{ secondaryActionLabel }}
+      </Button>
+    </div>
+    <slot />
   </div>
 </template>
 
 <script setup lang="ts">
+import Icon from '~/components/atoms/Icon.vue'
+import Button from '~/components/atoms/Button.vue'
+
 interface Props {
-  title: string
-  description: string
+  title?: string
+  message?: string
+  icon?: string
+  showAction?: boolean
+  actionLabel?: string
+  actionVariant?: 'primary' | 'secondary' | 'outline' | 'ghost'
+  secondaryActionLabel?: string
+  size?: 'sm' | 'md' | 'lg'
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  icon: 'inbox',
+  showAction: false,
+  actionVariant: 'primary',
+  size: 'md'
+})
+
+const emit = defineEmits<{
+  action: []
+  secondaryAction: []
+}>()
+
+const action = () => {
+  emit('action')
+}
+
+const secondaryAction = () => {
+  emit('secondaryAction')
+}
 </script>

@@ -3,8 +3,10 @@
     <AppHeader />
     <div class="flex">
       <AppSidebar />
-      <main class="flex-1 container mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 pb-20 lg:pb-6">
-        <NuxtPage />
+      <main class="flex-1">
+        <Container class="px-3 sm:px-4 md:px-6 py-6 sm:py-8 pb-20 lg:pb-6" :size="'2xl'">
+          <NuxtPage />
+        </Container>
       </main>
     </div>
     <MobileBottomNav />
@@ -19,8 +21,9 @@ import { useAuthStore } from '~/stores/auth'
 import AppHeader from '~/components/AppHeader.vue'
 import AppSidebar from '~/components/AppSidebar.vue'
 import AppFooter from '~/components/AppFooter.vue'
-import NotificationContainer from '~/components/NotificationContainer.vue'
+import NotificationContainer from './components/NotificationContainer.vue'
 import MobileBottomNav from '~/components/MobileBottomNav.vue'
+import Container from '~/components/atoms/Container.vue'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()

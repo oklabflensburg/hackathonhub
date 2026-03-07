@@ -1,70 +1,84 @@
 <template>
-  <div class="mb-8">
-    <div class="flex items-center justify-between mb-4 gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ project.title }}</h1>
-        <div class="flex items-center space-x-4 mt-2">
-          <div class="flex items-center space-x-2">
-            <template v-if="creatorId">
-              <NuxtLink :to="`/users/${creatorId}`" class="flex items-center space-x-2 hover:opacity-90 transition-opacity">
-                <Avatar :src="avatarUrl" :fallback-text="creatorName" size="sm" :alt="creatorName" />
-                <span class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">{{ creatorName }}</span>
-              </NuxtLink>
-            </template>
-            <template v-else>
-              <div class="flex items-center space-x-2">
-                <Avatar :src="avatarUrl" :fallback-text="creatorName" size="sm" :alt="creatorName" />
-                <span class="text-gray-600 dark:text-gray-400">{{ creatorName }}</span>
-              </div>
-            </template>
-          </div>
-          <span class="text-gray-500 dark:text-gray-500">•</span>
-          <span class="text-gray-600 dark:text-gray-400">{{ formatDate(project.created_at) }}</span>
+  <div class="space-y-4">
+    <div class="flex items-start justify-between">
+      <div class="space-y-2">
+        <h1 class="text-3xl font-bold text-gray-900">{{ title }}</h1>
+        <div v-if="subtitle" class="text-lg text-gray-600">{{ subtitle }}</div>
+        <div v-if="tags && tags.length > 0" class="flex flex-wrap gap-2">
+          <Badge
+            v-for="tag in tags"
+            :key="tag"
+            :label="tag"
+            variant="secondary"
+          />
         </div>
       </div>
-      <div v-if="showVoting">
-        <VoteButtons :project-id="project.id" />
+      <div v-if="showActions" class="flex gap-2">
+        <slot name="actions">
+          <Button v-if="editLabel" variant="outline" @click="edit">
+            {{ editLabel }}
+          </Button>
+          <Button v-if="deleteLabel" variant="danger" @click="deleteProject">
+            {{ deleteLabel }}
+          </Button>
+        </slot>
       </div>
     </div>
-
-    <div class="flex items-center space-x-4">
-      <Tag :text="project.status || 'active'" :color="statusColor" />
-      <NuxtLink
-        v-if="project.hackathon"
-        :to="`/hackathons/${project.hackathon.id}`"
-        class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
-      >
-        {{ project.hackathon.name }}
-      </NuxtLink>
+    <div v-if="meta" class="flex flex-wrap gap-4 text-sm text-gray-500">
+      <div v-if="meta.author" class="flex items-center gap-1">
+        <Icon name="user" size="16" />
+        <span>{{ meta.author }}</span>
+      </div>
+      <div v-if="meta.date" class="flex items-center gap-1">
+        <Icon name="calendar" size="16" />
+        <span>{{ meta.date }}</span>
+      </div>
+      <div v-if="meta.views" class="flex items-center gap-1">
+        <Icon name="eye" size="16" />
+        <span>{{ meta.views }} views</span>
+      </div>
+      <div v-if="meta.likes" class="flex items-center gap-1">
+        <Icon name="heart" size="16" />
+        <span>{{ meta.likes }} likes</span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import Avatar from '~/components/atoms/Avatar.vue'
-import Tag from '~/components/atoms/Tag.vue'
-import VoteButtons from '~/components/molecules/VoteButtons.vue'
+import Badge from '~/components/atoms/Badge.vue'
+import Button from '~/components/atoms/Button.vue'
+import Icon from '~/components/atoms/Icon.vue'
 
-interface Props {
-  project: any
-  showVoting?: boolean
-  formatDate: (date: string) => string
+interface Meta {
+  author?: string
+  date?: string
+  views?: number
+  likes?: number
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  showVoting: false,
-})
+interface Props {
+  title: string
+  subtitle?: string
+  tags?: string[]
+  showActions?: boolean
+  editLabel?: string
+  deleteLabel?: string
+  meta?: Meta
+}
 
-// Use same logic as CreatorInfo.vue for consistency
-const creatorName = computed(() => props.project.owner?.username || props.project.team?.creator?.username || 'User')
-const creatorId = computed(() => props.project.owner?.id || props.project.team?.creator?.id)
-const avatarUrl = computed(() => props.project.owner?.avatar_url || props.project.team?.creator?.avatar_url)
+const props = defineProps<Props>()
 
-const statusColor = computed(() => {
-  if (props.project.status === 'active') return 'success'
-  if (props.project.status === 'completed') return 'primary'
-  if (props.project.status === 'archived') return 'neutral'
-  return 'neutral'
-})
+const emit = defineEmits<{
+  edit: []
+  delete: []
+}>()
+
+const edit = () => {
+  emit('edit')
+}
+
+const deleteProject = () => {
+  emit('delete')
+}
 </script>

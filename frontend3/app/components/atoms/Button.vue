@@ -1,60 +1,96 @@
 <template>
-  <button
-    :type="type"
-    :disabled="disabled || loading"
-    :aria-busy="loading"
-    :class="buttonClasses"
-    @click="$emit('click', $event)"
+  <component
+    :is="to ? 'NuxtLink' : 'button'"
+    :type="to ? undefined : type"
+    :disabled="disabled"
+    :to="to"
+    :class="[
+      'inline-flex items-center justify-center font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed',
+      sizeClasses,
+      variantClasses,
+      rounded && 'rounded-lg',
+      fullWidth && 'w-full',
+      className
+    ]"
+    @click="handleClick"
+    @blur="$emit('blur', $event)"
+    @focus="$emit('focus', $event)"
   >
-    <LoadingSpinner v-if="loading" size="sm" color="current" class="mr-2" />
-    <span v-else-if="$slots.icon" class="mr-2 inline-flex items-center">
-      <slot name="icon" />
+    <slot name="icon-left" />
+    <span v-if="$slots.default" :class="[iconLeft || iconRight ? (size === 'sm' ? 'ml-2' : 'ml-3') : '', size === 'sm' ? 'text-sm' : 'text-base']">
+      <slot />
     </span>
-    <slot />
-  </button>
+    <slot name="icon-right" />
+  </component>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import LoadingSpinner from './LoadingSpinner.vue'
 
 interface Props {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
-  loading?: boolean
-  disabled?: boolean
-  fullWidth?: boolean
   type?: 'button' | 'submit' | 'reset'
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
+  disabled?: boolean
+  rounded?: boolean
+  fullWidth?: boolean
+  className?: string
+  iconLeft?: boolean
+  iconRight?: boolean
+  to?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  type: 'button',
   variant: 'primary',
   size: 'md',
-  loading: false,
   disabled: false,
+  rounded: true,
   fullWidth: false,
-  type: 'button',
+  className: '',
+  iconLeft: false,
+  iconRight: false,
+  to: undefined
 })
 
-defineEmits<{ click: [event: MouseEvent] }>()
+const emit = defineEmits<{
+  click: [event: MouseEvent]
+  blur: [event: FocusEvent]
+  focus: [event: FocusEvent]
+}>()
 
-const variantClasses = {
-  primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
-  secondary: 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 focus:ring-gray-500',
-  danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-  ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 focus:ring-gray-500',
+const sizeClasses = computed(() => {
+  switch (props.size) {
+    case 'xs': return 'px-2 py-1 text-xs'
+    case 'sm': return 'px-3 py-2 text-sm'
+    case 'md': return 'px-4 py-3 text-base'
+    case 'lg': return 'px-6 py-4 text-lg'
+    default: return 'px-4 py-3 text-base'
+  }
+})
+
+const variantClasses = computed(() => {
+  switch (props.variant) {
+    case 'primary':
+      return 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500/20'
+    case 'secondary':
+      return 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-gray-500/20'
+    case 'outline':
+      return 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:ring-gray-500/20'
+    case 'ghost':
+      return 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:ring-gray-500/20'
+    case 'danger':
+      return 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500/20'
+    default:
+      return 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500/20'
+  }
+})
+
+const handleClick = (event: MouseEvent) => {
+  if (props.disabled) {
+    event.preventDefault()
+    return
+  }
+  emit('click', event)
 }
-
-const sizeClasses = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-3 text-base',
-}
-
-const buttonClasses = computed(() => [
-  'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed',
-  variantClasses[props.variant],
-  sizeClasses[props.size],
-  props.fullWidth ? 'w-full' : '',
-])
 </script>

@@ -55,24 +55,24 @@
         ]"
       />
 
-      <!-- Featured Hackathons -->
-      <section class="py-8">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('home.featuredHackathons.title') }}</h2>
-          <NuxtLink to="/hackathons" class="text-primary-600 dark:text-primary-400 hover:underline font-medium">
-            {{ t('common.viewAll') }} →
-          </NuxtLink>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <HomeHackathonCard
-            v-for="hackathon in featuredHackathons"
-            :key="hackathon.id"
-            :hackathon="hackathon"
-            :view-details-label="t('common.viewDetails')"
-            @open="navigateToHackathon"
-          />
-        </div>
-      </section>
+    <!-- Featured Hackathons -->
+    <section class="py-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('home.featuredHackathons.title') }}</h2>
+        <NuxtLink to="/hackathons" class="text-primary-600 dark:text-primary-400 hover:underline font-medium">
+          {{ t('common.viewAll') }} →
+        </NuxtLink>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <HomeHackathonCard
+          v-for="hackathon in featuredHackathons"
+          :key="hackathon.id"
+          :hackathon="hackathon"
+          :view-details-label="t('common.viewDetails')"
+          @open="(id) => navigateToHackathon({ id })"
+        />
+      </div>
+    </section>
 
       <!-- Top Projects -->
       <section class="py-8">
@@ -83,14 +83,14 @@
           </NuxtLink>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <HomeProjectCard
-            v-for="project in topProjects"
-            :key="project.id"
-            :project="project"
-            :by-label="t('common.by')"
-            @open="handleProjectCardClick"
-            @open-direct="navigateToProject"
-          />
+        <HomeProjectCard
+          v-for="project in topProjects"
+          :key="project.id"
+          :project="project"
+          :by-label="t('common.by')"
+          @open="(id, event) => handleProjectCardClick(id, event)"
+          @open-direct="navigateToProject"
+        />
         </div>
       </section>
 
@@ -114,11 +114,11 @@ import { useI18n } from 'vue-i18n'
 import { generateProjectPlaceholder, generateHackathonPlaceholder } from '~/utils/placeholderImages'
 import { resolveImageUrl } from '~/utils/imageUrl'
 import { useRouter } from '#imports'
-import HomeHero from '~/components/home/HomeHero.vue'
-import HomeStatsSection from '~/components/home/HomeStatsSection.vue'
-import HomeHackathonCard from '~/components/home/HomeHackathonCard.vue'
-import HomeProjectCard from '~/components/home/HomeProjectCard.vue'
-import HomeCtaSection from '~/components/home/HomeCtaSection.vue'
+import HomeHero from '~/components/organisms/pages/home/HomeHero.vue'
+import HomeStatsSection from '~/components/organisms/pages/home/HomeStatsSection.vue'
+import HomeHackathonCard from '~/components/organisms/pages/home/HomeHackathonCard.vue'
+import HomeProjectCard from '~/components/organisms/pages/home/HomeProjectCard.vue'
+import HomeCtaSection from '~/components/organisms/pages/home/HomeCtaSection.vue'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -134,8 +134,9 @@ const loginWithGitHub = () => {
 }
 
 // Navigation functions for clickable cards
-const navigateToHackathon = (hackathonId: number) => {
-  router.push(`/hackathons/${hackathonId}`)
+const navigateToHackathon = (hackathonOrId: { id: string | number } | number) => {
+  const id = typeof hackathonOrId === 'number' ? hackathonOrId : hackathonOrId.id
+  router.push(`/hackathons/${Number(id)}`)
 }
 
 const navigateToProject = (projectId: number) => {
@@ -197,10 +198,12 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
           organization: hackathon.organization || t('common.unknown'),
           status: hackathon.is_active ? t('common.active') : t('common.upcoming'),
           description: hackathon.description || t('common.noDescription'),
-          duration: `${hackathon.duration_hours || 48} ${t('common.hours')}`,
-          participants: `${hackathon.participant_count || 0}+`,
-          prize: hackathon.prize ? `$${hackathon.prize.toLocaleString()}` : t('common.noPrize'),
-          imageUrl
+          startDate: hackathon.start_date || '',
+          endDate: hackathon.end_date || '',
+          participantCount: hackathon.participant_count || 0,
+          prizePool: hackathon.prize || 0,
+          imageUrl,
+          isRegistered: false // TODO: Determine from user data if needed
         }
       })
 
@@ -281,7 +284,28 @@ const { data: dashboardData, pending: loading, error, refresh: fetchDashboardDat
 )
 
 // Destructure the data for template use
-const featuredHackathons = computed(() => dashboardData.value?.featuredHackathons || [])
+interface FeaturedHackathon {
+  id: number
+  name: string
+  organization: string
+  status: string
+  description: string
+  startDate: string
+  endDate: string
+  participantCount: number
+  prizePool: number
+  imageUrl: string
+  isRegistered: boolean
+}
+
+const featuredHackathons = computed(() => {
+  const hackathons = dashboardData.value?.featuredHackathons || []
+  return hackathons.map((h: FeaturedHackathon) => ({
+    ...h,
+    duration: h.startDate && h.endDate ? `${formatDate(h.startDate)} - ${formatDate(h.endDate)}` : 'No dates',
+    participants: `${h.participantCount || 0} participants`
+  }))
+})
 const topProjects = computed(() => dashboardData.value?.topProjects || [])
 const stats = computed(() => dashboardData.value?.stats || {
   activeHackathons: 0,
@@ -289,6 +313,13 @@ const stats = computed(() => dashboardData.value?.stats || {
   totalVotes: 0,
   activeParticipants: 0
 })
+
+// Helper function to format date
+function formatDate(dateString: string) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
 </script>
 
 <style scoped>

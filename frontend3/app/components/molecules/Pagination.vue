@@ -1,130 +1,150 @@
 <template>
-  <div class="flex items-center justify-between gap-4">
-    <!-- Showing info (optional) -->
-    <div v-if="showInfo" class="text-sm text-gray-600 dark:text-gray-400">
-      <slot name="info" :start="startItem" :end="endItem" :total="total">
-        {{ $t('pagination.showing') }} {{ startItem }}-{{ endItem }} {{ $t('pagination.of') }} {{ total }}
+  <div class="flex items-center justify-between">
+    <div class="text-sm text-gray-600 dark:text-gray-300">
+      <slot name="info" :start="startItem" :end="endItem" :total="effectiveTotalItems">
+         Showing {{ startItem }}-{{ endItem }} of {{ effectiveTotalItems }} items
       </slot>
     </div>
-
-    <!-- Pagination controls -->
-    <div class="flex items-center space-x-2">
-      <!-- Previous button -->
-      <button
-        @click="goToPage(currentPage - 1)"
-        :disabled="currentPage <= 1"
-        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-        :aria-label="$t('pagination.previous')"
+    
+    <div class="flex items-center gap-1">
+      <Button
+        :disabled="currentPage === 1"
+        variant="ghost"
+        size="sm"
+        @click="$emit('page-change', currentPage - 1)"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      <!-- Page numbers with ellipsis -->
-      <template v-for="page in pageNumbers" :key="page">
-        <button
-          v-if="page === '...'"
-          disabled
-          class="px-3 py-1 rounded-lg text-gray-400"
-        >
-          ...
-        </button>
-        <button
-          v-else
-          @click="goToPage(page as number)"
-          :class="[
-            'px-3 py-1 rounded-lg',
-            currentPage === page
-              ? 'bg-primary-600 text-white'
-              : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-          ]"
-        >
-          {{ page }}
-        </button>
-      </template>
-
-      <!-- Next button -->
-      <button
-        @click="goToPage(currentPage + 1)"
-        :disabled="currentPage >= totalPages"
-        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-        :aria-label="$t('pagination.next')"
+        <template #icon>
+          <Icon name="chevron-left" size="sm" />
+        </template>
+        Previous
+      </Button>
+      
+      <div class="flex items-center gap-1">
+        <template v-for="page in visiblePages" :key="page">
+          <Button
+            v-if="page === '...'"
+            variant="ghost"
+            size="sm"
+            disabled
+            class="cursor-default"
+          >
+            ...
+          </Button>
+          <Button
+            v-else
+            :variant="page === currentPage ? 'primary' : 'ghost'"
+            size="sm"
+            @click="$emit('page-change', page as number)"
+          >
+            {{ page }}
+          </Button>
+        </template>
+      </div>
+      
+      <Button
+        :disabled="currentPage === totalPages"
+        variant="ghost"
+        size="sm"
+        @click="$emit('page-change', currentPage + 1)"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
+        Next
+        <template #icon>
+          <Icon name="chevron-right" size="sm" />
+        </template>
+      </Button>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-gray-600 dark:text-gray-300">Items per page:</span>
+      <select
+        :value="itemsPerPage"
+        class="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        @change="$emit('per-page-change', parseInt(($event.target as HTMLSelectElement).value))"
+      >
+        <option v-for="option in perPageOptions" :key="option" :value="option">
+          {{ option }}
+        </option>
+      </select>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import Button from '~/components/atoms/Button.vue'
+import Icon from '~/components/atoms/Icon.vue'
 
 interface Props {
-  total: number
-  perPage?: number
-  currentPage?: number
-  showInfo?: boolean
+  currentPage: number
+  itemsPerPage?: number
+  perPage?: number // Alias for itemsPerPage for backward compatibility
+  totalItems?: number
+  total?: number // Alias for totalItems for backward compatibility
+  perPageOptions?: number[]
   maxVisiblePages?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  perPage: 10,
-  currentPage: 1,
-  showInfo: false,
+  perPageOptions: () => [10, 25, 50, 100],
   maxVisiblePages: 5
 })
 
-const emit = defineEmits<{ 'page-change': [page: number] }>()
-
-const totalPages = computed(() => Math.max(1, Math.ceil(props.total / props.perPage)))
-
-const startItem = computed(() => ((props.currentPage - 1) * props.perPage) + 1)
-const endItem = computed(() => Math.min(props.currentPage * props.perPage, props.total))
-
-// Generate page numbers with ellipsis logic
-const pageNumbers = computed(() => {
-  const current = props.currentPage
-  const total = totalPages.value
-  const maxVisible = props.maxVisiblePages
-  const pages: (number | string)[] = []
-
-  if (total <= maxVisible) {
-    // Show all pages
-    for (let i = 1; i <= total; i++) pages.push(i)
-  } else {
-    // Always include first page
-    pages.push(1)
-
-    // Calculate start and end of visible range
-    let start = Math.max(2, current - Math.floor(maxVisible / 2))
-    let end = Math.min(total - 1, start + maxVisible - 3)
-
-    // Adjust if we're near the end
-    if (end === total - 1) {
-      start = total - maxVisible + 2
-    }
-
-    // Add ellipsis after first page if needed
-    if (start > 2) pages.push('...')
-
-    // Add visible pages
-    for (let i = start; i <= end; i++) pages.push(i)
-
-    // Add ellipsis before last page if needed
-    if (end < total - 1) pages.push('...')
-
-    // Always include last page
-    if (total > 1) pages.push(total)
-  }
-
-  return pages
+// Use totalItems or total (alias)
+const effectiveTotalItems = computed(() => {
+  return props.totalItems ?? props.total ?? 0
 })
 
-const goToPage = (page: number) => {
-  if (page < 1 || page > totalPages.value || page === props.currentPage) return
-  emit('page-change', page)
-}
+// Use itemsPerPage or perPage (alias)
+const effectiveItemsPerPage = computed(() => {
+  return props.itemsPerPage ?? props.perPage ?? 10
+})
+
+defineEmits<{
+  'page-change': [page: number]
+  'per-page-change': [perPage: number]
+}>()
+
+const totalPages = computed(() => Math.ceil(effectiveTotalItems.value / effectiveItemsPerPage.value))
+const startItem = computed(() => (props.currentPage - 1) * effectiveItemsPerPage.value + 1)
+const endItem = computed(() => Math.min(props.currentPage * effectiveItemsPerPage.value, effectiveTotalItems.value))
+
+const visiblePages = computed(() => {
+  const pages: (number | string)[] = []
+  const halfVisible = Math.floor(props.maxVisiblePages / 2)
+  
+  let startPage = Math.max(1, props.currentPage - halfVisible)
+  let endPage = Math.min(totalPages.value, startPage + props.maxVisiblePages - 1)
+  
+  // Adjust start page if we're near the end
+  if (endPage - startPage + 1 < props.maxVisiblePages) {
+    startPage = Math.max(1, endPage - props.maxVisiblePages + 1)
+  }
+  
+  // Add first page and ellipsis if needed
+  if (startPage > 1) {
+    pages.push(1)
+    if (startPage > 2) {
+      pages.push('...')
+    }
+  }
+  
+  // Add visible pages
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i)
+  }
+  
+  // Add last page and ellipsis if needed
+  if (endPage < totalPages.value) {
+    if (endPage < totalPages.value - 1) {
+      pages.push('...')
+    }
+    pages.push(totalPages.value)
+  }
+  
+  return pages
+})
 </script>
+
+<style scoped>
+/* Add any custom styles if needed */
+</style>

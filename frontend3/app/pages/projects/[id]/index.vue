@@ -26,7 +26,7 @@
 
             <ProjectDescription
               :title="t('projects.detail.description')"
-              :description="project.description"
+              :content="project.description"
             />
 
             <TechnologyTags :technologies="projectTechnologies" :title="t('projects.detail.technologies')" />
@@ -94,7 +94,10 @@ import { useVotingStore } from '~/stores/voting'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 import { resolveImageUrl } from '~/utils/imageUrl'
 import { useComments } from '~/composables/useComments'
-import { ProjectHeader, TechnologyTags, ProjectLinks, ProjectImage, ProjectDescription } from '~/components/molecules'
+import { ProjectImage, ProjectDescription } from '~/components/molecules'
+import TechnologyTags from '~/components/organisms/pages/projects/TechnologyTags.vue'
+import ProjectLinks from '~/components/organisms/pages/projects/ProjectLinks.vue'
+import ProjectHeader from '~/components/organisms/pages/projects/ProjectHeader.vue'
 import CommentSection from '~/components/organisms/comments/CommentSection.vue'
 import LoadingSpinner from '~/components/atoms/LoadingSpinner.vue'
 import DetailLayout from '~/components/templates/DetailLayout.vue'

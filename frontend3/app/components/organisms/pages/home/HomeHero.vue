@@ -5,7 +5,7 @@
       <p class="text-xl mb-8 opacity-90">{{ description }}</p>
       <div class="flex flex-wrap gap-4">
         <NuxtLink to="/hackathons" class="btn bg-white text-primary-600 hover:bg-gray-100">{{ exploreLabel }}</NuxtLink>
-        <NuxtLink to="/create" class="btn bg-transparent border-2 border-white hover:bg-white/10">{{ createLabel }}</NuxtLink>
+        <NuxtLink to="/create/project" class="btn bg-transparent border-2 border-white hover:bg-white/10">{{ createLabel }}</NuxtLink>
       </div>
     </div>
     <div class="absolute top-0 right-0 w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 bg-white/10 rounded-full -translate-y-16 sm:-translate-y-24 md:-translate-y-32 translate-x-16 sm:translate-x-24 md:translate-x-32" />

@@ -49,8 +49,8 @@ import { useI18n } from 'vue-i18n'
 import type { ProjectComment } from '~/composables/useComments'
 import ProjectImage from '~/components/molecules/ProjectImage.vue'
 import ProjectDescription from '~/components/molecules/ProjectDescription.vue'
-import TechnologyTags from '~/components/projects/TechnologyTags.vue'
-import ProjectLinks from '~/components/projects/ProjectLinks.vue'
+import TechnologyTags from '~/components/organisms/pages/projects/TechnologyTags.vue'
+import ProjectLinks from '~/components/organisms/pages/projects/ProjectLinks.vue'
 import CommentSection from '~/components/organisms/comments/CommentSection.vue'
 
 interface ProjectLike {

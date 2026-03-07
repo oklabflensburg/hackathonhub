@@ -18,31 +18,34 @@
       </div>
 
       <!-- Toggle Button (nur wenn toggleable) -->
-      <button
+      <Button
         v-if="toggleable"
         type="button"
-        class="sidebar-toggle"
-        :class="toggleButtonClasses"
+        variant="ghost"
+        size="sm"
         :aria-label="toggleAriaLabel"
         :title="toggleTitle"
+        :class="['sidebar-toggle', toggleButtonClasses]"
         @click="toggleSidebar"
       >
-        <svg
-          class="toggle-icon"
-          :class="{ 'rotate-180': collapsed }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-          />
-        </svg>
-      </button>
+        <template #icon-left>
+          <svg
+            class="toggle-icon"
+            :class="{ 'rotate-180': collapsed }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+            />
+          </svg>
+        </template>
+      </Button>
     </div>
 
     <!-- Navigation -->
@@ -162,6 +165,7 @@ import Logo from '~/components/atoms/Logo.vue'
 import NavigationItemComponent from '~/components/molecules/NavigationItem.vue'
 import ThemeToggle from '~/components/molecules/ThemeToggle.vue'
 import UserMenu from '~/components/molecules/UserMenu.vue'
+import Button from '~/components/atoms/Button.vue'
 
 interface Props extends SidebarProps {
   /** Zusammengeklappter Zustand */
@@ -288,9 +292,9 @@ const footerClasses = computed(() => {
   return 'p-4 border-t border-gray-200 dark:border-gray-700 space-y-4'
 })
 
-// Toggle Button Klassen
+// Toggle Button Klassen (zusätzliche Klassen für das Button Atom)
 const toggleButtonClasses = computed(() => {
-  const base = 'p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors'
+  const base = 'sidebar-toggle'
   
   return props.collapsed
     ? `${base} rotate-180`

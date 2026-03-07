@@ -1,35 +1,54 @@
 <template>
-  <div class="text-center py-12">
-    <div class="w-24 h-24 mx-auto mb-6 text-red-400">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.342 16.5c-.77.833.192 2.5 1.732 2.5z" />
-      </svg>
+  <div class="flex flex-col items-center justify-center py-12 text-center">
+    <div class="mb-4">
+      <Icon name="alert-circle" :size="size === 'lg' ? 48 : size === 'md' ? 32 : 24" class="text-red-500" />
     </div>
-    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-      {{ title }}
-    </h3>
-    <p class="text-gray-600 dark:text-gray-400 mb-6">{{ message }}</p>
-    <button v-if="showRetry" @click="$emit('retry')" class="btn btn-primary">
-      {{ retryLabel }}
-    </button>
+    <h3 v-if="title" class="text-lg font-medium text-gray-900 mb-2">{{ title }}</h3>
+    <p v-if="message" class="text-gray-600 max-w-md mb-4">{{ message }}</p>
+    <div v-if="showRetry" class="flex gap-2">
+      <Button variant="primary" @click="retry">
+        {{ retryLabel }}
+      </Button>
+      <Button v-if="showHome" variant="ghost" @click="goHome">
+        {{ homeLabel }}
+      </Button>
+    </div>
+    <slot />
   </div>
 </template>
 
 <script setup lang="ts">
+import Icon from '~/components/atoms/Icon.vue'
+import Button from '~/components/atoms/Button.vue'
+
 interface Props {
-  title: string
-  message: string
-  retryLabel?: string
+  title?: string
+  message?: string
   showRetry?: boolean
+  showHome?: boolean
+  retryLabel?: string
+  homeLabel?: string
+  size?: 'sm' | 'md' | 'lg'
 }
 
-withDefaults(defineProps<Props>(), {
-  retryLabel: 'Try again',
+const props = withDefaults(defineProps<Props>(), {
   showRetry: true,
+  showHome: false,
+  retryLabel: 'Try again',
+  homeLabel: 'Go home',
+  size: 'md'
 })
 
-defineEmits<{
+const emit = defineEmits<{
   retry: []
+  home: []
 }>()
+
+const retry = () => {
+  emit('retry')
+}
+
+const goHome = () => {
+  emit('home')
+}
 </script>

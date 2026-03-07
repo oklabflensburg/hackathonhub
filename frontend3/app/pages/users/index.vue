@@ -83,8 +83,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import UsersPageHeader from '~/components/users/UsersPageHeader.vue'
-import UserCard from '~/components/users/UserCard.vue'
+import UsersPageHeader from '~/components/organisms/pages/users/UsersPageHeader.vue'
+import UserCard from '~/components/organisms/pages/users/UserCard.vue'
 import { useRoute } from '#imports'
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'

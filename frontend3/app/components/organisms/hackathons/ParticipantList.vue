@@ -1,79 +1,156 @@
 <template>
   <section class="mt-8">
-    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ title }}</h2>
-
-    <div v-if="loading" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">{{ loadingLabel }}</p>
+    <!-- Header with Icon -->
+    <div class="flex items-center gap-3 mb-6">
+      <Icon name="users" class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ title }}</h2>
+      <Badge v-if="items.length > 0" variant="gray" size="sm">
+        {{ items.length }}
+      </Badge>
     </div>
 
-    <div v-else-if="error" class="text-center py-8">
-      <div
-        :class="[
-          'inline-flex items-center justify-center w-12 h-12 rounded-full mb-4',
-          requiresAuth
-            ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-            : 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400'
-        ]"
+    <!-- Loading State -->
+    <div v-if="loading" class="py-8">
+      <div class="flex flex-col items-center justify-center gap-4">
+        <LoadingSpinner size="lg" />
+        <p class="text-gray-600 dark:text-gray-400">{{ loadingLabel }}</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="py-6">
+      <Alert
+        :variant="requiresAuth ? 'warning' : 'error'"
+        :title="error"
+        :message="requiresAuth ? authHint : error"
       >
-        <svg v-if="requiresAuth" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-        <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
+        <template #actions>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <Button
+              v-if="requiresAuth"
+              variant="outline"
+              size="sm"
+              @click="$emit('loginGithub')"
+            >
+              <Icon name="github" class="w-4 h-4 mr-2" />
+              {{ githubLabel }}
+            </Button>
+            <Button
+              v-if="requiresAuth"
+              variant="outline"
+              size="sm"
+              @click="$emit('loginGoogle')"
+            >
+              <Icon name="mail" class="w-4 h-4 mr-2" />
+              {{ googleLabel }}
+            </Button>
+            <Button
+              v-if="!requiresAuth"
+              variant="outline"
+              size="sm"
+              @click="$emit('retry')"
+            >
+              {{ retryLabel }}
+            </Button>
+          </div>
+        </template>
+      </Alert>
+    </div>
 
-      <p class="text-gray-600 dark:text-gray-400">{{ error }}</p>
-
-      <div v-if="requiresAuth">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ authHint }}</p>
-        <button @click="$emit('loginGithub')" class="mt-2 btn btn-primary">{{ githubLabel }}</button>
-        <button @click="$emit('loginGoogle')" class="mt-2 ml-2 btn btn-outline">{{ googleLabel }}</button>
-        <NuxtLink to="/login" class="mt-2 ml-2 btn btn-outline">{{ emailLabel }}</NuxtLink>
-      </div>
-      <div v-else>
-        <button @click="$emit('retry')" class="mt-4 btn btn-outline">{{ retryLabel }}</button>
+    <!-- Empty State -->
+    <div v-else-if="items.length === 0" class="py-8 text-center">
+      <div class="max-w-md mx-auto">
+        <Icon name="users" class="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          {{ emptyLabel }}
+        </h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">
+          {{ emptyLabel }}
+        </p>
+        <Button
+          v-if="emptyActionLabel && emptyActionPath"
+          :to="emptyActionPath"
+          variant="primary"
+        >
+          {{ emptyActionLabel }}
+        </Button>
       </div>
     </div>
 
-    <div v-else-if="items.length === 0" class="text-center py-8">
-      <p class="text-gray-600 dark:text-gray-400">{{ emptyLabel }}</p>
-      <div v-if="emptyActionLabel && emptyActionPath" class="mt-4">
-        <NuxtLink :to="emptyActionPath" class="btn btn-primary">{{ emptyActionLabel }}</NuxtLink>
-      </div>
-    </div>
-
+    <!-- Participant List -->
     <div v-else class="space-y-4">
-      <div v-for="team in items" :key="team.id" class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 border border-gray-200 dark:border-gray-600">
-        <div class="flex items-start justify-between mb-2">
-          <h3 class="font-semibold text-gray-900 dark:text-white">{{ team.name }}</h3>
-          <span
-            :class="[
-              'px-2 py-1 rounded-full text-xs font-medium',
-              team.is_open
-                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-            ]"
-          >
-            {{ team.is_open ? openLabel : closedLabel }}
-          </span>
+      <Card
+        v-for="team in items"
+        :key="team.id"
+        class="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+      >
+        <div class="flex items-center justify-between">
+          <!-- Team Info -->
+          <div class="flex items-center gap-3">
+            <Avatar
+              v-if="team.avatar"
+              :src="team.avatar"
+              :alt="team.name"
+              size="md"
+            />
+            <div>
+              <h3 class="font-semibold text-gray-900 dark:text-white">
+                {{ team.name }}
+              </h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                {{ team.description || noDescriptionLabel }}
+              </p>
+              <div class="flex items-center gap-2 mt-1">
+                <Badge
+                  :variant="team.open ? 'success' : 'neutral'"
+                  size="xs"
+                >
+                  {{ team.open ? openLabel : closedLabel }}
+                </Badge>
+                <span class="text-xs text-gray-500 dark:text-gray-500">
+                  {{ createdPrefix }} {{ formatDate(team.createdAt) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team Stats -->
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <Icon name="users" class="w-4 h-4 text-gray-500" />
+              <span class="text-sm text-gray-700 dark:text-gray-300">
+                {{ team.memberCount || 0 }} {{ membersLabel }}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              :to="`/teams/${team.id}`"
+            >
+              <Icon name="arrow-right" class="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-        <p class="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{{ team.description || noDescriptionLabel }}</p>
-        <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-          <span>{{ team.member_count || 0 }} / {{ team.max_members }} {{ membersLabel }}</span>
-          <span class="text-xs">{{ createdPrefix }} {{ formatDate(team.created_at) }}</span>
-        </div>
-      </div>
+      </Card>
     </div>
 
+    <!-- View All Link -->
     <div v-if="items.length > 0" class="mt-6 text-center">
-      <NuxtLink :to="viewAllPath" class="btn btn-outline">{{ viewAllLabel }}</NuxtLink>
+      <Button
+        :to="viewAllPath"
+        variant="outline"
+        class="w-full sm:w-auto"
+      >
+        {{ viewAllLabel }}
+        <Icon name="arrow-right" class="w-4 h-4 ml-2" />
+      </Button>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { Icon, Avatar, Badge, Button, Card, Alert, LoadingSpinner } from '~/components/atoms'
+
 defineProps<{
   title: string
   items: any[]
