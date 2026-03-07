@@ -31,7 +31,7 @@ import { useTeamStore } from '~/stores/team'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import { TeamVisibility, TeamStatus, type Team, type TeamFilterState, type TeamSortOption } from '~/types/team-types'
-import TeamsPageTemplate from '~/components/templates/teams/TeamsPageTemplate.vue'
+import TeamsPageTemplate from '~/components/templates/TeamsPageTemplate.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
