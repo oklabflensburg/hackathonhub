@@ -205,7 +205,6 @@ const submitProject = async (formData: any) => {
 
 // Form reset
 const resetProjectForm = () => {
-  console.log('resetProjectForm called')
   projectForm.value = {
     name: '',
     description: '',

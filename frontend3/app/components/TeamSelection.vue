@@ -130,6 +130,7 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const teams = ref<any[]>([])
 const selectedTeamId = ref<number | null>(props.modelValue || null)
+console.log('TeamSelection props.modelValue:', props.modelValue, typeof props.modelValue)
 
 const selectedTeam = computed(() => {
   if (!selectedTeamId.value) return null

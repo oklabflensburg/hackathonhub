@@ -25,8 +25,8 @@
       @focus="$emit('focus')"
     />
     
-    <div v-if="error || hint" class="mt-1 text-sm">
-      <p v-if="error" class="text-red-600 dark:text-red-400">{{ error }}</p>
+    <div v-if="(typeof error === 'string' && error) || hint" class="mt-1 text-sm">
+      <p v-if="typeof error === 'string' && error" class="text-red-600 dark:text-red-400">{{ error }}</p>
       <p v-else-if="hint" class="text-gray-500 dark:text-gray-400">{{ hint }}</p>
     </div>
     
@@ -43,7 +43,7 @@ interface Props {
   modelValue?: string
   label?: string
   placeholder?: string
-  error?: string
+  error?: string | boolean
   hint?: string
   id?: string
   rows?: number

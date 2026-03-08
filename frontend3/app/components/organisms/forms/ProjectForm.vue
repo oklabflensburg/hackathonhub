@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="$emit('submit', formData)" class="space-y-6">
+  <form class="space-y-6" @submit.prevent="handleSubmit">
     <!-- Project Name -->
     <FormField :label="t('create.projectForm.fields.projectName')" :required="true" :error="errors.name">
       <Input
@@ -13,13 +13,13 @@
 
     <!-- Description -->
     <FormField :label="t('create.projectForm.fields.description')" :required="true" :error="errors.description">
-      <textarea
+      <Textarea
         v-model="formData.description"
-        rows="4"
-        class="input"
+        :rows="4"
         :placeholder="t('create.projectForm.fields.descriptionPlaceholder')"
-        :class="{ 'input-error': errors.description }"
-        required
+        :error="!!errors.description"
+        :disabled="disabled"
+        :required="true"
       />
     </FormField>
 
@@ -35,18 +35,15 @@
           {{ t('create.projectForm.fields.retry') }}
         </Button>
       </div>
-      <select
+      <Select
         v-else
         v-model="formData.hackathonId"
-        class="input"
-        :class="{ 'input-error': errors.hackathonId }"
-        required
-      >
-        <option value="">{{ t('create.projectForm.fields.selectHackathon') }}</option>
-        <option v-for="hackathon in hackathons" :key="hackathon.id" :value="hackathon.id">
-          {{ hackathon.name }} ({{ hackathon.status }})
-        </option>
-      </select>
+        :options="hackathons.map(h => ({ value: h.id, label: `${h.name} (${formatDate(h.start_date)} - ${formatDate(h.end_date)})` }))"
+        :placeholder="t('create.projectForm.fields.selectHackathon')"
+        :error="!!errors.hackathonId"
+        :disabled="disabled"
+        :required="true"
+      />
     </FormField>
 
     <!-- Team Selection (only show when hackathon is selected) -->
@@ -76,17 +73,18 @@
       <div class="flex">
         <Input
           v-model="newTech"
-          type="text"
+          type="search"
           :placeholder="t('create.projectForm.fields.techPlaceholder')"
           :disabled="disabled"
-          class="rounded-r-none flex-1"
-          @keydown.enter.prevent="addTech"
+          class="!rounded-r-none flex-1"
+          @keydown.enter.stop.prevent="addTech"
         />
         <Button
           type="button"
           @click="addTech"
           variant="primary"
           class="rounded-l-none"
+          size="sm"
           :disabled="disabled || !newTech.trim()"
         >
           {{ t('create.projectForm.fields.add') }}
@@ -206,12 +204,16 @@
           type="button"
           @click="addTeamMember"
           variant="secondary"
+          :icon-left="true"
           class="mt-3"
+          size="sm"
           :disabled="disabled"
         >
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
+          <template #icon-left>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </template>
           {{ t('create.projectForm.fields.addTeamMember') }}
         </Button>
       </FormField>
@@ -255,12 +257,20 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Input, Button, Tag, Textarea, Select } from '@/components/atoms'
 import FormField from '@/components/molecules/FormField.vue'
-import Input from '@/components/atoms/Input.vue'
-import Button from '@/components/atoms/Button.vue'
-import Tag from '@/components/atoms/Tag.vue'
 import LoadingSpinner from '@/components/atoms/LoadingSpinner.vue'
 import TeamSelection from '@/components/TeamSelection.vue'
+
+// Helper function to format dates
+const formatDate = (dateString: string): string => {
+  if (!dateString) return ''
+  try {
+    return new Date(dateString).toLocaleDateString()
+  } catch {
+    return dateString
+  }
+}
 
 // Props
 interface TeamMember {
@@ -284,6 +294,8 @@ interface Hackathon {
   id: number
   name: string
   status: string
+  start_date: string
+  end_date: string
 }
 
 interface Props {
@@ -345,22 +357,27 @@ watch(formData, (newValue, oldValue) => {
   }
 }, { deep: true })
 
-// Debug: log tech stack changes
-watch(() => formData.value.techStack, (newTechStack, oldTechStack) => {
-  console.log('Tech stack changed:', oldTechStack, '->', newTechStack)
-}, { deep: true })
+
 
 // Methods
 const addTech = () => {
-  if (newTech.value.trim() && !formData.value.techStack.includes(newTech.value.trim())) {
-    formData.value.techStack.push(newTech.value.trim())
+  const tech = newTech.value.trim()
+  if (tech && !formData.value.techStack.includes(tech)) {
+    // Create new array instead of mutating existing one to avoid shared reference with props
+    formData.value = {
+      ...formData.value,
+      techStack: [...formData.value.techStack, tech]
+    }
     newTech.value = ''
   }
 }
 
 const removeTech = (tech: string) => {
   if (props.disabled) return
-  formData.value.techStack = formData.value.techStack.filter(t => t !== tech)
+  formData.value = {
+    ...formData.value,
+    techStack: formData.value.techStack.filter(t => t !== tech)
+  }
 }
 
 const addTeamMember = () => {
@@ -374,26 +391,11 @@ const removeTeamMember = (index: number) => {
 }
 
 const triggerImageUpload = () => {
-  console.log('triggerImageUpload called, disabled:', props.disabled, 'imageInput:', imageInput.value)
   if (props.disabled) return
   imageInput.value?.click()
 }
+
+const handleSubmit = () => {
+  emit('submit', formData.value)
+}
 </script>
-
-<style scoped>
-.input {
-  @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors;
-}
-
-.input-error {
-  @apply border-red-500 dark:border-red-500 focus:ring-red-500;
-}
-
-.label {
-  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
-}
-
-.card {
-  @apply bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6;
-}
-</style>

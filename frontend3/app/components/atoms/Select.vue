@@ -4,11 +4,11 @@
       {{ label }}
       <span v-if="required" class="text-red-500">*</span>
     </label>
-    
+
     <div class="relative">
       <select
         :id="id"
-        :value="modelValue"
+        :value="serializedModelValue"
         :disabled="disabled"
         :class="[
           'w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-offset-1 transition-colors appearance-none',
@@ -24,13 +24,13 @@
         <option
           v-for="option in options"
           :key="option.value === null ? 'null' : option.value"
-          :value="option.value"
+          :value="serializeOptionValue(option.value)"
           :disabled="option.disabled"
         >
           {{ option.label }}
         </option>
       </select>
-      
+
       <!-- Dropdown arrow -->
       <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 dark:text-gray-400">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,9 +38,9 @@
         </svg>
       </div>
     </div>
-    
-    <div v-if="error || hint" class="mt-1 text-sm">
-      <p v-if="error" class="text-red-600 dark:text-red-400">{{ error }}</p>
+
+    <div v-if="(typeof error === 'string' && error) || hint" class="mt-1 text-sm">
+      <p v-if="typeof error === 'string' && error" class="text-red-600 dark:text-red-400">{{ error }}</p>
       <p v-else-if="hint" class="text-gray-500 dark:text-gray-400">{{ hint }}</p>
     </div>
   </div>
@@ -60,7 +60,7 @@ interface Props {
   label?: string
   placeholder?: string
   options: Option[]
-  error?: string
+  error?: string | boolean
   hint?: string
   id?: string
   disabled?: boolean
@@ -78,18 +78,19 @@ const emit = defineEmits<{
   focus: []
 }>()
 
+const NULL_SENTINEL = '__SELECT_NULL__'
+
+function serializeOptionValue(value: string | number | null): string {
+  return value === null ? NULL_SENTINEL : String(value)
+}
+
+const serializedModelValue = computed(() => serializeOptionValue(props.modelValue ?? null))
+
 function onChange(event: Event) {
   const target = event.target as HTMLSelectElement
   const selectedValue = target.value
   // Find the corresponding option to get the original type
-  const option = props.options.find(opt => {
-    if (opt.value === null) {
-      // For null values, the HTML value will be empty string
-      return selectedValue === '' || selectedValue === 'null'
-    }
-    // Compare string representation
-    return String(opt.value) === selectedValue
-  })
+  const option = props.options.find(opt => serializeOptionValue(opt.value) === selectedValue)
   // If option found, emit the original value, otherwise emit the string
   const emittedValue = option ? option.value : selectedValue
   emit('update:modelValue', emittedValue)
