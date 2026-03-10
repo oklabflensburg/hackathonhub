@@ -58,6 +58,10 @@ class User(UserBase):
     last_login: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    # Two-factor authentication fields
+    two_factor_secret: Optional[str] = None
+    two_factor_backup_codes: Optional[str] = None
+    two_factor_enabled: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

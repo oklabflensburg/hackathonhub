@@ -128,13 +128,16 @@ const handleOAuthClick = (provider: 'github' | 'google' | 'custom') => {
 
 const handleEmailLogin = async () => {
   try {
-    await authStore.loginWithEmail({
+    const loginSuccessful = await authStore.loginWithEmail({
       email: email.value,
       password: password.value
     })
     
-    // Redirect to home page on successful login
-    navigateTo('/')
+    // Only redirect to home if login was successful and 2FA was not required
+    if (loginSuccessful) {
+      navigateTo('/')
+    }
+    // If 2FA is required, the auth store already navigated to /verify-2fa
   } catch (error) {
     // Error is already handled in the store
     console.error('Login failed:', error)

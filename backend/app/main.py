@@ -28,6 +28,7 @@ from app.api.v1.notification_types.routes import (
 from app.api.v1.uploads.routes import router as uploads_router
 from app.api.v1.compatibility.routes import router as compatibility_router
 from app.api.v1.push.routes import router as push_router
+from app.api.v1.settings.routes import router as settings_router
 
 logger = logging.getLogger(__name__)
 
@@ -57,31 +58,62 @@ app.add_middleware(LocaleMiddleware)
 # Mount static files for uploaded images
 upload_dir = Path(settings.UPLOAD_DIR)
 upload_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/static/uploads",
-          StaticFiles(directory=str(upload_dir)), name="uploads")
+app.mount(
+    "/static/uploads",
+    StaticFiles(directory=str(upload_dir)),
+    name="uploads"
+)
 
 # Include routers
-app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
-app.include_router(users_router, prefix="/api/users", tags=["users"])
 app.include_router(
-    projects_router, prefix="/api/projects", tags=["projects"]
+    auth_router,
+    prefix="/api/auth",
+    tags=["auth"]
 )
 app.include_router(
-    hackathons_router, prefix="/api/hackathons", tags=["hackathons"]
+    users_router,
+    prefix="/api/users",
+    tags=["users"]
 )
-app.include_router(teams_router, prefix="/api/teams", tags=["teams"])
+app.include_router(
+    projects_router,
+    prefix="/api/projects",
+    tags=["projects"]
+)
+app.include_router(
+    hackathons_router,
+    prefix="/api/hackathons",
+    tags=["hackathons"]
+)
+app.include_router(
+    teams_router,
+    prefix="/api/teams",
+    tags=["teams"]
+)
 app.include_router(
     notifications_router,
     prefix="/api/notifications",
     tags=["notifications"]
 )
-app.include_router(me_router, prefix="/api", tags=["me"])
 app.include_router(
-    comments_router, prefix="/api/comments", tags=["comments"]
+    me_router,
+    prefix="/api",
+    tags=["me"]
 )
-app.include_router(uploads_router, prefix="/api", tags=["uploads"])
 app.include_router(
-    newsletter_router, prefix="/api/newsletter", tags=["newsletter"]
+    comments_router,
+    prefix="/api/comments",
+    tags=["comments"]
+)
+app.include_router(
+    uploads_router,
+    prefix="/api",
+    tags=["uploads"]
+)
+app.include_router(
+    newsletter_router,
+    prefix="/api/newsletter",
+    tags=["newsletter"]
 )
 app.include_router(
     notification_types_router,
@@ -98,9 +130,15 @@ app.include_router(
     prefix="/api/push",
     tags=["push"]
 )
+app.include_router(
+    settings_router,
+    prefix="/api/settings",
+    tags=["settings"]
+)
 
 # Debug: verify router inclusion
 logger.debug(f"Push router included: {push_router}")
+logger.debug(f"Settings router included: {settings_router}")
 
 
 @app.get("/")

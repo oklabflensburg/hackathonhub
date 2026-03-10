@@ -33,7 +33,6 @@ class AuthService:
         self.token_auth_service = TokenAuthService()
 
     # Email Authentication Methods
-
     def register_with_email(
         self, db: Session, user_data: UserRegister
     ) -> Dict[str, Any]:
@@ -251,6 +250,52 @@ class AuthService:
         """
         from app.services.user_service import user_service
         return user_service.update_last_login(db, user_id)
+
+    # Two-Factor Authentication Methods
+
+    def verify_2fa_and_login(
+        self,
+        db: Session,
+        temp_token: str,
+        code: str,
+        remember_device: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Verify 2FA code and complete login.
+
+        Args:
+            db: Database session
+            temp_token: Temporary token from initial login
+            code: 2FA verification code
+            remember_device: Whether to remember this device
+
+        Returns:
+            Dictionary with tokens and user info, or None if verification fails
+        """
+        return self.email_auth_service.verify_2fa_and_login(
+            db, temp_token, code, remember_device
+        )
+
+    def verify_2fa_backup_code(
+        self,
+        db: Session,
+        temp_token: str,
+        backup_code: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Verify 2FA backup code and complete login.
+
+        Args:
+            db: Database session
+            temp_token: Temporary token from initial login
+            backup_code: Backup code for 2FA
+
+        Returns:
+            Dictionary with tokens and user info, or None if verification fails
+        """
+        return self.email_auth_service.verify_2fa_backup_code(
+            db, temp_token, backup_code
+        )
 
 
 # Create singleton instance for dependency injection

@@ -33,6 +33,11 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    # Two-factor authentication fields
+    two_factor_secret = Column(String, nullable=True)
+    two_factor_backup_codes = Column(String, nullable=True)
+    two_factor_enabled = Column(Boolean, default=False)
+
     # Relationships will be defined in __init__.py to avoid circular imports
     # projects = relationship("Project", back_populates="owner")
     # refresh_tokens = relationship("RefreshToken", back_populates="user")

@@ -1,12 +1,19 @@
 import { ref, computed, watch } from 'vue'
 import type { Project, ProjectFilterOptions } from '../types/project-types'
 import { ProjectSortOption } from '../types/project-types'
+import { useAuthStore } from '~/stores/auth'
+import { useUIStore } from '~/stores/ui'
 
 /**
  * Composable für Projekt-bezogene Daten und Logik
  * Bietet Funktionen zum Laden, Filtern, Sortieren und Verwalten von Projekten
+ * Verwendet echte API-Aufrufe statt Mock-Daten
  */
 export function useProjects() {
+  // Stores
+  const authStore = useAuthStore()
+  const uiStore = useUIStore()
+
   // State
   const projects = ref<Project[]>([])
   const loading = ref(false)
@@ -216,6 +223,30 @@ export function useProjects() {
     return count
   })
   
+  // Helper Functions
+  const calculateTrendingScore = (project: Project): number => {
+    // Simple trending score based on recent activity
+    const now = new Date().getTime()
+    const createdAt = new Date(project.createdAt).getTime()
+    const ageInDays = (now - createdAt) / (1000 * 60 * 60 * 24)
+    
+    // Weight recent projects higher
+    const recencyScore = Math.max(0, 30 - ageInDays) / 30
+    
+    // Weight engagement metrics
+    const viewScore = Math.min(project.stats.views / 1000, 1)
+    const voteScore = Math.min(project.stats.votes / 100, 1)
+    const commentScore = Math.min(project.stats.comments / 50, 1)
+    
+    // Combined score
+    return (
+      recencyScore * 0.4 +
+      viewScore * 0.3 +
+      voteScore * 0.2 +
+      commentScore * 0.1
+    )
+  }
+  
   // Methods
   const loadProjects = async (options: {
     forceRefresh?: boolean
@@ -228,19 +259,38 @@ export function useProjects() {
       loading.value = true
       error.value = null
       
-      // Hier würde normalerweise ein API-Call stehen
-      // Für jetzt simulieren wir eine leere Liste
-      projects.value = []
-      totalItems.value = 0
+      // Build query parameters
+      const queryParams = new URLSearchParams()
+      if (options.userId) queryParams.append('user', options.userId)
+      if (options.hackathonId) queryParams.append('hackathon', options.hackathonId)
+      if (searchQuery.value.trim()) queryParams.append('search', searchQuery.value)
       
-      // In einer echten Implementierung:
-      // const response = await api.getProjects(options)
-      // projects.value = response.data
-      // totalItems.value = response.total
+      // Apply filters
+      if (filters.value.status && filters.value.status.length > 0) {
+        queryParams.append('status', filters.value.status.join(','))
+      }
+      
+      const queryString = queryParams.toString()
+      const url = `/api/v1/projects${queryString ? `?${queryString}` : ''}`
+      
+      const response = await authStore.fetchWithAuth(url)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load projects: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      projects.value = data
+      totalItems.value = data.length
       
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load projects'
       console.error('Error loading projects:', err)
+      uiStore.showNotification({
+        title: 'Fehler',
+        type: 'error',
+        message: 'Projekte konnten nicht geladen werden'
+      })
     } finally {
       loading.value = false
     }
@@ -251,12 +301,21 @@ export function useProjects() {
       loading.value = true
       error.value = null
       
-      // Hier würde normalerweise ein API-Call stehen
-      // Für jetzt simulieren wir ein leeres Projekt
-      const project = null // await api.getProject(projectId)
+      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}`)
       
-      if (!project) {
-        throw new Error('Project not found')
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Project not found')
+        }
+        throw new Error(`Failed to load project: ${response.statusText}`)
+      }
+      
+      const project = await response.json()
+      
+      // Update local state if project exists in list
+      const index = projects.value.findIndex(p => p.id === projectId)
+      if (index !== -1) {
+        projects.value[index] = project
       }
       
       return project
@@ -264,6 +323,11 @@ export function useProjects() {
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load project'
       console.error('Error loading project:', err)
+      uiStore.showNotification({
+        title: 'Fehler',
+        type: 'error',
+        message: 'Projekt konnte nicht geladen werden'
+      })
       throw err
     } finally {
       loading.value = false
@@ -275,16 +339,37 @@ export function useProjects() {
       loading.value = true
       error.value = null
       
-      // Hier würde normalerweise ein API-Call stehen
-      // const newProject = await api.createProject(projectData)
-      // projects.value.unshift(newProject)
-      // return newProject
+      const response = await authStore.fetchWithAuth('/api/v1/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(projectData)
+      })
       
-      return {} as Project
+      if (!response.ok) {
+        throw new Error(`Failed to create project: ${response.statusText}`)
+      }
+      
+      const newProject = await response.json()
+      projects.value.unshift(newProject)
+      
+      uiStore.showNotification({
+        title: 'Erfolg',
+        type: 'success',
+        message: 'Projekt erfolgreich erstellt'
+      })
+      
+      return newProject
       
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to create project'
       console.error('Error creating project:', err)
+      uiStore.showNotification({
+        title: 'Fehler',
+        type: 'error',
+        message: 'Projekt konnte nicht erstellt werden'
+      })
       throw err
     } finally {
       loading.value = false
@@ -296,36 +381,59 @@ export function useProjects() {
       loading.value = true
       error.value = null
       
-      // Hier würde normalerweise ein API-Call stehen
-      // const updatedProject = await api.updateProject(projectId, updates)
+      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updates)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update project: ${response.statusText}`)
+      }
+      
+      const updatedProject = await response.json()
       
       // Update im lokalen State
       const index = projects.value.findIndex(p => p.id === projectId)
       if (index !== -1) {
-        // Type-safe merge of partial updates with existing project
         const existingProject = projects.value[index]
-        const updatedProject = {
-          ...existingProject,
-          ...updates,
-          // Ensure required fields are preserved
-          id: existingProject.id,
-          title: updates.title ?? existingProject.title,
-          slug: updates.slug ?? existingProject.slug,
-          description: updates.description ?? existingProject.description,
-          status: updates.status ?? existingProject.status,
-          visibility: updates.visibility ?? existingProject.visibility,
-          createdAt: existingProject.createdAt,
-          updatedAt: new Date().toISOString(),
+        if (existingProject) {
+          // Type-safe merge of partial updates with existing project
+          const mergedProject = {
+            ...existingProject,
+            ...updates,
+            // Ensure required fields are preserved
+            id: existingProject.id,
+            title: updates.title ?? existingProject.title,
+            slug: updates.slug ?? existingProject.slug,
+            description: updates.description ?? existingProject.description,
+            status: updates.status ?? existingProject.status,
+            visibility: updates.visibility ?? existingProject.visibility,
+            createdAt: existingProject.createdAt,
+            updatedAt: new Date().toISOString(),
+          }
+          projects.value[index] = mergedProject
         }
-        projects.value[index] = updatedProject
       }
       
-      // return updatedProject
-      return {} as Project
+      uiStore.showNotification({
+        title: 'Erfolg',
+        type: 'success',
+        message: 'Projekt erfolgreich aktualisiert'
+      })
+      
+      return updatedProject
       
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update project'
       console.error('Error updating project:', err)
+      uiStore.showNotification({
+        title: 'Fehler',
+        type: 'error',
+        message: 'Projekt konnte nicht aktualisiert werden'
+      })
       throw err
     } finally {
       loading.value = false
@@ -337,16 +445,32 @@ export function useProjects() {
       loading.value = true
       error.value = null
       
-      // Hier würde normalerweise ein API-Call stehen
-      // await api.deleteProject(projectId)
+      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete project: ${response.statusText}`)
+      }
       
       // Remove from local state
       projects.value = projects.value.filter(p => p.id !== projectId)
       totalItems.value = Math.max(0, totalItems.value - 1)
       
+      uiStore.showNotification({
+        title: 'Erfolg',
+        type: 'success',
+        message: 'Projekt erfolgreich gelöscht'
+      })
+      
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to delete project'
       console.error('Error deleting project:', err)
+      uiStore.showNotification({
+        title: 'Fehler',
+        type: 'error',
+        message: 'Projekt konnte nicht gelöscht werden'
+      })
       throw err
     } finally {
       loading.value = false
@@ -355,8 +479,19 @@ export function useProjects() {
   
   const voteProject = async (projectId: string, voteValue: 1 | -1 | null) => {
     try {
-      // Hier würde normalerweise ein API-Call stehen
-      // await api.voteProject(projectId, voteValue)
+      const voteType = voteValue === 1 ? 'upvote' : voteValue === -1 ? 'downvote' : 'remove'
+      
+      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ vote_type: voteType })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to vote on project: ${response.statusText}`)
+      }
       
       // Update im lokalen State
       const project = projects.value.find(p => p.id === projectId)
@@ -377,16 +512,38 @@ export function useProjects() {
         project.userVote = voteValue
       }
       
+      uiStore.showNotification({
+        title: 'Erfolg',
+        type: 'success',
+        message: voteValue === 1 ? 'Projekt positiv bewertet' : 
+                voteValue === -1 ? 'Projekt negativ bewertet' : 
+                'Bewertung entfernt'
+      })
+      
     } catch (err) {
       console.error('Error voting on project:', err)
+      uiStore.showNotification({
+        title: 'Fehler',
+        type: 'error',
+        message: 'Bewertung konnte nicht gespeichert werden'
+      })
       throw err
     }
   }
   
   const bookmarkProject = async (projectId: string, isBookmarked: boolean) => {
     try {
-      // Hier würde normalerweise ein API-Call stehen
-      // await api.bookmarkProject(projectId, isBookmarked)
+      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}/bookmark`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ bookmarked: isBookmarked })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to bookmark project: ${response.statusText}`)
+      }
       
       // Update im lokalen State
       const project = projects.value.find(p => p.id === projectId)
@@ -401,8 +558,19 @@ export function useProjects() {
         }
       }
       
+      uiStore.showNotification({
+        title: 'Erfolg',
+        type: 'success',
+        message: isBookmarked ? 'Projekt als Lesezeichen gespeichert' : 'Lesezeichen entfernt'
+      })
+      
     } catch (err) {
       console.error('Error bookmarking project:', err)
+      uiStore.showNotification({
+        title: 'Fehler',
+        type: 'error',
+        message: 'Lesezeichen konnte nicht gespeichert werden'
+      })
       throw err
     }
   }
@@ -464,30 +632,6 @@ export function useProjects() {
         return sharedTechnologies.length > 0 || sharedTags.length > 0 || sameHackathon
       })
       .slice(0, limit)
-  }
-  
-  // Helper Functions
-  const calculateTrendingScore = (project: Project): number => {
-    // Simple trending score based on recent activity
-    const now = new Date().getTime()
-    const createdAt = new Date(project.createdAt).getTime()
-    const ageInDays = (now - createdAt) / (1000 * 60 * 60 * 24)
-    
-    // Weight recent projects higher
-    const recencyScore = Math.max(0, 30 - ageInDays) / 30
-    
-    // Weight engagement metrics
-    const viewScore = Math.min(project.stats.views / 1000, 1)
-    const voteScore = Math.min(project.stats.votes / 100, 1)
-    const commentScore = Math.min(project.stats.comments / 50, 1)
-    
-    // Combined score
-    return (
-      recencyScore * 0.4 +
-      viewScore * 0.3 +
-      voteScore * 0.2 +
-      commentScore * 0.1
-    )
   }
   
   // Watch for filter changes to update total items

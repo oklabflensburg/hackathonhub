@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from email_validator import validate_email, EmailNotValidError
 import bcrypt
+import json
+import base64
 import uuid
 import os
 
@@ -147,6 +149,34 @@ class EmailAuthService:
         if not user.email_verified:
             raise ValueError("Email not verified. Please check your email.")
 
+        # Check if 2FA is enabled
+        if user.two_factor_enabled:
+            # Create temporary token for 2FA verification
+            # Create temporary token data
+            expires_at = datetime.utcnow() + timedelta(minutes=10)
+            temp_token_data = {
+                "user_id": user.id,
+                "email": user.email,
+                "created_at": datetime.utcnow().isoformat(),
+                "expires_at": expires_at.isoformat(),
+                "purpose": "2fa_verification"
+            }
+
+            # Encode token data
+            token_json = json.dumps(temp_token_data)
+            temp_token = base64.urlsafe_b64encode(
+                token_json.encode()
+            ).decode()
+
+            # Return partial authentication response
+            # Frontend should prompt for 2FA code
+            return {
+                "requires_2fa": True,
+                "user_id": user.id,
+                "temp_token": temp_token,
+                "message": "Two-factor authentication required"
+            }
+
         # Update last login
         self.user_repository.update_last_login(db, user.id)
 
@@ -165,7 +195,160 @@ class EmailAuthService:
             "access_token": tokens["access_token"],
             "refresh_token": tokens["refresh_token"],
             "token_type": "bearer",
-            "user": user
+            "user": user,
+            "requires_2fa": False
+        }
+
+    def _decode_temp_token(self, temp_token: str) -> dict:
+        """Decode and validate temporary token for 2FA verification."""
+        import json
+        import base64
+        from datetime import datetime
+
+        try:
+            # Decode token
+            token_json = base64.urlsafe_b64decode(temp_token).decode()
+            token_data = json.loads(token_json)
+
+            # Check expiration
+            expires_at = datetime.fromisoformat(token_data["expires_at"])
+            if datetime.utcnow() > expires_at:
+                raise ValueError("Temporary token has expired")
+
+            # Validate required fields
+            required_fields = ["user_id", "email", "purpose"]
+            for field in required_fields:
+                if field not in token_data:
+                    raise ValueError(f"Missing required field: {field}")
+
+            if token_data["purpose"] != "2fa_verification":
+                raise ValueError("Invalid token purpose")
+
+            return token_data
+        except (json.JSONDecodeError, base64.binascii.Error, KeyError) as e:
+            raise ValueError(f"Invalid temporary token: {str(e)}")
+
+    def verify_2fa_and_login(
+        self,
+        db: Session,
+        temp_token: str,
+        code: str,
+        remember_device: bool = False
+    ) -> dict:
+        """Verify 2FA code using temporary token and complete login."""
+        # Decode and validate temporary token
+        token_data = self._decode_temp_token(temp_token)
+        user_id = token_data["user_id"]
+
+        user = self.user_repository.get(db, user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        if not user.two_factor_enabled or not user.two_factor_secret:
+            raise ValueError("Two-factor authentication not enabled")
+
+        # Import pyotp here to avoid dependency if not using 2FA
+        import pyotp
+
+        # Verify TOTP code
+        totp = pyotp.TOTP(user.two_factor_secret)
+        if not totp.verify(code):
+            raise ValueError("Invalid verification code")
+
+        # Update last login
+        self.user_repository.update_last_login(db, user.id)
+
+        # Create tokens
+        from app.core.auth import create_tokens
+        tokens = create_tokens(user.id, user.username)
+
+        # Store refresh token
+        self.refresh_token_repository.create_token(
+            db,
+            user_id=user.id,
+            token_id=tokens["refresh_token_id"],
+            expires_at=datetime.utcnow() + tokens["refresh_token_expires"]
+        )
+
+        # If remember device is enabled, create a device cookie
+        if remember_device:
+            # Create device token for 30 days
+            import secrets
+            device_token = secrets.token_urlsafe(32)
+            # Store device token in user settings or separate table
+            # For now, we'll just return it
+            device_data = {
+                "device_token": device_token,
+                "expires_in_days": 30
+            }
+        else:
+            device_data = None
+
+        return {
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "token_type": "bearer",
+            "user": user,
+            "device_data": device_data
+        }
+
+    def verify_2fa_backup_code(
+        self,
+        db: Session,
+        temp_token: str,
+        backup_code: str
+    ) -> dict:
+        """Verify 2FA backup code using temporary token and complete login."""
+        # Decode and validate temporary token
+        token_data = self._decode_temp_token(temp_token)
+        user_id = token_data["user_id"]
+
+        user = self.user_repository.get(db, user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        if not user.two_factor_enabled:
+            raise ValueError("Two-factor authentication not enabled")
+
+        # Check backup codes (assuming they're stored as JSON string)
+        import json
+        backup_codes = []
+        if user.two_factor_backup_codes:
+            try:
+                backup_codes = json.loads(user.two_factor_backup_codes)
+            except json.JSONDecodeError:
+                backup_codes = []
+
+        # Verify backup code
+        if backup_code not in backup_codes:
+            raise ValueError("Invalid backup code")
+
+        # Remove used backup code
+        backup_codes.remove(backup_code)
+        user.two_factor_backup_codes = json.dumps(backup_codes)
+        db.commit()
+
+        # Update last login
+        self.user_repository.update_last_login(db, user.id)
+
+        # Create tokens
+        from app.core.auth import create_tokens
+        tokens = create_tokens(user.id, user.username)
+
+        # Store refresh token
+        self.refresh_token_repository.create_token(
+            db,
+            user_id=user.id,
+            token_id=tokens["refresh_token_id"],
+            expires_at=datetime.utcnow() + tokens["refresh_token_expires"]
+        )
+
+        return {
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "token_type": "bearer",
+            "user": user,
+            "remaining_backup_codes": len(backup_codes)
         }
 
     def change_password(

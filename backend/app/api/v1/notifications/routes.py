@@ -29,7 +29,7 @@ preference_repository = NotificationPreferenceRepository()
 push_subscription_repository = PushSubscriptionRepository()
 
 
-@router.get("/", response_model=List[UserNotification])
+@router.get("", response_model=List[UserNotification])
 async def get_notifications(
     skip: int = 0,
     limit: int = 100,
@@ -48,7 +48,7 @@ async def get_notifications(
     return notifications
 
 
-@router.post("/", response_model=UserNotification)
+@router.post("", response_model=UserNotification)
 async def create_notification(
     notification: UserNotificationCreate,
     db: Session = Depends(get_db),

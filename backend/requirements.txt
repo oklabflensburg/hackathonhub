@@ -14,3 +14,5 @@ email-validator>=2.1.1
 uuid==1.30
 PyJWT==2.8.0
 Pillow==10.4.0
+pyotp==2.9.0
+qrcode==7.4.2

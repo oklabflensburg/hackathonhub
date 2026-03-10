@@ -88,6 +88,12 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             ),
             "validation_registration": "Registration failed",
             "validation_email_verification": "Email verification failed",
+            "validation_Two-factor authentication not set up": (
+                "Two-factor authentication not set up"
+            ),
+            "validation_Invalid verification code": (
+                "Invalid verification code"
+            ),
             "only_owner_can_remove_another_owner": (
                 "Only team owner can remove another owner"
             ),
@@ -311,6 +317,12 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "validation_registration": "Registrierung fehlgeschlagen",
             "validation_email_verification": (
                 "E-Mail-Verifizierung fehlgeschlagen"
+            ),
+            "validation_Two-factor authentication not set up": (
+                "Zwei-Faktor-Authentifizierung nicht eingerichtet"
+            ),
+            "validation_Invalid verification code": (
+                "Ungültiger Verifizierungscode"
             ),
             "only_owner_can_remove_another_owner": (
                 "Nur Team-Besitzer kann einen anderen Besitzer entfernen"

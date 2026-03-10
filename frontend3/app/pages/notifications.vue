@@ -182,37 +182,73 @@
         </div>
       </template>
       <template v-else>
-        <!-- Notifications List (for other tabs) -->
+        <!-- Atomic Design Notifications Components -->
         <div>
-          <NotificationCenter
-            :notifications="filteredNotifications"
-            :unread-count="unreadNotificationsCount"
-            :loading="isLoading"
+          <!-- Notification Filters Component -->
+          <NotificationFilters
+            :filters="notificationFiltersState"
+            :sort-field="notificationSortField"
+            :sort-direction="notificationSortDirection"
+            :available-types="['all', 'system', 'user', 'project', 'team', 'hackathon', 'comment', 'vote', 'invitation', 'announcement', 'reminder']"
+            :available-statuses="['all', 'read', 'unread']"
+            @update-filters="handleNotificationFiltersUpdate"
+            @update-sort="handleNotificationSortUpdate"
+            @reset-filters="handleNotificationFiltersReset"
+            class="mb-6"
+          />
+
+          <!-- Notification List Component -->
+          <NotificationList
+            :notifications="atomicNotifications"
+            :loading="atomicNotificationsLoading"
+            :error="atomicNotificationsError"
             :empty-title="t('notifications.noNotifications')"
             :empty-description="t('notifications.noNotificationsDescription')"
             :empty-action-text="t('notifications.refresh')"
-            :filters="notificationFilters"
             :show-mark-as-read="true"
-            :show-dismiss="true"
-            :show-settings="false"
-            :variant="'default'"
-            :title="t('notifications.title')"
-            :subtitle="t('notifications.description')"
-            :footer-text="hasMoreNotifications ? t('notifications.loadMore') : ''"
-            @notification-click="handleNotificationClick"
-            @notification-read="handleNotificationRead"
-            @notification-dismiss="handleNotificationDismiss"
-            @notification-action="handleNotificationAction"
-            @filter-selected="handleFilterSelected"
-            @empty-action="refreshNotifications"
-            @settings="activeTab = 'preferences'"
+            :show-mark-all-read="true"
+            :show-archive="false"
+            :show-delete="true"
+            :show-filters="false"
+            @mark-as-read="handleMarkAsRead"
+            @mark-all-read="handleMarkAllRead"
+            @archive="handleArchiveNotification"
+            @delete="handleDeleteNotification"
+            @refresh="fetchAtomicNotifications"
           />
 
+          <!-- Legacy Notification Center (for compatibility) -->
+          <div v-if="false" class="hidden">
+            <NotificationCenter
+              :notifications="filteredNotifications"
+              :unread-count="unreadNotificationsCount"
+              :loading="isLoading"
+              :empty-title="t('notifications.noNotifications')"
+              :empty-description="t('notifications.noNotificationsDescription')"
+              :empty-action-text="t('notifications.refresh')"
+              :filters="notificationFilters"
+              :show-mark-as-read="true"
+              :show-dismiss="true"
+              :show-settings="false"
+              :variant="'default'"
+              :title="t('notifications.title')"
+              :subtitle="t('notifications.description')"
+              :footer-text="hasMoreNotifications ? t('notifications.loadMore') : ''"
+              @notification-click="handleNotificationClick"
+              @notification-read="handleNotificationRead"
+              @notification-dismiss="handleNotificationDismiss"
+              @notification-action="handleNotificationAction"
+              @filter-selected="handleFilterSelected"
+              @empty-action="refreshNotifications"
+              @settings="activeTab = 'preferences'"
+            />
+          </div>
+
           <!-- Load More -->
-          <div v-if="hasMoreNotifications && !isLoading" class="mt-8 text-center">
-            <button @click="loadMoreNotifications" :disabled="isLoadingMore"
+          <div v-if="atomicNotifications.length > 0 && !atomicNotificationsLoading" class="mt-8 text-center">
+            <button @click="fetchAtomicNotifications" :disabled="atomicNotificationsLoading"
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
-              <svg v-if="isLoadingMore" class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none"
+              <svg v-if="atomicNotificationsLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none"
                 viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor"
@@ -235,6 +271,10 @@ import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import NotificationCenter from '~/components/organisms/notifications/NotificationCenter.vue'
 import NotificationSettingsPanel from '~/components/organisms/notifications/NotificationSettingsPanel.vue'
+import NotificationList from '~/components/organisms/notifications/NotificationList.vue'
+import NotificationFilters from '~/components/organisms/notifications/NotificationFilters.vue'
+import { useNotifications } from '~/composables/useNotifications'
+import type { NotificationUIFilter, NotificationSortField, NotificationSortDirection } from '~/types/notification-types'
 import type { Notification, NotificationFilter } from '~/components/organisms/notifications/NotificationCenter.vue'
 import type { NotificationCategory, NotificationChannels, NotificationType } from '~/components/organisms/notifications/NotificationSettingsPanel.vue'
 
@@ -252,13 +292,37 @@ const preferencesError = ref<string | null>(null)
 const pageSize = 20
 const currentPage = ref(1)
 
-// Computed properties
+// New atomic design notification components state
+const notificationFiltersState = ref<NotificationUIFilter>({
+  search: undefined,
+  type: undefined,
+  status: undefined,
+  dateRange: undefined
+})
+const notificationSortField = ref<NotificationSortField>('createdAt')
+const notificationSortDirection = ref<NotificationSortDirection>('desc')
+
+// Use atomic design composables
+const { 
+  notifications: atomicNotifications, 
+  loading: atomicNotificationsLoading, 
+  error: atomicNotificationsError,
+  unreadCount: atomicUnreadCount,
+  fetchNotifications: fetchAtomicNotifications,
+  markAsRead: markAtomicAsRead,
+  markAllAsRead: markAllAtomicAsRead,
+  updateFilters: updateAtomicFilters,
+  updateSort: updateAtomicSort,
+  resetFilters: resetAtomicFilters
+} = useNotifications({ userId: 'current-user', autoFetch: true })
+
+// Legacy store for compatibility
 const isLoading = computed(() => notificationStore.isLoading)
 const notifications = computed(() => notificationStore.sortedNotifications)
 const hasUnreadNotifications = computed(() => notificationStore.hasUnreadNotifications)
 const totalNotifications = computed(() => notifications.value.length)
 const readNotificationsCount = computed(() => notificationStore.readNotifications.length)
-const unreadNotificationsCount = computed(() => notificationStore.unreadNotifications.length)
+const unreadNotificationsCount = computed(() => atomicUnreadCount.value)
 
 const tabs = computed(() => [
   { key: 'all' as const, label: t('notifications.tabs.all'), count: totalNotifications.value },
@@ -493,6 +557,46 @@ const handleNotificationAction = (notification: UserNotification, action: string
   } else if (action === 'view') {
     handleNotificationClick(notification)
   }
+}
+
+// Event handlers for atomic design notification components
+const handleNotificationFiltersUpdate = (filters: NotificationUIFilter) => {
+  console.log('Notification filters updated:', filters)
+  updateAtomicFilters(filters)
+}
+
+const handleNotificationSortUpdate = (field: NotificationSortField, direction: NotificationSortDirection) => {
+  console.log('Notification sort updated:', field, direction)
+  updateAtomicSort(field, direction)
+}
+
+const handleNotificationFiltersReset = () => {
+  console.log('Notification filters reset')
+  resetAtomicFilters()
+}
+
+const handleMarkAsRead = (notificationId: string) => {
+  console.log('Mark as read:', notificationId)
+  markAtomicAsRead(notificationId)
+}
+
+const handleMarkAllRead = () => {
+  console.log('Mark all as read')
+  markAllAtomicAsRead()
+}
+
+const handleArchiveNotification = (notificationId: string) => {
+  console.log('Archive notification:', notificationId)
+  // In a real implementation, you would call API to archive
+  // For now, just remove from list
+  // atomicNotifications.value = atomicNotifications.value.filter(n => n.id !== notificationId)
+}
+
+const handleDeleteNotification = (notificationId: string) => {
+  console.log('Delete notification:', notificationId)
+  // In a real implementation, you would call API to delete
+  // For now, just remove from list
+  // atomicNotifications.value = atomicNotifications.value.filter(n => n.id !== notificationId)
 }
 
 const handleFilterSelected = (filterId: string) => {

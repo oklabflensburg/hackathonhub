@@ -1,11 +1,18 @@
 import { ref, computed } from 'vue'
 import type { Project } from '../types/project-types'
+import { useAuthStore } from '~/stores/auth'
+import { useUIStore } from '~/stores/ui'
 
 /**
  * Composable für Projekt-Voting-Logik
  * Bietet Funktionen zum Verwalten von Upvotes/Downvotes für Projekte
+ * Verwendet echte API-Aufrufe statt Mock-Daten
  */
 export function useProjectVoting() {
+  // Stores
+  const authStore = useAuthStore()
+  const uiStore = useUIStore()
+
   // State
   const votingInProgress = ref<Set<string>>(new Set())
   const voteErrors = ref<Record<string, string>>({})
@@ -40,28 +47,35 @@ export function useProjectVoting() {
       votingInProgress.value.add(projectId)
       delete voteErrors.value[projectId]
       
-      // Hier würde normalerweise ein API-Call stehen
-      // const response = await api.voteProject(projectId, voteValue)
+      const voteType = voteValue === 1 ? 'upvote' : voteValue === -1 ? 'downvote' : 'remove'
       
-      // Simulierte Antwort für Entwicklung
-      const response = {
-        success: true,
-        data: {
-          id: projectId,
-          userVote: voteValue,
-          voteCount: 0 // Wird vom Server berechnet
-        }
+      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ vote_type: voteType })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to vote on project: ${response.statusText}`)
       }
       
-      if (response.success) {
-        if (onSuccess) {
-          // onSuccess(response.data)
-        }
-      } else {
-        throw new Error('Voting failed')
+      const result = await response.json()
+      
+      if (onSuccess) {
+        // onSuccess(result)
       }
       
-      return response.data
+      uiStore.showNotification({
+        title: 'Erfolg',
+        type: 'success',
+        message: voteValue === 1 ? 'Projekt positiv bewertet' : 
+                voteValue === -1 ? 'Projekt negativ bewertet' : 
+                'Bewertung entfernt'
+      })
+      
+      return result
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -70,6 +84,12 @@ export function useProjectVoting() {
       if (onError) {
         onError(error instanceof Error ? error : new Error(errorMessage))
       }
+      
+      uiStore.showNotification({
+        title: 'Fehler',
+        type: 'error',
+        message: 'Bewertung konnte nicht gespeichert werden'
+      })
       
       // Revert optimistic update if it was applied
       if (optimisticUpdate) {
@@ -296,14 +316,27 @@ export function useProjectVoting() {
     } = {}
   ) => {
     try {
-      // Hier würde normalerweise ein API-Call stehen
-      // const response = await api.getVoteHistory(userId, options)
+      // Build query parameters
+      const queryParams = new URLSearchParams()
+      if (options.limit) queryParams.append('limit', options.limit.toString())
+      if (options.offset) queryParams.append('offset', options.offset.toString())
+      if (options.projectId) queryParams.append('project_id', options.projectId)
+      if (options.voteType) queryParams.append('vote_type', options.voteType)
       
-      // Simulierte Antwort für Entwicklung
+      const queryString = queryParams.toString()
+      const url = `/api/v1/users/${userId}/votes${queryString ? `?${queryString}` : ''}`
+      
+      const response = await authStore.fetchWithAuth(url)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch vote history: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
       return {
-        votes: [],
-        total: 0,
-        hasMore: false
+        votes: data.votes || [],
+        total: data.total || 0,
+        hasMore: data.hasMore || false
       }
       
     } catch (error) {

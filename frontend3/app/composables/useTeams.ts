@@ -28,7 +28,7 @@ interface UseTeamsOptions {
 
 export function useTeams(options: UseTeamsOptions = {}) {
   const config = useRuntimeConfig()
-  const apiBase = config.public.apiBase || 'http://localhost:8000/api/v1'
+  const apiBase = config.public.apiUrl || 'http://localhost:8000'
   
   // Default options
   const {
@@ -206,7 +206,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
         queryParams.set('user_id', userId)
       }
       
-      const url = `${apiBase}/teams?${queryParams}`
+      const url = `${apiBase}/api/teams?${queryParams}`
       const { data, error: fetchError } = await useFetch(url)
       
       if (fetchError.value) {
@@ -232,7 +232,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
     error.value = null
     
     try {
-      const url = `${apiBase}/teams/${teamId}`
+      const url = `${apiBase}/api/teams/${teamId}`
       const { data, error: fetchError } = await useFetch(url)
       
       if (fetchError.value) {
@@ -261,7 +261,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const fetchTeamMembers = async (teamId: string): Promise<TeamMember[]> => {
     try {
-      const url = `${apiBase}/teams/${teamId}/members`
+      const url = `${apiBase}/api/teams/${teamId}/members`
       const { data, error: fetchError } = await useFetch(url)
       
       if (fetchError.value) {
@@ -288,7 +288,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const fetchTeamInvitations = async (teamId: string): Promise<TeamInvitation[]> => {
     try {
-      const url = `${apiBase}/teams/${teamId}/invitations`
+      const url = `${apiBase}/api/teams/${teamId}/invitations`
       const { data, error: fetchError } = await useFetch(url)
       
       if (fetchError.value) {
@@ -320,7 +320,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
         queryParams.set('hackathon_id', hackathonId)
       }
       
-      const url = `${apiBase}/teams/stats${queryParams.toString() ? `?${queryParams}` : ''}`
+      const url = `${apiBase}/api/teams/stats${queryParams.toString() ? `?${queryParams}` : ''}`
       const { data, error: fetchError } = await useFetch(url)
       
       if (fetchError.value) {
@@ -340,7 +340,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
     error.value = null
     
     try {
-      const url = `${apiBase}/teams`
+      const url = `${apiBase}/api/teams`
       const { data: response, error: fetchError } = await useFetch(url, {
         method: 'POST',
         body: data
@@ -369,7 +369,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
     error.value = null
     
     try {
-      const url = `${apiBase}/teams/${teamId}`
+      const url = `${apiBase}/api/teams/${teamId}`
       const { data: response, error: fetchError } = await useFetch(url, {
         method: 'PUT',
         body: data
@@ -402,7 +402,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
     error.value = null
     
     try {
-      const url = `${apiBase}/teams/${teamId}`
+      const url = `${apiBase}/api/teams/${teamId}`
       const { error: fetchError } = await useFetch(url, {
         method: 'DELETE'
       })
@@ -427,7 +427,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const joinTeam = async (teamId: string): Promise<boolean> => {
     try {
-      const url = `${apiBase}/teams/${teamId}/join`
+      const url = `${apiBase}/api/teams/${teamId}/join`
       const { error: fetchError } = await useFetch(url, {
         method: 'POST'
       })
@@ -448,7 +448,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const leaveTeam = async (teamId: string): Promise<boolean> => {
     try {
-      const url = `${apiBase}/teams/${teamId}/leave`
+      const url = `${apiBase}/api/teams/${teamId}/leave`
       const { error: fetchError } = await useFetch(url, {
         method: 'POST'
       })
@@ -469,7 +469,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const cancelJoinRequest = async (teamId: string): Promise<boolean> => {
     try {
-      const url = `${apiBase}/teams/${teamId}/cancel-join`
+      const url = `${apiBase}/api/teams/${teamId}/cancel-join`
       const { error: fetchError } = await useFetch(url, {
         method: 'POST'
       })
@@ -490,7 +490,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const inviteMember = async (teamId: string, data: TeamInvitationCreateData): Promise<TeamInvitation | null> => {
     try {
-      const url = `${apiBase}/teams/${teamId}/invitations`
+      const url = `${apiBase}/api/teams/${teamId}/invitations`
       const { data: response, error: fetchError } = await useFetch(url, {
         method: 'POST',
         body: data
@@ -517,7 +517,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const acceptInvitation = async (invitationId: string): Promise<boolean> => {
     try {
-      const url = `${apiBase}/team-invitations/${invitationId}/accept`
+      const url = `${apiBase}/api/team-invitations/${invitationId}/accept`
       const { error: fetchError } = await useFetch(url, {
         method: 'POST'
       })
@@ -541,7 +541,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const rejectInvitation = async (invitationId: string): Promise<boolean> => {
     try {
-      const url = `${apiBase}/team-invitations/${invitationId}/reject`
+      const url = `${apiBase}/api/team-invitations/${invitationId}/reject`
       const { error: fetchError } = await useFetch(url, {
         method: 'POST'
       })
@@ -565,7 +565,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const cancelInvitation = async (invitationId: string): Promise<boolean> => {
     try {
-      const url = `${apiBase}/team-invitations/${invitationId}`
+      const url = `${apiBase}/api/team-invitations/${invitationId}`
       const { error: fetchError } = await useFetch(url, {
         method: 'DELETE'
       })
@@ -586,7 +586,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const updateMemberRole = async (teamId: string, memberId: string, role: TeamMemberRole): Promise<boolean> => {
     try {
-      const url = `${apiBase}/teams/${teamId}/members/${memberId}`
+      const url = `${apiBase}/api/teams/${teamId}/members/${memberId}`
       const { error: fetchError } = await useFetch(url, {
         method: 'PUT',
         body: { role }
@@ -611,7 +611,7 @@ export function useTeams(options: UseTeamsOptions = {}) {
   
   const removeMember = async (teamId: string, memberId: string): Promise<boolean> => {
     try {
-      const url = `${apiBase}/teams/${teamId}/members/${memberId}`
+      const url = `${apiBase}/api/teams/${teamId}/members/${memberId}`
       const { error: fetchError } = await useFetch(url, {
         method: 'DELETE'
       })

@@ -156,7 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function loginWithEmail(credentials: LoginCredentials) {
+  async function loginWithEmail(credentials: LoginCredentials): Promise<boolean> {
     isLoading.value = true
     error.value = null
 
@@ -182,7 +182,35 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       const data = await response.json()
-      await handleAuthResponse(data)
+      console.log('Login API response:', data)
+      
+      // Check if 2FA is required
+      if (data.requires_2fa) {
+        console.log('2FA required, temp_token:', data.temp_token ? 'present' : 'missing')
+        // Store temporary token and user info for 2FA verification
+        const tempToken = data.temp_token
+        const userId = data.user_id
+        
+        // Navigate to 2FA verification page
+        if (typeof window !== 'undefined') {
+          // Store temp token in session storage for the verify-2fa page
+          sessionStorage.setItem('2fa_temp_token', tempToken)
+          sessionStorage.setItem('2fa_user_id', userId.toString())
+          console.log('Stored temp token in sessionStorage, navigating to /verify-2fa')
+          
+          // Navigate to verify-2fa page
+          const router = useRouter()
+          await router.push('/verify-2fa')
+        }
+        
+        // Return false to indicate 2FA is required and navigation happened
+        return false
+      } else {
+        console.log('No 2FA required, proceeding with normal login')
+        // No 2FA required, proceed with normal login
+        await handleAuthResponse(data)
+        return true
+      }
     } catch (err) {
       const { t } = useI18n()
       const errorMessage = err instanceof Error ? err.message : t('errors.login_failed')
@@ -595,7 +623,9 @@ export const useAuthStore = defineStore('auth', () => {
         // Check cookies first for SSR compatibility
         const cookies = document.cookie.split(';').reduce((acc, cookie) => {
           const [key, value] = cookie.trim().split('=')
-          acc[key] = value
+          if (key) {
+            acc[key] = value || ''
+          }
           return acc
         }, {} as Record<string, string>)
 
@@ -822,6 +852,155 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // 2FA Methods
+  async function verifyTwoFactor(params: {
+    code: string
+    temp_token: string
+    remember_device?: boolean
+  }): Promise<boolean> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+
+      const response = await fetch(`${backendUrl}/api/auth/verify-2fa`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        const { t } = useI18n()
+        throw new Error(errorData.detail || t('errors.2fa_verification_failed'))
+      }
+
+      const data = await response.json()
+      await handleAuthResponse(data)
+      return true
+    } catch (err) {
+      const { t } = useI18n()
+      const errorMessage = err instanceof Error ? err.message : t('errors.2fa_verification_failed')
+      error.value = errorMessage
+
+      const uiStore = useUIStore()
+      uiStore.showError(errorMessage, '2FA Verification Error')
+
+      console.error('2FA verification error:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function verifyTwoFactorBackup(params: {
+    backup_code: string
+    temp_token: string
+  }): Promise<boolean> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+
+      const response = await fetch(`${backendUrl}/api/auth/verify-2fa-backup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        const { t } = useI18n()
+        throw new Error(errorData.detail || t('errors.backup_code_invalid'))
+      }
+
+      const data = await response.json()
+      await handleAuthResponse(data)
+      return true
+    } catch (err) {
+      const { t } = useI18n()
+      const errorMessage = err instanceof Error ? err.message : t('errors.backup_code_invalid')
+      error.value = errorMessage
+
+      const uiStore = useUIStore()
+      uiStore.showError(errorMessage, 'Backup Code Error')
+
+      console.error('Backup code verification error:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function loginWithEmail2FA(credentials: LoginCredentials): Promise<{
+    requires_2fa: boolean
+    temp_token?: string
+    user?: User
+  }> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const config = useRuntimeConfig()
+      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+
+      const response = await fetch(`${backendUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        const { t } = useI18n()
+        throw new Error(errorData.detail || t('errors.login_failed'))
+      }
+
+      const data = await response.json()
+      
+      // Check if 2FA is required
+      if (data.requires_2fa) {
+        return {
+          requires_2fa: true,
+          temp_token: data.temp_token,
+          user: data.user
+        }
+      } else {
+        // No 2FA required, proceed with normal login
+        await handleAuthResponse(data)
+        return {
+          requires_2fa: false,
+          user: data.user
+        }
+      }
+    } catch (err) {
+      const { t } = useI18n()
+      const errorMessage = err instanceof Error ? err.message : t('errors.login_failed')
+      error.value = errorMessage
+
+      const uiStore = useUIStore()
+      uiStore.showError(errorMessage, 'Login Error')
+
+      console.error('Email login with 2FA error:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     user,
     token,
@@ -843,6 +1022,9 @@ export const useAuthStore = defineStore('auth', () => {
     fetchWithAuth,
     handleAuthResponse,
     startBackgroundTokenRefresh,
-    stopBackgroundTokenRefresh
+    stopBackgroundTokenRefresh,
+    verifyTwoFactor,
+    verifyTwoFactorBackup,
+    loginWithEmail2FA
   }
 })

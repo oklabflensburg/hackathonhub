@@ -13,6 +13,10 @@ from app.domain.schemas.user import (
     TokenWithRefresh, UserRegister, UserLogin, EmailResendRequest,
     EmailVerificationRequest, PasswordResetRequest, PasswordResetConfirm
 )
+from app.domain.schemas.settings import (
+    TwoFactorLoginVerifyRequest, TwoFactorBackupVerifyRequest,
+    TwoFactorLoginResponse
+)
 from app.core.auth import refresh_tokens, verify_refresh_token
 from app.services.auth_service import auth_service
 from app.services.google_oauth_service import google_oauth
@@ -30,7 +34,7 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
-@router.post("/login", response_model=TokenWithRefresh)
+@router.post("/login")
 async def login(
     login_data: UserLogin,
     response: Response,
@@ -41,6 +45,13 @@ async def login(
     Login endpoint that accepts JSON.
 
     JSON format: {"email": "...", "password": "..."}
+
+    Returns:
+        - If 2FA is required: {"requires_2fa": True, "temp_token": "...",
+          "user_id": ...}
+        - If 2FA is not required: {"access_token": "...",
+          "refresh_token": "...", "token_type": "bearer",
+          "requires_2fa": False}
     """
     try:
         # Use the consolidated auth service for email/password authentication
@@ -63,10 +74,22 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"}
         )
 
+    # Check if 2FA is required
+    if auth_result.get("requires_2fa", False):
+        # Return 2FA required response
+        return {
+            "requires_2fa": True,
+            "temp_token": auth_result.get("temp_token", ""),
+            "user_id": auth_result.get("user_id", 0),
+            "message": auth_result.get(
+                "message", "Two-factor authentication required"
+            )
+        }
+
     # Extract tokens from auth result
     access_token = auth_result.get("access_token", "")
     refresh_token = auth_result.get("refresh_token", "")
-    
+
     # Set HTTP-Only cookies for SSR compatibility
     set_auth_cookies(
         response=response,
@@ -75,15 +98,17 @@ async def login(
         secure=False  # In development, set to False for local testing
     )
 
-    # Return tokens in JSON response (for backward compatibility)
-    return TokenWithRefresh(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type=auth_result.get("token_type", "bearer")
-    )
+    # Return full auth result including requires_2fa field
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": auth_result.get("token_type", "bearer"),
+        "requires_2fa": False,
+        "user": auth_result.get("user")
+    }
 
 
-@router.post("/login/json", response_model=TokenWithRefresh)
+@router.post("/login/json")
 async def login_json(
     login_data: UserLogin,
     response: Response,
@@ -94,46 +119,16 @@ async def login_json(
     JSON-based login endpoint (alias for /login).
 
     Accepts email and password in JSON format.
+
+    Returns:
+        - If 2FA is required: {"requires_2fa": True, "temp_token": "...",
+          "user_id": ...}
+        - If 2FA is not required: {"access_token": "...",
+          "refresh_token": "...", "token_type": "bearer",
+          "requires_2fa": False}
     """
-    try:
-        # Use the consolidated auth service for email/password authentication
-        auth_result = auth_service.login_with_email(
-            db, email=login_data.email, password=login_data.password
-        )
-    except ValueError as e:
-        # Convert ValueError from auth service to HTTPException
-        error_message = str(e)
-        if "Email not verified" in error_message:
-            raise_forbidden(locale, "email_verification")
-        else:
-            raise_unauthorized(locale, "credentials")
-
-    if not auth_result:
-        raise_i18n_http_exception(
-            locale=locale,
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            translation_key="errors.incorrect_email_or_password",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-
-    # Extract tokens from auth result
-    access_token = auth_result.get("access_token", "")
-    refresh_token = auth_result.get("refresh_token", "")
-    
-    # Set HTTP-Only cookies for SSR compatibility
-    set_auth_cookies(
-        response=response,
-        auth_token=access_token,
-        refresh_token=refresh_token,
-        secure=False  # In development, set to False for local testing
-    )
-
-    # Return tokens in JSON response (for backward compatibility)
-    return TokenWithRefresh(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type=auth_result.get("token_type", "bearer")
-    )
+    # Simply call the main login function
+    return await login(login_data, response, db, locale)
 
 
 @router.post("/refresh", response_model=TokenWithRefresh)
@@ -564,3 +559,126 @@ async def resend_verification(
                        "and is not verified, a verification "
                        "email has been sent."
         }
+
+
+@router.post("/verify-2fa", response_model=TwoFactorLoginResponse)
+async def verify_2fa_login(
+    request: TwoFactorLoginVerifyRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
+):
+    """
+    Verify 2FA code after initial login.
+
+    This endpoint is called when a user has entered their email/password
+    and 2FA is enabled. It verifies the 2FA code and completes the login.
+    """
+    try:
+        # Use the consolidated auth service for 2FA verification
+        auth_result = auth_service.verify_2fa_and_login(
+            db,
+            temp_token=request.temp_token,
+            code=request.code,
+            remember_device=request.remember_device
+        )
+    except ValueError as e:
+        error_message = str(e)
+        if "Invalid verification code" in error_message:
+            raise_unauthorized(locale, "invalid_2fa_code")
+        elif "Temporary token has expired" in error_message:
+            raise_unauthorized(locale, "temp_token_expired")
+        elif "Invalid temporary token" in error_message:
+            raise_unauthorized(locale, "invalid_temp_token")
+        else:
+            raise_unauthorized(locale, "2fa_verification_failed")
+
+    if not auth_result:
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.2fa_verification_failed",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    # Extract tokens from auth result
+    access_token = auth_result.get("access_token", "")
+    refresh_token = auth_result.get("refresh_token", "")
+
+    # Set HTTP-Only cookies for SSR compatibility
+    set_auth_cookies(
+        response=response,
+        auth_token=access_token,
+        refresh_token=refresh_token,
+        secure=False  # In development, set to False for local testing
+    )
+
+    # Return tokens in JSON response
+    return TwoFactorLoginResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type=auth_result.get("token_type", "bearer"),
+        user_id=auth_result.get("user", {}).id,
+        requires_2fa=False
+    )
+
+
+@router.post("/verify-2fa-backup", response_model=TwoFactorLoginResponse)
+async def verify_2fa_backup(
+    request: TwoFactorBackupVerifyRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
+):
+    """
+    Verify 2FA backup code after initial login.
+
+    This endpoint is called when a user has entered their email/password
+    and 2FA is enabled, but they want to use a backup code instead.
+    """
+    try:
+        # Use the consolidated auth service for backup code verification
+        auth_result = auth_service.verify_2fa_backup_code(
+            db,
+            temp_token=request.temp_token,
+            backup_code=request.backup_code
+        )
+    except ValueError as e:
+        error_message = str(e)
+        if "Invalid backup code" in error_message:
+            raise_unauthorized(locale, "invalid_backup_code")
+        elif "Temporary token has expired" in error_message:
+            raise_unauthorized(locale, "temp_token_expired")
+        elif "Invalid temporary token" in error_message:
+            raise_unauthorized(locale, "invalid_temp_token")
+        else:
+            raise_unauthorized(locale, "backup_code_verification_failed")
+
+    if not auth_result:
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.backup_code_verification_failed",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    # Extract tokens from auth result
+    access_token = auth_result.get("access_token", "")
+    refresh_token = auth_result.get("refresh_token", "")
+
+    # Set HTTP-Only cookies for SSR compatibility
+    set_auth_cookies(
+        response=response,
+        auth_token=access_token,
+        refresh_token=refresh_token,
+        secure=False  # In development, set to False for local testing
+    )
+
+    # Return tokens in JSON response
+    return TwoFactorLoginResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type=auth_result.get("token_type", "bearer"),
+        user_id=auth_result.get("user", {}).id,
+        requires_2fa=False
+    )

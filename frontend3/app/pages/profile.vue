@@ -175,6 +175,47 @@
           <ImprovedStatsCard :label="$t('profile.totalVotes')" :value="stats.totalVotes || 0" link="/my-votes"
             :actionText="$t('profile.viewYourVotes')" :icon="VoteIcon" iconBackground="gradient-purple" />
         </div>
+
+        <!-- Profile Overview Organism -->
+        <div class="mt-8">
+          <ProfileOverview
+            :user="profileUser"
+            :stats="profileStats"
+            :is-current-user="true"
+            @edit-profile="startEditing"
+            @settings="handleSettings"
+          />
+        </div>
+
+        <!-- Divider between sections -->
+        <Divider class="my-8" />
+
+        <!-- User Projects Organism -->
+        <div class="mt-8">
+          <UserProjects
+            :projects="userProjects"
+            :loading="projectsLoading"
+            @project-click="handleProjectClick"
+            @create-project="handleCreateProject"
+            @edit-project="handleEditProject"
+            @filters-change="handleProjectFiltersChange"
+          />
+        </div>
+
+        <!-- Divider between sections -->
+        <Divider class="my-8" />
+
+        <!-- User Teams Organism -->
+        <div class="mt-8">
+          <UserTeams
+            :teams="userTeams"
+            :loading="teamsLoading"
+            show-role
+            @team-click="handleTeamClick"
+            @create-team="handleCreateTeam"
+            @edit-team="handleEditTeam"
+          />
+        </div>
       </div>
 
       <!-- Right Column: Actions -->
@@ -270,6 +311,15 @@ import ImprovedStatsCard from '~/components/ImprovedStatsCard.vue'
 import { uploadFile, createPreviewUrl, validateFile } from '~/utils/fileUpload'
 import ProfileHeader from '~/components/organisms/profile/ProfileHeader.vue'
 import UserSettingsForm from '~/components/organisms/profile/UserSettingsForm.vue'
+import ProfileOverview from '~/components/organisms/profile/ProfileOverview.vue'
+import UserProjects from '~/components/organisms/profile/UserProjects.vue'
+import UserTeams from '~/components/organisms/profile/UserTeams.vue'
+import Divider from '~/components/atoms/Divider.vue'
+import { useUserProfile } from '~/composables/useUserProfile'
+import { useTeams } from '~/composables/useTeams'
+import type { UserProfile, UserStats } from '~/types/user-types'
+import type { Project } from '~/types/project-types'
+import type { Team } from '~/types/team-types'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -337,6 +387,83 @@ const stats = ref({
   projectsSubmitted: 0,
   totalVotes: 0
 })
+
+// New atomic design components state
+const projectsLoading = ref(false)
+const userProjects = ref<Project[]>([])
+
+// Use composables
+const { userProfile, userProfileLoading, userProfileError, refreshUserProfile } = useUserProfile()
+const { 
+  teams: userTeams, 
+  loading: teamsLoading, 
+  error: teamsError, 
+  fetchTeams 
+} = useTeams({
+  userId: authStore.user?.id?.toString() || null,
+  autoFetch: true
+})
+
+// Computed properties for atomic design components
+const profileUser = computed<UserProfile>(() => {
+  if (!user.value) {
+    // Return a default empty user profile to avoid undefined errors
+    return {
+      id: 0,
+      username: '',
+      email: '',
+      name: '',
+      avatarUrl: '',
+      bio: '',
+      location: '',
+      company: '',
+      githubId: undefined,
+      googleId: undefined,
+      emailVerified: false,
+      authMethod: undefined,
+      lastLogin: undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      githubUsername: undefined,
+      twitterUsername: undefined,
+      website: undefined
+    }
+  }
+  
+  return {
+    id: user.value.id,
+    username: user.value.username || '',
+    email: user.value.email || '',
+    name: user.value.name || '',
+    avatarUrl: user.value.avatar_url || '',
+    bio: user.value.bio || '',
+    location: user.value.location || '',
+    company: user.value.company || '',
+    githubId: user.value.github_id,
+    googleId: user.value.google_id,
+    emailVerified: user.value.email_verified || true,
+    authMethod: user.value.auth_method,
+    lastLogin: user.value.last_login,
+    createdAt: user.value.created_at || new Date().toISOString(),
+    updatedAt: user.value.updated_at || new Date().toISOString(),
+    // Note: Backend doesn't provide these fields, but they're optional
+    githubUsername: undefined,
+    twitterUsername: undefined,
+    website: undefined
+  }
+})
+
+const profileStats = computed<UserStats>(() => ({
+  hackathonsCreated: stats.value.hackathonsCreated || 0,
+  projectsSubmitted: stats.value.projectsSubmitted || 0,
+  totalVotes: stats.value.totalVotes || 0,
+  teamCount: userTeams.value.length,
+  commentCount: 0,
+  followerCount: 0,
+  followingCount: 0,
+  averageRating: 0,
+  totalPoints: 0
+}))
 
 const editForm = ref({
   username: '',
@@ -592,6 +719,68 @@ const saveProfile = async () => {
   }
 }
 
+// Event handlers for atomic design components
+const handleSettings = () => {
+  console.log('Settings clicked')
+  // Navigate to settings page or show settings modal
+  navigateTo('/settings')
+}
+
+const handleProjectClick = (projectId: string) => {
+  console.log('Project clicked:', projectId)
+  navigateTo(`/projects/${projectId}`)
+}
+
+const handleCreateProject = () => {
+  console.log('Create project clicked')
+  navigateTo('/create/project')
+}
+
+const handleEditProject = (projectId: string) => {
+  console.log('Edit project clicked:', projectId)
+  navigateTo(`/projects/${projectId}/edit`)
+}
+
+const handleProjectFiltersChange = (filters: any) => {
+  console.log('Project filters changed:', filters)
+  // Implement filter logic here
+}
+
+const handleTeamClick = (teamId: string) => {
+  console.log('Team clicked:', teamId)
+  navigateTo(`/teams/${teamId}`)
+}
+
+const handleCreateTeam = () => {
+  console.log('Create team clicked')
+  navigateTo('/teams/create')
+}
+
+const handleEditTeam = (teamId: string) => {
+  console.log('Edit team clicked:', teamId)
+  navigateTo(`/teams/${teamId}/edit`)
+}
+
+// Fetch user projects and teams
+const fetchUserProjects = async () => {
+  if (!authStore.isAuthenticated) return
+  
+  projectsLoading.value = true
+  try {
+    const response = await authStore.fetchWithAuth('/api/users/me/projects')
+    if (response.ok) {
+      const data = await response.json()
+      userProjects.value = data.projects || []
+    }
+  } catch (error) {
+    console.error('Error fetching user projects:', error)
+  } finally {
+    projectsLoading.value = false
+  }
+}
+
+
+
 const checkGitHubOAuthError = () => {
   if (typeof window === 'undefined') return
 
@@ -616,6 +805,8 @@ const checkGitHubOAuthError = () => {
 onMounted(() => {
   fetchUserProfile()
   fetchUserStats()
+  fetchUserProjects()
+  fetchTeams()
   checkGitHubOAuthError()
 })
 </script>
