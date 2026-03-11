@@ -28,8 +28,13 @@
     </div>
 
     <div class="relative h-40 rounded-xl overflow-hidden mb-4">
-      <img :src="project.image" :alt="project.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+      <img
+        :src="project.image"
+        :alt="project.name"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        @error="handleImageError"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
       <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between">
         <span class="text-white text-sm font-medium">
           {{ project.demo ? liveDemoLabel : prototypeLabel }}
@@ -72,8 +77,9 @@
 
 <script setup lang="ts">
 import VoteButtons from '~/components/molecules/VoteButtons.vue'
+import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
-defineProps<{
+const props = defineProps<{
   project: any
   liveDemoLabel: string
   prototypeLabel: string
@@ -82,7 +88,19 @@ defineProps<{
   commentsLabel: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'open', id: number): void
 }>()
+
+const handleImageError = (event: Event) => {
+  console.error('Image failed to load:', props.project.image)
+  const img = event.target as HTMLImageElement
+  // Fallback to placeholder
+  img.src = generateProjectPlaceholder({
+    id: props.project.id,
+    title: props.project.name
+  })
+  // Prevent infinite loop if placeholder also fails
+  img.onerror = null
+}
 </script>

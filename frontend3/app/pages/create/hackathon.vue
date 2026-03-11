@@ -25,13 +25,23 @@
 
 <script setup lang="ts">
 import { ref } from '#imports'
+import { useI18n } from 'vue-i18n'
+
+// Components
 import HackathonForm from '@/components/organisms/forms/HackathonForm.vue'
 import PageHeader from '@/components/molecules/PageHeader.vue'
-import Card from '@/components/atoms/Card.vue'
-import { useI18n } from 'vue-i18n'
+import { Card } from '@/components/atoms'
+
+// Types
+import type { Prize, Organizer } from '@/types/hackathon-types'
+
+// Stores
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
-import { uploadFile } from '@/utils/fileUpload'
+
+// Composables
+import { useFileUpload } from '~/composables/useFileUpload'
+import { useHackathons } from '~/composables/useHackathons'
 
 // Hackathon form
 const hackathonForm = ref({
@@ -46,7 +56,9 @@ const hackathonForm = ref({
   tags: ['Technology', 'Innovation'],
   rules: '',
   contactEmail: '',
-  image_url: ''
+  image_url: '',
+  prizes: [] as Prize[],
+  organizers: [] as Organizer[]
 })
 
 // State
@@ -60,10 +72,15 @@ const hackathonImageInput = ref<HTMLInputElement | null>(null)
 const { t } = useI18n()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
-
-const triggerHackathonImageUpload = () => {
-  hackathonImageInput.value?.click()
-}
+const { uploadSingle } = useFileUpload({ 
+  type: 'hackathon',
+  autoErrorHandling: false, // Wir behandeln Errors selbst
+  trackProgress: false // Kein Progress-Tracking für einfache Uploads
+})
+const { createHackathon, isLoading: hackathonLoading } = useHackathons({
+  autoErrorHandling: false, // Wir behandeln Errors selbst
+  autoSuccessHandling: false // Wir zeigen eigene Success-Messages
+})
 
 const handleHackathonImageUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement
@@ -72,8 +89,8 @@ const handleHackathonImageUpload = async (event: Event) => {
 
   uploadingImage.value = true
   try {
-    // Upload file to backend via upload endpoint
-    const result = await uploadFile(file, { type: 'hackathon' })
+    // Upload file to backend via useFileUpload composable
+    const result = await uploadSingle(file, { type: 'hackathon' })
     hackathonForm.value.image_url = result.url
     uiStore.showSuccess('Bild hochgeladen', 'Das Bild wurde erfolgreich hochgeladen.')
   } catch (error) {
@@ -115,10 +132,7 @@ const submitHackathon = async (formData: any) => {
       return
     }
     
-    // Debug: log token (remove in production)
-    console.log('Using token for hackathon creation:', authStore.token ? 'Token present' : 'Token missing')
-    
-    // Prepare data for API
+    // Prepare data for API using HackathonCreateData format
     // Convert datetime-local inputs to full ISO format (YYYY-MM-DDTHH:mm:ss)
     const formatDateTime = (datetimeStr: string | null) => {
       if (!datetimeStr) return null
@@ -129,52 +143,25 @@ const submitHackathon = async (formData: any) => {
       return datetimeStr
     }
     
-    const hackathonData = {
+    const hackathonData: any = {
       name: formData.name,
       description: formData.description,
-      organization: formData.organization,
-      start_date: formatDateTime(formData.startDate),
-      end_date: formatDateTime(formData.endDate),
+      startDate: formatDateTime(formData.startDate) || '',
+      endDate: formatDateTime(formData.endDate) || '',
       location: formData.locationType === 'online' ? 'Virtual' : formData.location,
-      prize_pool: formData.prizePool,
-      tags: formData.tags.join(','),
+      prizePool: formData.prizePool,
       rules: formData.rules,
-      contact_email: formData.contactEmail,
-      image_url: formData.image_url || null,
-      // owner_id will be set by backend based on current user
+      imageUrl: formData.image_url || undefined,
+      // Additional fields that will be passed through to API
+      tags: formData.tags.join(','),
+      contactEmail: formData.contactEmail,
+      organization: formData.organization,
+      prizes: formData.prizes,
+      organizers: formData.organizers,
     }
     
-    // Make real API call with authentication using fetchWithAuth for auto-refresh
-    const response = await authStore.fetchWithAuth('/api/hackathons', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(hackathonData)
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      
-      // Extract error message from response
-      let errorMessage = `Failed to create hackathon: ${response.status}`
-      if (errorData.detail) {
-        if (typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail
-        } else if (Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail.map((err: any) => {
-            if (typeof err === 'object' && err.msg) return err.msg
-            return JSON.stringify(err)
-          }).join(', ')
-        } else if (typeof errorData.detail === 'object') {
-          errorMessage = JSON.stringify(errorData.detail)
-        }
-      }
-      
-      throw new Error(errorMessage)
-    }
-    
-    const createdHackathon = await response.json()
+    // Use the composable to create hackathon
+    const createdHackathon = await createHackathon(hackathonData)
     
     uiStore.showSuccess('Hackathon created successfully!', `"${createdHackathon.name}" is now live on the platform.`)
     // Navigate to hackathon detail page
@@ -210,11 +197,9 @@ const resetHackathonForm = () => {
     tags: ['Technology', 'Innovation'],
     rules: '',
     contactEmail: '',
-    image_url: ''
+    image_url: '',
+    prizes: [] as Prize[],
+    organizers: [] as Organizer[]
   }
 }
 </script>
-
-<style scoped>
-/* No custom card styles needed - using Card component */
-</style>

@@ -1,8 +1,11 @@
 /**
  * File upload utility for handling image uploads to the backend
+ * 
+ * Migriert auf ApiClient für konsistente API-Interaktion
  */
 
-import { useAuthStore } from '~/stores/auth'
+import { ApiClient } from '~/utils/api-client'
+import type { ApiUploadResponse } from '~/types/file-upload-types'
 import { normalizeUploadPathForApi } from '~/utils/imageUrl'
 
 export interface UploadResponse {
@@ -49,37 +52,24 @@ export async function uploadFile(
   formData.append('file', file)
 
   // Build query parameters
-  const params = new URLSearchParams()
-  params.append('type', type)
+  const params: Record<string, any> = { type }
 
-  // Get auth store for authenticated requests
-  const authStore = useAuthStore()
+  // Use ApiClient for consistent API interaction
+  const apiClient = new ApiClient()
 
   try {
-    // Use fetchWithAuth for automatic token refresh handling
-    // Note: fetchWithAuth will handle token refresh on 401 responses
-    // For FormData, we don't set Content-Type header - browser will set it with boundary
-
-    const fullUrl = `/api/upload?${params.toString()}`
-
-    const response = await authStore.fetchWithAuth(fullUrl, {
-      method: 'POST',
-      body: formData,
-      // Don't set Content-Type header for FormData - browser will set it automatically
-      headers: {}
+    // Upload durchführen (POST mit FormData)
+    const result = await apiClient.post<ApiUploadResponse>('/api/upload', formData, {
+      params,
+      headers: {
+        // Content-Type wird automatisch mit boundary gesetzt für FormData
+      }
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(
-        errorData.detail || `Upload failed with status ${response.status}`
-      )
-    }
-
-    const payload = await response.json()
+    // URL normalisieren
     return {
-      ...payload,
-      url: normalizeUploadPathForApi(payload?.url) || ''
+      ...result,
+      url: normalizeUploadPathForApi(result?.url) || ''
     }
   } catch (error) {
     if (error instanceof Error) {

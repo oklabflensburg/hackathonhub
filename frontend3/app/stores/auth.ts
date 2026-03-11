@@ -3,60 +3,12 @@ import { ref, computed } from 'vue'
 import { useUIStore } from './ui'
 import { usePreferencesStore } from './preferences'
 import { useTeamStore } from './team'
+import { useApiClient } from '~/utils/api-client'
+import type { User } from '~/types/user-types'
+import type { LoginCredentials, RegisterCredentials } from '~/types/auth-types'
 
-export interface User {
-  id: number
-  github_id?: string
-  google_id?: string
-  username: string
-  avatar_url: string
-  email?: string
-  email_verified?: boolean
-  auth_method?: 'github' | 'google' | 'email'
-  created_at: string
-  last_login?: string
-  name?: string
-  bio?: string
-  location?: string
-  company?: string
-  updated_at?: string
-  is_admin?: boolean
-  // Extended fields from /api/me (UserWithDetails)
-  teams?: Array<{
-    id: number
-    team_id: number
-    user_id: number
-    role: 'owner' | 'member'
-    joined_at: string
-    team?: {
-      id: number
-      name: string
-      description: string
-      hackathon_id: number
-      max_members: number
-      is_open: boolean
-      created_by: number
-      created_at: string
-      member_count?: number
-    }
-  }>
-  projects?: any[]
-  votes?: any[]
-  comments?: any[]
-  hackathon_registrations?: any[]
-}
-
-export interface LoginCredentials {
-  email: string
-  password: string
-}
-
-export interface RegisterCredentials {
-  email: string
-  username: string
-  password: string
-  confirmPassword: string
-}
+// Keine Re-exports mehr - Types werden jetzt aus auth-types.ts importiert
+// Dies vermeidet doppelte Exporte
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -64,6 +16,12 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = ref<string | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+
+  // Stores und Services
+  const uiStore = useUIStore()
+  const preferences = usePreferencesStore()
+  const teamStore = useTeamStore()
+  const apiClient = useApiClient()
 
   const isAuthenticated = computed(() => !!user.value && !!token.value)
   const userInitials = computed(() => {
@@ -161,41 +119,36 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-
-      const response = await fetch(`${backendUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password
-        })
+      // Use apiClient statt fetch
+      const response = await apiClient.post<{
+        requires_2fa: boolean
+        temp_token?: string
+        user_id?: number
+        access_token?: string
+        refresh_token?: string
+        user?: User
+      }>('/api/auth/login', {
+        email: credentials.email,
+        password: credentials.password
+      }, {
+        skipAuth: true,
+        skipErrorNotification: true
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        const { t } = useI18n()
-        throw new Error(errorData.detail || t('errors.login_failed'))
-      }
-
-      const data = await response.json()
-      console.log('Login API response:', data)
+      console.log('Login API response:', response)
       
       // Check if 2FA is required
-      if (data.requires_2fa) {
-        console.log('2FA required, temp_token:', data.temp_token ? 'present' : 'missing')
+      if (response.requires_2fa && response.temp_token) {
+        console.log('2FA required, temp_token:', response.temp_token ? 'present' : 'missing')
         // Store temporary token and user info for 2FA verification
-        const tempToken = data.temp_token
-        const userId = data.user_id
+        const tempToken = response.temp_token
+        const userId = response.user_id
         
         // Navigate to 2FA verification page
         if (typeof window !== 'undefined') {
           // Store temp token in session storage for the verify-2fa page
           sessionStorage.setItem('2fa_temp_token', tempToken)
-          sessionStorage.setItem('2fa_user_id', userId.toString())
+          sessionStorage.setItem('2fa_user_id', userId?.toString() || '')
           console.log('Stored temp token in sessionStorage, navigating to /verify-2fa')
           
           // Navigate to verify-2fa page
@@ -208,17 +161,23 @@ export const useAuthStore = defineStore('auth', () => {
       } else {
         console.log('No 2FA required, proceeding with normal login')
         // No 2FA required, proceed with normal login
-        await handleAuthResponse(data)
-        return true
+        if (response.access_token && response.refresh_token) {
+          await handleAuthResponse({
+            access_token: response.access_token,
+            refresh_token: response.refresh_token,
+            user: response.user
+          })
+          return true
+        } else {
+          throw new Error('Invalid login response')
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       const { t } = useI18n()
       const errorMessage = err instanceof Error ? err.message : t('errors.login_failed')
       error.value = errorMessage
 
       // Also show notification for better visibility
-      const uiStore = useUIStore()
-      const authStore = useAuthStore()
       uiStore.showError(errorMessage, 'Login Error')
 
       console.error('Email login error:', err)
@@ -233,56 +192,25 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-
-      const response = await fetch(`${backendUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: credentials.email,
-          username: credentials.username,
-          password: credentials.password
-        })
+      // Use apiClient statt fetch
+      const response = await apiClient.post('/api/auth/register', {
+        email: credentials.email,
+        username: credentials.username,
+        password: credentials.password
+      }, {
+        skipAuth: true,
+        skipErrorNotification: true
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        const { t } = useI18n()
-        const errorDetail = errorData.detail || t('errors.registration_failed')
-
-        // Provide more user-friendly messages for common errors
-        if (errorDetail.includes('email already exists')) {
-          throw new Error(t('errors.email_already_exists', { email: credentials.email }))
-        } else if (errorDetail.includes('Username already taken')) {
-          throw new Error(t('errors.username_already_taken', { username: credentials.username }))
-        } else if (errorDetail.includes('Invalid email address')) {
-          throw new Error(t('errors.invalid_email_address'))
-        } else if (errorDetail.includes('password cannot be longer than 72 bytes')) {
-          // This error might be caused by bcrypt library issues
-          // Provide a helpful message
-          throw new Error(t('errors.password_validation_failed'))
-        } else if (errorDetail.includes('bcrypt') || errorDetail.includes('__about__')) {
-          // Handle bcrypt library errors
-          throw new Error(t('errors.authentication_system_error'))
-        } else {
-          throw new Error(errorDetail)
-        }
-      }
-
-      const data = await response.json()
       // Registration successful, but email needs verification
       // Show success message and redirect to login
-      return data
-    } catch (err) {
+      return response
+    } catch (err: any) {
       const { t } = useI18n()
       const errorMessage = err instanceof Error ? err.message : t('errors.registration_failed')
       error.value = errorMessage
 
       // Also show notification for better visibility
-      const uiStore = useUIStore()
       uiStore.showError(errorMessage, 'Registration Error')
 
       console.error('Registration error:', err)
@@ -297,37 +225,23 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-
-      const response = await fetch(`${backendUrl}/api/auth/resend-verification`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: userEmail
-        })
+      // Use apiClient statt fetch
+      const response = await apiClient.post('/api/auth/resend-verification', {
+        email: userEmail
+      }, {
+        skipAuth: true,
+        skipErrorNotification: true
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        const { t } = useI18n()
-        throw new Error(errorData.detail || t('errors.failed_to_resend_verification_email'))
-      }
-
-      const data = await response.json()
       // Show success notification
-      const uiStore = useUIStore()
-      uiStore.showSuccess(data.message, 'Verification Email Sent')
-      return data
-    } catch (err) {
+      uiStore.showSuccess(response.message || 'Verification email sent', 'Verification Email Sent')
+      return response
+    } catch (err: any) {
       const { t } = useI18n()
       const errorMessage = err instanceof Error ? err.message : t('errors.failed_to_resend_verification_email')
       error.value = errorMessage
 
       // Also show notification for better visibility
-      const uiStore = useUIStore()
       uiStore.showError(errorMessage, 'Resend Failed')
 
       console.error('Resend verification error:', err)
@@ -356,40 +270,31 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-
-      console.log('[Auth] Sending refresh request to:', `${backendUrl}/api/auth/refresh`)
-      const response = await fetch(`${backendUrl}/api/auth/refresh`, {
-        method: 'POST',
+      console.log('[Auth] Sending refresh request')
+      const response = await apiClient.post<{
+        access_token: string
+        refresh_token: string
+        user?: User
+      }>('/api/auth/refresh', {}, {
         headers: {
-          'Authorization': `Bearer ${refreshToken.value}`,
-          'Content-Type': 'application/json'
-        }
+          'Authorization': `Bearer ${refreshToken.value}`
+        },
+        skipErrorNotification: true
       })
 
-      if (response.ok) {
-        console.log('[Auth] Token refresh successful')
-        const data = await response.json()
-        token.value = data.access_token
-        refreshToken.value = data.refresh_token
+      console.log('[Auth] Token refresh successful')
+      token.value = response.access_token
+      refreshToken.value = response.refresh_token
 
-        // Save to preferences store
-        const preferences = usePreferencesStore()
-        preferences.auth.setTokens(data.access_token, data.refresh_token)
+      // Save to preferences store
+      preferences.auth.setTokens(response.access_token, response.refresh_token)
 
-        // Also update user data if returned
-        if (data.user) {
-          user.value = data.user
-          preferences.auth.setUser(data.user)
-        }
-        return true
-      } else {
-        // Refresh failed, logout
-        console.error('[Auth] Token refresh failed with status:', response.status)
-        logout()
-        return false
+      // Also update user data if returned
+      if (response.user) {
+        user.value = response.user
+        preferences.auth.setUser(response.user)
       }
+      return true
     } catch (err) {
       console.error('[Auth] Token refresh error:', err)
       logout()
@@ -527,29 +432,21 @@ export const useAuthStore = defineStore('auth', () => {
     // Try to call backend logout endpoint with refresh token
     if (refreshToken.value) {
       try {
-        const config = useRuntimeConfig()
-        const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-        const response = await fetch(`${backendUrl}/api/auth/logout`, {
-          method: 'POST',
+        await apiClient.post('/api/auth/logout', {}, {
           headers: {
-            'Authorization': `Bearer ${refreshToken.value}`,
-            'Content-Type': 'application/json'
-          }
+            'Authorization': `Bearer ${refreshToken.value}`
+          },
+          skipErrorNotification: true
         })
-        if (!response.ok) {
-          // 401 Unauthorized is expected if token is already revoked/expired
-          if (response.status === 401) {
-            console.log('[Auth] Backend logout: token already invalid (expected)')
-          } else {
-            console.warn('[Auth] Backend logout failed:', response.status, response.statusText)
-          }
-          // Continue with client-side logout anyway
+        console.log('[Auth] Backend logout successful')
+      } catch (err: any) {
+        // 401 Unauthorized is expected if token is already revoked/expired
+        if (err.status === 401) {
+          console.log('[Auth] Backend logout: token already invalid (expected)')
         } else {
-          console.log('[Auth] Backend logout successful')
+          console.warn('[Auth] Backend logout failed:', err)
         }
-      } catch (err) {
-        console.error('[Auth] Error calling logout endpoint:', err)
-        // Continue with client-side logout
+        // Continue with client-side logout anyway
       }
     }
 
@@ -673,36 +570,23 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUserWithToken(tokenValue: string) {
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-
-      const response = await fetch(`${backendUrl}/api/me`, {
+      const userData = await apiClient.get<User>('/api/me', {
         headers: {
           'Authorization': `Bearer ${tokenValue}`
         }
       })
 
-      if (response.ok) {
-        const userData = await response.json()
-        user.value = userData
-        const preferences = usePreferencesStore()
-        preferences.auth.setUser(userData)
+      user.value = userData
+      preferences.auth.setUser(userData)
 
-        // Initialize team store with user's teams
-        try {
-          const teamStore = useTeamStore()
-          teamStore.initializeFromUser(userData)
-        } catch (err) {
-          console.error('Failed to initialize team store:', err)
-        }
-      } else {
-        console.error('Failed to fetch user with token')
-        const preferences = usePreferencesStore()
-        preferences.auth.clearAuth()
+      // Initialize team store with user's teams
+      try {
+        teamStore.initializeFromUser(userData)
+      } catch (err) {
+        console.error('Failed to initialize team store:', err)
       }
     } catch (err) {
-      console.error('Error fetching user:', err)
-      const preferences = usePreferencesStore()
+      console.error('Failed to fetch user with token:', err)
       preferences.auth.clearAuth()
     }
   }
@@ -711,33 +595,28 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-      const response = await fetch(`${backendUrl}/api/me`, {
+      const userData = await apiClient.get<User>('/api/me', {
         headers: {
           'Authorization': `Bearer ${token.value}`
         }
       })
 
-      if (response.ok) {
-        const userData = await response.json()
-        user.value = userData
-        const preferences = usePreferencesStore()
-        preferences.auth.setUser(userData)
+      user.value = userData
+      preferences.auth.setUser(userData)
 
-        // Initialize team store with user's teams
-        try {
-          const teamStore = useTeamStore()
-          teamStore.initializeFromUser(userData)
-        } catch (err) {
-          console.error('Failed to initialize team store:', err)
-        }
-      } else if (response.status === 401) {
+      // Initialize team store with user's teams
+      try {
+        teamStore.initializeFromUser(userData)
+      } catch (err) {
+        console.error('Failed to initialize team store:', err)
+      }
+    } catch (err: any) {
+      if (err.status === 401) {
         // Token expired, clear auth
         logout()
+      } else {
+        console.error('Failed to refresh user:', err)
       }
-    } catch (err) {
-      console.error('Failed to refresh user:', err)
     }
   }
 

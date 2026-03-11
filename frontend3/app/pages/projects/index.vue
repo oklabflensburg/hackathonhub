@@ -7,7 +7,7 @@
       :action-label="$t('projects.submitProject')"
       action-link="/create/project"
     >
-      <template #controls>
+      <template #actions>
         <div class="relative">
           <input
             v-model="searchQuery"
@@ -107,10 +107,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from '#imports'
+
+// Stores
 import { useUIStore } from '~/stores/ui'
 import { useAuthStore } from '~/stores/auth'
+
+// Composables
+import { useProjects } from '~/composables/useProjects'
+
+// Components
 import { PageHeader, SelectedTags, LoadingState, ErrorState, EmptyState, Pagination } from '~/components/molecules'
 import { ProjectListCard } from '~/components/organisms'
+
+// Utils
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 import { resolveImageUrl } from '~/utils/imageUrl'
 
@@ -119,6 +128,7 @@ const route = useRoute()
 const router = useRouter()
 const uiStore = useUIStore()
 const authStore = useAuthStore()
+
 const searchQuery = ref('')
 const selectedTags = ref<string[]>([])
 const sortBy = ref('popular')
@@ -225,37 +235,45 @@ const fetchProjects = async (page: number = currentPage.value) => {
   error.value = null
   try {
     const skip = (page - 1) * pageSize.value
-    // Build query parameters
-    const params = new URLSearchParams()
-    params.append('skip', skip.toString())
-    params.append('limit', pageSize.value.toString())
-    if (searchQuery.value) {
-      params.append('search', searchQuery.value)
+    
+    // Build query parameters for Composable
+    const queryParams: any = {
+      skip,
+      limit: pageSize.value
     }
+    
+    if (searchQuery.value) {
+      queryParams.search = searchQuery.value
+    }
+    
     // Add user filter if present in URL
     if (route.query.user) {
       const userParam = Array.isArray(route.query.user)
         ? route.query.user[0]
         : route.query.user
       if (userParam) {
-        params.append('user', userParam as string)
+        queryParams.user = userParam as string
       }
     }
+    
     // Add technology filter if present
     if (selectedTags.value.length > 0) {
       const validTags = selectedTags.value.filter(tag => tag)
       if (validTags.length === 1) {
-        params.append('technology', validTags[0] as string)
+        queryParams.technology = validTags[0] as string
       } else if (validTags.length > 1) {
-        params.append('technologies', validTags.join(','))
+        queryParams.technologies = validTags.join(',')
       }
     }
     
-    const response = await authStore.fetchWithAuth(`/api/projects?${params.toString()}`)
-    if (!response.ok) {
-      throw new Error(`${t('projects.errors.failedToFetch')}: ${response.status}`)
-    }
-    const data = await response.json()
+    // Use Projects Composable for API call
+    const { fetchProjects: fetchProjectsFromComposable } = useProjects()
+    
+    const data = await fetchProjectsFromComposable({
+      ...queryParams,
+      offset: skip,
+      limit: pageSize.value
+    })
     
     // Estimate total projects based on whether we got a full page
     if (data.length < pageSize.value) {
@@ -276,7 +294,7 @@ const fetchProjects = async (page: number = currentPage.value) => {
               project.status === 'finalist' ? 'Finalist' : 'Submitted',
        description: project.description || t('common.noDescription'),
        tech: project.technologies ? project.technologies.split(',').map((t: string) => t.trim()) : [],
-        image: project.image_path ? resolveImageUrl(project.image_path, config.public.apiUrl || 'http://localhost:8000') : generateProjectPlaceholder({
+        image: (project.imagePath || project.featuredImage) ? resolveImageUrl(project.imagePath || project.featuredImage, config.public?.apiUrl || 'http://localhost:8000') : generateProjectPlaceholder({
           id: project.id,
           title: project.title
         }),
@@ -327,6 +345,7 @@ const removeTag = (tag: string) => {
 const clearAllTags = () => {
   selectedTags.value = []
 }
+
 const filteredProjects = computed(() => {
   let filtered = [...projects.value]
 

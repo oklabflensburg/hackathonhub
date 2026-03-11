@@ -29,13 +29,19 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from '#imports'
+import { useI18n } from 'vue-i18n'
+
+// Components
 import ProjectForm from '@/components/organisms/forms/ProjectForm.vue'
 import PageHeader from '@/components/molecules/PageHeader.vue'
-import Card from '@/components/atoms/Card.vue'
-import { useI18n } from 'vue-i18n'
+import { Card } from '@/components/atoms'
+
+// Stores
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
-import { uploadFile } from '@/utils/fileUpload'
+
+// Composables
+import { useFileUpload } from '~/composables/useFileUpload'
 
 // Project form
 const projectForm = ref({
@@ -88,6 +94,11 @@ const fetchHackathons = async () => {
 
 // Image upload handling
 const uploadingImage = ref(false)
+const { uploadSingle } = useFileUpload({ 
+  type: 'project',
+  autoErrorHandling: false, // Wir behandeln Errors selbst
+  trackProgress: false // Kein Progress-Tracking für einfache Uploads
+})
 
 const handleProjectImageUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement
@@ -96,8 +107,8 @@ const handleProjectImageUpload = async (event: Event) => {
 
   uploadingImage.value = true
   try {
-    // Upload file to backend via upload endpoint
-    const result = await uploadFile(file, { type: 'project' })
+    // Upload file to backend via useFileUpload composable
+    const result = await uploadSingle(file, { type: 'project' })
     projectForm.value.image_url = result.url
     uiStore.showSuccess('Bild hochgeladen', 'Das Bild wurde erfolgreich hochgeladen.')
   } catch (error) {

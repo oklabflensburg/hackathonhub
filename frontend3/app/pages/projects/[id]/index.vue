@@ -126,7 +126,7 @@ const {
   updateComment,
   deleteComment,
   voteComment,
-} = useComments(projectId, projectCommentCount)
+} = useComments({ projectId: projectId.value })
 
 const projectTechnologies = computed(() => (project.value?.technologies || '').split(',').map((tech: string) => tech.trim()).filter(Boolean))
 

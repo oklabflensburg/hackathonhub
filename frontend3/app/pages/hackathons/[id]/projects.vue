@@ -63,11 +63,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+// Stores
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
-import { useI18n } from 'vue-i18n'
+
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 
+// Composables
+import { useProjects } from '~/composables/useProjects'
+
+// Components
 import HackathonProjectCard from '~/components/organisms/hackathons/HackathonProjectCard.vue'
 import PageHeader from '~/components/molecules/PageHeader.vue'
 import ProjectListOrganism from '~/components/organisms/projects/ProjectListOrganism.vue'
@@ -77,6 +84,7 @@ const config = useRuntimeConfig()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
 const { t } = useI18n()
+
 const id = route.params.id as string
 const searchQuery = ref('')
 const loading = ref(true)
@@ -84,23 +92,27 @@ const error = ref<string | null>(null)
 const projects = ref<any[]>([])
 const isHackathonMember = ref(false)
 
+// Use Projects Composable at component level
+const projectsComposable = useProjects()
+
 // Fetch real projects data from API
 const fetchProjects = async () => {
   loading.value = true
   error.value = null
 
   try {
-    // Get projects for this specific hackathon
-    const response = await authStore.fetchWithAuth(`/api/hackathons/${id}/projects`)
-
-    if (!response.ok) {
-      // If endpoint fails, treat as no projects (empty array)
-      projects.value = []
-    } else {
-      const hackathonProjects = await response.json()
-      // API returns { projects: [], hackathon_id: number }
-      projects.value = hackathonProjects.projects || []
+    const hackathonId = parseInt(id)
+    
+    if (isNaN(hackathonId)) {
+      throw new Error('Invalid hackathon ID')
     }
+
+    const data = await projectsComposable.fetchProjects({
+      hackathonId: hackathonId.toString()
+    })
+
+    // API returns array of projects directly
+    projects.value = data || []
 
     // If no projects found, use empty array
     if (!projects.value || projects.value.length === 0) {
@@ -147,8 +159,9 @@ const transformProject = (apiProject: any) => {
 
   // Generate proper image URL if image_path exists
   let imageUrl = ''
-  if (apiProject.image_path && !apiProject.image_path.includes('/temp/')) {
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+  const rawImagePath = apiProject.imagePath || apiProject.image_path
+  if (rawImagePath && !rawImagePath.includes('/temp/')) {
+    const backendUrl = config.public.apiUrl
 
     // Handle different image_path formats:
     // 1. Full URL (http://... or https://...) - use as-is
@@ -156,19 +169,19 @@ const transformProject = (apiProject: any) => {
     // 3. Path starting with /uploads/ - convert to /static/uploads/ and prepend backend URL
     // 4. Other paths - prepend backend URL and ensure starts with /
 
-    if (apiProject.image_path.startsWith('http://') || apiProject.image_path.startsWith('https://')) {
+    if (rawImagePath.startsWith('http://') || rawImagePath.startsWith('https://')) {
       // Full URL - use as-is
-      imageUrl = apiProject.image_path
-    } else if (apiProject.image_path.startsWith('/static/')) {
+      imageUrl = rawImagePath
+    } else if (rawImagePath.startsWith('/static/')) {
       // Already in correct format for static serving
-      imageUrl = `${backendUrl}${apiProject.image_path}`
-    } else if (apiProject.image_path.startsWith('/uploads/')) {
+      imageUrl = `${backendUrl}${rawImagePath}`
+    } else if (rawImagePath.startsWith('/uploads/')) {
       // Convert /uploads/ to /static/uploads/
-      imageUrl = `${backendUrl}/static${apiProject.image_path}`
+      imageUrl = `${backendUrl}/static${rawImagePath}`
     } else {
       // Other paths - ensure starts with /
-      const imagePath = apiProject.image_path.startsWith('/') ?
-        apiProject.image_path : `/${apiProject.image_path}`
+      const imagePath = rawImagePath.startsWith('/') ?
+        rawImagePath : `/${rawImagePath}`
       imageUrl = `${backendUrl}${imagePath}`
     }
   } else {
@@ -182,7 +195,7 @@ const transformProject = (apiProject: any) => {
   return {
     id: apiProject.id,
     name: projectName,
-    description: apiProject.description || 'No description available.',
+    description: apiProject.description,
     image: imageUrl,
     status: status,
     team: team,

@@ -259,6 +259,7 @@ import { useTeamStore } from '~/stores/team'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
+import { useTeams } from '~/composables/useTeams'
 import TeamDetailsHeader from '~/components/organisms/teams/TeamDetailsHeader.vue'
 import TeamDetailsSidebar from '~/components/organisms/teams/TeamDetailsSidebar.vue'
 import TeamDetailsContent from '~/components/organisms/teams/TeamDetailsContent.vue'
@@ -328,7 +329,9 @@ async function loadTeamProjects() {
 
   projectsLoading.value = true
   try {
-    projects.value = await teamStore.fetchTeamProjects(teamId.value, 0, 10)
+    // Use Teams Composable for API call
+    const { fetchTeamProjects } = useTeams()
+    projects.value = await fetchTeamProjects(teamId.value)
   } catch (err) {
     console.error('Failed to load team projects:', err)
     projects.value = []

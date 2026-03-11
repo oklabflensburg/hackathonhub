@@ -7,7 +7,7 @@
       :action-label="$t('hackathons.createHackathon')"
       action-link="/create/hackathon"
     >
-      <template #controls>
+      <template #actions>
         <div class="flex items-center space-x-4">
           <div class="relative">
             <input v-model="searchQuery" type="text" :placeholder="$t('hackathons.searchPlaceholder')"

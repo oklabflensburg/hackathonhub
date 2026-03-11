@@ -301,22 +301,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, h } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { format } from 'date-fns'
 import { useI18n } from 'vue-i18n'
+
+// Icons
+import { CalendarDays, CheckCircle, ThumbsUp } from 'lucide-vue-next'
+
+// Stores
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
+
+// Composables
 import { usePreferencesStore } from '~/stores/preferences'
+import { useFileUpload } from '~/composables/useFileUpload'
+import { useTeams } from '~/composables/useTeams'
+
+// Components
 import ImprovedStatsCard from '~/components/ImprovedStatsCard.vue'
-import { uploadFile, createPreviewUrl, validateFile } from '~/utils/fileUpload'
 import ProfileHeader from '~/components/organisms/profile/ProfileHeader.vue'
 import UserSettingsForm from '~/components/organisms/profile/UserSettingsForm.vue'
 import ProfileOverview from '~/components/organisms/profile/ProfileOverview.vue'
 import UserProjects from '~/components/organisms/profile/UserProjects.vue'
 import UserTeams from '~/components/organisms/profile/UserTeams.vue'
 import Divider from '~/components/atoms/Divider.vue'
-import { useUserProfile } from '~/composables/useUserProfile'
-import { useTeams } from '~/composables/useTeams'
+
+// Type imports
 import type { UserProfile, UserStats } from '~/types/user-types'
 import type { Project } from '~/types/project-types'
 import type { Team } from '~/types/team-types'
@@ -326,57 +336,10 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 const preferencesStore = usePreferencesStore()
 
-// Icon components for stats cards using render function
-const HackathonIcon = {
-  setup() {
-    return () => h('svg', {
-      fill: 'none',
-      stroke: 'currentColor',
-      viewBox: '0 0 24 24'
-    }, [
-      h('path', {
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-        'stroke-width': '2',
-        d: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'
-      })
-    ])
-  }
-}
-
-const ProjectIcon = {
-  setup() {
-    return () => h('svg', {
-      fill: 'none',
-      stroke: 'currentColor',
-      viewBox: '0 0 24 24'
-    }, [
-      h('path', {
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-        'stroke-width': '2',
-        d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
-      })
-    ])
-  }
-}
-
-const VoteIcon = {
-  setup() {
-    return () => h('svg', {
-      fill: 'none',
-      stroke: 'currentColor',
-      viewBox: '0 0 24 24'
-    }, [
-      h('path', {
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-        'stroke-width': '2',
-        d: 'M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5'
-      })
-    ])
-  }
-}
+// Icon components for stats cards using Lucide icons
+const HackathonIcon = CalendarDays
+const ProjectIcon = CheckCircle
+const VoteIcon = ThumbsUp
 
 const loading = ref(false)
 const isEditing = ref(false)
@@ -393,15 +356,22 @@ const projectsLoading = ref(false)
 const userProjects = ref<Project[]>([])
 
 // Use composables
-const { userProfile, userProfileLoading, userProfileError, refreshUserProfile } = useUserProfile()
-const { 
-  teams: userTeams, 
-  loading: teamsLoading, 
-  error: teamsError, 
-  fetchTeams 
-} = useTeams({
-  userId: authStore.user?.id?.toString() || null,
-  autoFetch: true
+const {
+  teams: userTeams,
+  loading: teamsLoading,
+  error: teamsError,
+  fetchTeams
+} = useTeams({})
+
+// File upload composable for avatar uploads
+const {
+  uploadSingle,
+  validateFile: validateFileComposable,
+  createPreviewUrl: createPreviewUrlComposable
+} = useFileUpload({
+  type: 'avatar',
+  autoErrorHandling: false, // We'll handle errors manually
+  maxSizeMB: 5
 })
 
 // Computed properties for atomic design components
@@ -411,45 +381,52 @@ const profileUser = computed<UserProfile>(() => {
     return {
       id: 0,
       username: '',
+      avatar_url: '',
+      created_at: new Date().toISOString(),
+      // Optional fields with default values
       email: '',
       name: '',
-      avatarUrl: '',
       bio: '',
       location: '',
       company: '',
-      githubId: undefined,
-      googleId: undefined,
-      emailVerified: false,
-      authMethod: undefined,
-      lastLogin: undefined,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      githubUsername: undefined,
-      twitterUsername: undefined,
-      website: undefined
+      github_id: undefined,
+      google_id: undefined,
+      email_verified: false,
+      auth_method: undefined,
+      last_login: undefined,
+      updated_at: new Date().toISOString(),
+      is_admin: false,
+      teams: undefined,
+      projects: undefined,
+      votes: undefined,
+      comments: undefined,
+      hackathon_registrations: undefined
     }
   }
   
   return {
     id: user.value.id,
     username: user.value.username || '',
+    avatar_url: user.value.avatar_url || '',
+    created_at: user.value.created_at || new Date().toISOString(),
+    // Optional fields
     email: user.value.email || '',
     name: user.value.name || '',
-    avatarUrl: user.value.avatar_url || '',
     bio: user.value.bio || '',
     location: user.value.location || '',
     company: user.value.company || '',
-    githubId: user.value.github_id,
-    googleId: user.value.google_id,
-    emailVerified: user.value.email_verified || true,
-    authMethod: user.value.auth_method,
-    lastLogin: user.value.last_login,
-    createdAt: user.value.created_at || new Date().toISOString(),
-    updatedAt: user.value.updated_at || new Date().toISOString(),
-    // Note: Backend doesn't provide these fields, but they're optional
-    githubUsername: undefined,
-    twitterUsername: undefined,
-    website: undefined
+    github_id: user.value.github_id,
+    google_id: user.value.google_id,
+    email_verified: user.value.email_verified || true,
+    auth_method: user.value.auth_method,
+    last_login: user.value.last_login,
+    updated_at: user.value.updated_at || new Date().toISOString(),
+    is_admin: user.value.is_admin || false,
+    teams: user.value.teams,
+    projects: user.value.projects,
+    votes: user.value.votes,
+    comments: user.value.comments,
+    hackathon_registrations: user.value.hackathon_registrations
   }
 })
 
@@ -566,16 +543,16 @@ const handleAvatarUpload = async (event: Event) => {
     return
   }
 
-  // Validate file
-  const validationError = validateFile(file, 5) // 5MB max for avatars
+  // Validate file using composable
+  const validationError = validateFileComposable(file)
   if (validationError) {
     uploadError.value = validationError
     return
   }
 
-  // Create preview
+  // Create preview using composable
   try {
-    avatarPreview.value = await createPreviewUrl(file)
+    avatarPreview.value = await createPreviewUrlComposable(file)
     uploadError.value = null
   } catch (error) {
     uploadError.value = 'Failed to create preview'
@@ -587,8 +564,8 @@ const handleAvatarUpload = async (event: Event) => {
   uploadError.value = null
 
   try {
-    // Upload the file
-    const result = await uploadFile(file, { type: 'avatar', maxSizeMB: 5 })
+    // Upload the file using composable
+    const result = await uploadSingle(file, { type: 'avatar', maxSizeMB: 5 })
 
     // Update user profile with new avatar URL
     const response = await authStore.fetchWithAuth('/api/users/me', {

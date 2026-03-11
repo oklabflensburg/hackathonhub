@@ -1,186 +1,545 @@
-import { computed, ref, unref } from 'vue'
-import type { MaybeRef } from 'vue'
-import type { Ref } from 'vue'
-import { useAuthStore } from '~/stores/auth'
+/**
+ * Comments Composable
+ * Bietet eine konsistente Schnittstelle für alle Kommentar-Operationen
+ * Kapselt API-Aufrufe und bietet reaktiven State, Loading-States und Error-Handling
+ */
+
+import { ref, computed } from 'vue'
+import { useApiClient } from '~/utils/api-client'
 import { useUIStore } from '~/stores/ui'
 
-interface CommentUser {
-  name: string
-  avatar_url: string | null
-}
-
-export interface ProjectComment {
+export interface Comment {
   id: number
   content: string
+  user_id: number
+  project_id: number
+  parent_id?: number
+  upvote_count: number
+  downvote_count: number
+  vote_score: number
   created_at: string
-  user_name?: string
-  user_id?: number
-  upvote_count?: number
-  downvote_count?: number
-  replies?: ProjectComment[]
-  user?: CommentUser
+  updated_at?: string
+  user?: any
+  project?: any
+  replies?: Comment[]
 }
 
-export const useComments = (projectId: MaybeRef<number>, projectCommentCount?: Ref<number>) => {
-  const authStore = useAuthStore()
+export interface CommentCreateData {
+  content: string
+  parent_id?: number
+}
+
+export interface CommentUpdateData {
+  content: string
+}
+
+export interface CommentVoteData {
+  vote_type: 'upvote' | 'downvote'
+}
+
+export interface CommentVoteStats {
+  upvotes: number
+  downvotes: number
+  total_score: number
+  user_vote?: 'upvote' | 'downvote'
+}
+
+export interface UseCommentsOptions {
+  /** Automatisches Error-Handling (Notifications) */
+  autoErrorHandling?: boolean
+  /** Automatisches Success-Handling (Notifications) */
+  autoSuccessHandling?: boolean
+  /** Projekt-ID für Projekt-Kommentare */
+  projectId?: number
+  /** Kommentar-ID für Single-Comment-Operationen */
+  commentId?: number
+}
+
+/**
+ * Comments Composable
+ */
+export function useComments(options: UseCommentsOptions = {}) {
+  const {
+    autoErrorHandling = true,
+    autoSuccessHandling = true,
+    projectId,
+    commentId
+  } = options
+
+  // Stores und Services
   const uiStore = useUIStore()
+  const apiClient = useApiClient()
 
-  const comments = ref<ProjectComment[]>([])
-  const loading = ref(false)
-  const submitting = ref(false)
+  // State
+  const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const comments = ref<Comment[]>([])
+  const currentComment = ref<Comment | null>(null)
+  const commentVoteStats = ref<Record<number, CommentVoteStats>>({})
 
-  const resolvedProjectId = computed(() => Number(unref(projectId)))
-  const getBackendUrl = () => useRuntimeConfig().public.apiUrl || 'http://localhost:8000'
+  // Computed Properties
+  const hasComments = computed(() => comments.value.length > 0)
+  const commentCount = computed(() => comments.value.length)
+  const topLevelComments = computed(() => comments.value.filter(c => !c.parent_id))
+  const nestedComments = computed(() => {
+    const nested: Record<number, Comment[]> = {}
+    comments.value.forEach(comment => {
+      if (comment.parent_id) {
+        const parentId = comment.parent_id
+        if (!nested[parentId]) {
+          nested[parentId] = []
+        }
+        nested[parentId].push(comment)
+      }
+    })
+    return nested
+  })
 
-  const fetchComments = async () => {
+  /**
+   * Kommentare für ein Projekt abrufen
+   */
+  async function fetchProjectComments(projectId: number): Promise<Comment[]> {
     try {
-      loading.value = true
+      isLoading.value = true
       error.value = null
 
-      const response = await authStore.fetchWithAuth(`${getBackendUrl()}/api/projects/${resolvedProjectId.value}/comments`)
-
-      if (!response.ok) {
-        error.value = `Failed to load comments (${response.status})`
-        return
+      const response = await apiClient.get<any>(`/api/projects/${projectId}/comments`)
+      const normalized = Array.isArray(response) ? response : (response?.comments || [])
+      comments.value = normalized
+      return normalized
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Abrufen der Kommentare'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Kommentare Fehler')
       }
-
-      const data = await response.json()
-      comments.value = (data.comments || []).map((comment: ProjectComment) => ({
-        ...comment,
-        user: {
-          name: comment.user_name || 'Anonymous',
-          avatar_url: null,
-        },
-      }))
-    } catch (fetchError) {
-      console.error('Failed to fetch comments:', fetchError)
-      error.value = 'Failed to load comments'
-      uiStore.showError('Failed to load comments', 'Unable to load comments. Please try again later.')
+      
+      throw err
     } finally {
-      loading.value = false
+      isLoading.value = false
     }
   }
 
-  const postComment = async (content: string, parentCommentId?: number) => {
-    if (!authStore.isAuthenticated) {
-      uiStore.showError('Authentication required', 'Please log in to post a comment.')
-      return false
-    }
-
-    if (!content.trim() || submitting.value) {
-      return false
-    }
-
+  /**
+   * Einzelnen Kommentar abrufen
+   */
+  async function fetchComment(commentId: number): Promise<Comment> {
     try {
-      submitting.value = true
-      const response = await authStore.fetchWithAuth(`${getBackendUrl()}/api/projects/${resolvedProjectId.value}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: content.trim(),
-          ...(parentCommentId ? { parent_comment_id: parentCommentId } : {}),
-        }),
+      isLoading.value = true
+      error.value = null
+
+      // Da es keinen direkten GET-Endpunkt für einzelne Kommentare gibt,
+      // müssen wir die Kommentare des Projekts laden und filtern
+      // Oder wir verwenden einen anderen Ansatz
+      // Für jetzt geben wir einen Fehler zurück
+      throw new Error('GET-Endpunkt für einzelne Kommentare nicht verfügbar')
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Abrufen des Kommentars'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Kommentar Fehler')
+      }
+      
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Kommentar für ein Projekt erstellen
+   */
+  async function createProjectComment(projectId: number, commentData: CommentCreateData): Promise<Comment> {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      const response = await apiClient.post<Comment>(`/api/projects/${projectId}/comments`, commentData, {
+        skipErrorNotification: true
       })
 
-      if (!response.ok) {
-        uiStore.showError('Failed to submit comment', `Unable to submit your comment. Please try again. (Error: ${response.status})`)
-        return false
+      // Zum lokalen State hinzufügen
+      comments.value = [response, ...comments.value]
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Kommentar erfolgreich erstellt', 'Kommentar')
       }
 
-      if (projectCommentCount) {
-        projectCommentCount.value += 1
+      return response
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Erstellen des Kommentars'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Kommentar Erstellung Fehler')
       }
-
-      await fetchComments()
-      return true
-    } catch (postError) {
-      console.error('Failed to post comment:', postError)
-      uiStore.showError('Failed to submit comment', 'An unexpected error occurred while submitting your comment. Please try again.')
-      return false
+      
+      throw err
     } finally {
-      submitting.value = false
+      isLoading.value = false
     }
   }
 
-  const updateComment = async (commentId: number, content: string) => {
-    if (!authStore.isAuthenticated) {
-      uiStore.showError('Authentication required', 'Please log in to edit a comment.')
-      return false
-    }
+  /**
+   * Kommentar aktualisieren
+   */
+  async function updateComment(commentId: number, commentData: CommentUpdateData): Promise<Comment> {
+    try {
+      isLoading.value = true
+      error.value = null
 
-    const response = await authStore.fetchWithAuth(`${getBackendUrl()}/api/comments/${commentId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: content.trim() }),
+      const response = await apiClient.put<Comment>(`/api/comments/${commentId}`, commentData, {
+        skipErrorNotification: true
+      })
+
+      // Lokalen State aktualisieren
+      const index = comments.value.findIndex(c => c.id === commentId)
+      if (index !== -1) {
+        comments.value[index] = response
+      }
+
+      if (currentComment.value?.id === commentId) {
+        currentComment.value = response
+      }
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Kommentar erfolgreich aktualisiert', 'Kommentar')
+      }
+
+      return response
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Aktualisieren des Kommentars'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Kommentar Update Fehler')
+      }
+      
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Kommentar löschen
+   */
+  async function deleteComment(commentId: number): Promise<void> {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      await apiClient.delete(`/api/comments/${commentId}`, {
+        skipErrorNotification: true
+      })
+
+      // Aus lokalem State entfernen
+      comments.value = comments.value.filter(c => c.id !== commentId)
+      
+      // Auch Antworten entfernen
+      comments.value = comments.value.filter(c => c.parent_id !== commentId)
+
+      if (currentComment.value?.id === commentId) {
+        currentComment.value = null
+      }
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Kommentar erfolgreich gelöscht', 'Kommentar')
+      }
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Löschen des Kommentars'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Kommentar Löschung Fehler')
+      }
+      
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Für Kommentar voten
+   */
+  async function voteForComment(commentId: number, voteType: 'upvote' | 'downvote'): Promise<void> {
+    try {
+      error.value = null
+
+      await apiClient.post(`/api/comments/${commentId}/vote`, {
+        vote_type: voteType
+      }, {
+        skipErrorNotification: true
+      })
+
+      // Vote-Stats aktualisieren
+      await fetchCommentVoteStats(commentId)
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        const message = voteType === 'upvote' ? 'Upvote erfolgreich' : 'Downvote erfolgreich'
+        uiStore.showSuccess(message, 'Kommentar Vote')
+      }
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Voten für Kommentar'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Kommentar Vote Fehler')
+      }
+      
+      throw err
+    }
+  }
+
+  /**
+   * Vote für Kommentar entfernen
+   */
+  async function removeCommentVote(commentId: number): Promise<void> {
+    try {
+      error.value = null
+
+      await apiClient.delete(`/api/comments/${commentId}/vote`, {
+        skipErrorNotification: true
+      })
+
+      // Vote-Stats aktualisieren
+      await fetchCommentVoteStats(commentId)
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Vote erfolgreich entfernt', 'Kommentar Vote')
+      }
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Entfernen des Votes'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Kommentar Vote Entfernung Fehler')
+      }
+      
+      throw err
+    }
+  }
+
+  /**
+   * Kommentar-Vote-Statistiken abrufen
+   */
+  async function fetchCommentVoteStats(commentId: number): Promise<CommentVoteStats> {
+    try {
+      // Da es keinen direkten Endpunkt für Kommentar-Vote-Statistiken gibt,
+      // müssen wir den Kommentar abrufen und die Statistiken extrahieren
+      // Für jetzt geben wir leere Statistiken zurück
+      const stats: CommentVoteStats = {
+        upvotes: 0,
+        downvotes: 0,
+        total_score: 0
+      }
+      
+      commentVoteStats.value[commentId] = stats
+      return stats
+    } catch (err: any) {
+      console.error('Fehler beim Abrufen der Kommentar-Vote-Statistiken:', err)
+      throw err
+    }
+  }
+
+  /**
+   * Antwort auf Kommentar erstellen
+   */
+  async function createReply(parentCommentId: number, content: string): Promise<Comment> {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      // Zuerst müssen wir die Projekt-ID des Eltern-Kommentars finden
+      const parentComment = comments.value.find(c => c.id === parentCommentId)
+      if (!parentComment) {
+        throw new Error('Eltern-Kommentar nicht gefunden')
+      }
+
+      const commentData: CommentCreateData = {
+        content,
+        parent_id: parentCommentId
+      }
+
+      const response = await apiClient.post<Comment>(`/api/projects/${parentComment.project_id}/comments`, commentData, {
+        skipErrorNotification: true
+      })
+
+      // Zum lokalen State hinzufügen
+      comments.value = [response, ...comments.value]
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Antwort erfolgreich erstellt', 'Kommentar')
+      }
+
+      return response
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Erstellen der Antwort'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Antwort Erstellung Fehler')
+      }
+      
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Kommentare nach Vote-Score sortieren
+   */
+  function sortCommentsByScore(commentsList: Comment[]): Comment[] {
+    return [...commentsList].sort((a, b) => b.vote_score - a.vote_score)
+  }
+
+  /**
+   * Kommentare nach Datum sortieren (neueste zuerst)
+   */
+  function sortCommentsByDate(commentsList: Comment[]): Comment[] {
+    return [...commentsList].sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return dateB - dateA
+    })
+  }
+
+  /**
+   * Kommentare nach Projekt filtern
+   */
+  function filterCommentsByProject(projectId: number): Comment[] {
+    return comments.value.filter(c => c.project_id === projectId)
+  }
+
+  /**
+   * Kommentare nach Benutzer filtern
+   */
+  function filterCommentsByUser(userId: number): Comment[] {
+    return comments.value.filter(c => c.user_id === userId)
+  }
+
+  /**
+   * Antworten auf einen Kommentar abrufen
+   */
+  function getReplies(commentId: number): Comment[] {
+    return comments.value.filter(c => c.parent_id === commentId)
+  }
+
+  /**
+   * Kommentar-Baum erstellen (für verschachtelte Darstellung)
+   */
+  function buildCommentTree(): Comment[] {
+    const commentMap = new Map<number, Comment>()
+    const rootComments: Comment[] = []
+
+    // Alle Kommentare in eine Map einfügen
+    comments.value.forEach(comment => {
+      commentMap.set(comment.id, { ...comment, replies: [] })
     })
 
-    if (!response.ok) {
-      uiStore.showError('Failed to update comment', `Unable to update your comment. Please try again. (Error: ${response.status})`)
-      return false
-    }
-
-    await fetchComments()
-    return true
-  }
-
-  const deleteComment = async (commentId: number) => {
-    if (!authStore.isAuthenticated) {
-      uiStore.showError('Authentication required', 'Please log in to delete a comment.')
-      return false
-    }
-
-    const response = await authStore.fetchWithAuth(`${getBackendUrl()}/api/comments/${commentId}`, {
-      method: 'DELETE',
+    // Kommentare ihren Eltern zuweisen
+    comments.value.forEach(comment => {
+      const commentWithReplies = commentMap.get(comment.id)!
+      if (comment.parent_id && commentMap.has(comment.parent_id)) {
+        const parent = commentMap.get(comment.parent_id)!
+        parent.replies!.push(commentWithReplies)
+      } else {
+        rootComments.push(commentWithReplies)
+      }
     })
 
-    if (!response.ok) {
-      uiStore.showError('Failed to delete comment', `Unable to delete your comment. Please try again. (Error: ${response.status})`)
-      return false
-    }
-
-    if (projectCommentCount) {
-      projectCommentCount.value = Math.max(0, projectCommentCount.value - 1)
-    }
-
-    await fetchComments()
-    return true
+    return rootComments
   }
 
-  const voteComment = async (commentId: number, voteType: 'upvote' | 'downvote') => {
-    if (!authStore.isAuthenticated) {
-      uiStore.showError('Authentication required', 'Please log in to vote on a comment.')
-      return false
-    }
-
-    const response = await authStore.fetchWithAuth(`${getBackendUrl()}/api/comments/${commentId}/vote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ vote_type: voteType }),
-    })
-
-    if (!response.ok) {
-      uiStore.showError('Failed to vote on comment', `Unable to vote on the comment. Please try again. (Error: ${response.status})`)
-      return false
-    }
-
-    await fetchComments()
-    return true
+  /**
+   * Error zurücksetzen
+   */
+  function clearError(): void {
+    error.value = null
   }
 
+  /**
+   * Loading-State zurücksetzen
+   */
+  function clearLoading(): void {
+    isLoading.value = false
+  }
+
+  /**
+   * Composable zurücksetzen
+   */
+  function reset(): void {
+    isLoading.value = false
+    error.value = null
+    comments.value = []
+    currentComment.value = null
+    commentVoteStats.value = {}
+  }
+
+  // Alias for fetchProjectComments for backward compatibility
+  const fetchComments = (id?: number) => {
+    const targetId = id ?? options.projectId
+    if (!targetId) {
+      throw new Error('Project ID is required to fetch comments')
+    }
+    return fetchProjectComments(targetId)
+  }
+  // Aliases for component compatibility
+  const loading = computed(() => isLoading.value)
+  const submitting = computed(() => isLoading.value)
+  const postComment = (content: string, parentId?: number) => {
+    if (!options.projectId) {
+      throw new Error('Project ID is required to post a comment')
+    }
+    return createProjectComment(options.projectId, { content, parent_id: parentId })
+  }
+  const voteComment = voteForComment
+  // Alias for updateComment with string parameter
+  const updateCommentWithString = (commentId: number, content: string) => {
+    return updateComment(commentId, { content })
+  }
+  
   return {
-    comments,
+    // State
+    isLoading: computed(() => isLoading.value),
     loading,
     submitting,
-    error,
+    error: computed(() => error.value),
+    comments: computed(() => comments.value),
+    currentComment: computed(() => currentComment.value),
+    commentVoteStats: computed(() => commentVoteStats.value),
+    
+    // Computed
+    hasComments,
+    commentCount,
+    topLevelComments,
+    nestedComments,
+    
+    // Methods
+    fetchProjectComments,
     fetchComments,
+    fetchComment,
+    createProjectComment,
     postComment,
-    updateComment,
+    updateComment: updateCommentWithString,
     deleteComment,
+    voteForComment,
     voteComment,
+    removeCommentVote,
+    fetchCommentVoteStats,
+    createReply,
+    sortCommentsByScore,
+    sortCommentsByDate,
+    filterCommentsByProject,
+    filterCommentsByUser,
+    getReplies,
+    buildCommentTree,
+    
+    // Utilities
+    clearError,
+    clearLoading,
+    reset
   }
 }

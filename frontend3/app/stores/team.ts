@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from './auth'
 import { useUIStore } from './ui'
 
+// Types werden jetzt aus team-types.ts importiert
+// Lokale Definitionen bleiben für Abwärtskompatibilität
 export interface Team {
   id: number
   name: string

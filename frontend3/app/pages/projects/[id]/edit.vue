@@ -75,7 +75,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
-import { uploadFile, validateFile, createPreviewUrl } from '~/utils/fileUpload'
+import { useFileUpload } from '~/composables/useFileUpload'
+import { createPreviewUrl } from '~/utils/fileUpload'
 import PageHeader from '~/components/molecules/PageHeader.vue'
 import Card from '~/components/atoms/Card.vue'
 import LoadingState from '~/components/molecules/LoadingState.vue'
@@ -87,6 +88,11 @@ const router = useRouter()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
 const { t } = useI18n()
+const { uploadSingle, validateFile: validateFileComposable } = useFileUpload({ 
+  type: 'project',
+  autoErrorHandling: false, // Wir behandeln Errors selbst
+  trackProgress: false // Kein Progress-Tracking für einfache Uploads
+})
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -198,7 +204,7 @@ const handleProjectImageUpload = async (event: Event) => {
   }
 
   const file = input.files[0]
-  const validationError = validateFile(file)
+  const validationError = validateFileComposable(file)
   if (validationError) {
     uiStore.showError(validationError, t('projects.edit.uploadError'))
     return
@@ -210,8 +216,8 @@ const handleProjectImageUpload = async (event: Event) => {
     const previewUrl = await createPreviewUrl(file)
     formData.value.image_url = previewUrl
 
-    // Upload file to backend
-    const response = await uploadFile(file, {
+    // Upload file to backend via useFileUpload composable
+    const response = await uploadSingle(file, {
       type: 'project'
     })
 

@@ -123,7 +123,11 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from '#imports'
 import { useI18n } from 'vue-i18n'
+
+// Stores
 import { useAuthStore } from '~/stores/auth'
+
+// Components
 import Button from '~/components/atoms/Button.vue'
 
 const { t } = useI18n()

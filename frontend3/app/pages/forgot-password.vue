@@ -23,50 +23,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '~/stores/ui'
-import { useAuthStore } from '~/stores/auth'
+import { useAuth } from '~/composables/useAuth'
 import ForgotPasswordForm from '~/components/organisms/auth/ForgotPasswordForm.vue'
 
 const { t } = useI18n()
-const config = useRuntimeConfig()
 const uiStore = useUIStore()
-const authStore = useAuthStore()
+const { forgotPassword, isLoading: authLoading, error: authError, clearError } = useAuth({
+  autoRedirect: false
+})
 
 const email = ref('')
-const isLoading = ref(false)
-const errorMessage = ref<string | undefined>(undefined)
 const successMessage = ref<string | undefined>(undefined)
 
+// Computed Properties
+const isLoading = computed(() => authLoading.value)
+const errorMessage = computed(() => {
+  const err = authError.value
+  return err === null ? undefined : err
+})
+
 const handleForgotPassword = async () => {
-  isLoading.value = true
-  errorMessage.value = undefined
+  clearError()
   successMessage.value = undefined
   
   try {
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-    const response = await fetch(`${backendUrl}/api/auth/forgot-password`, {
-      method: 'POST',
-      body: JSON.stringify({ email: email.value }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.detail || `HTTP error ${response.status}`)
-    }
-    
-    const data = await response.json()
+    await forgotPassword({ email: email.value })
     
     // Show success message in the form
-    successMessage.value = data.message || t('auth.forgotPassword.successMessage')
+    successMessage.value = t('auth.forgotPassword.successMessage')
     
     // Also show notification
     uiStore.showSuccess(
-      data.message || t('auth.forgotPassword.successMessage'),
+      t('auth.forgotPassword.successMessage'),
       t('auth.forgotPassword.title')
     )
     
@@ -76,16 +67,12 @@ const handleForgotPassword = async () => {
   } catch (error: any) {
     console.error('Forgot password error:', error)
     
-    // Show error message in the form
-    errorMessage.value = error.message || t('auth.forgotPassword.errorMessage')
-    
-    // Also show notification
+    // Error message wird bereits vom Composable gesetzt
+    // Zusätzliche Notification anzeigen
     uiStore.showError(
       error.message || t('auth.forgotPassword.errorMessage'),
       t('auth.forgotPassword.title')
     )
-  } finally {
-    isLoading.value = false
   }
 }
 </script>

@@ -24,41 +24,20 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from '#imports'
 import { useI18n } from 'vue-i18n'
+import { useAuth } from '~/composables/useAuth'
 import EmailVerificationStatus from '~/components/organisms/auth/EmailVerificationStatus.vue'
 
 const { t } = useI18n()
 const route = useRoute()
+const { verifyEmail, isLoading: authLoading, error: authError, clearError } = useAuth({
+  autoRedirect: false
+})
 
-const isLoading = ref(true)
 const isVerified = ref(false)
 const error = ref<string | undefined>(undefined)
 
-async function verifyEmailToken(token: string) {
-  try {
-    const config = useRuntimeConfig()
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-
-    const response = await fetch(`${backendUrl}/api/auth/verify-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.detail || `Verification failed with status ${response.status}`)
-    }
-
-    const data = await response.json()
-    console.log('Email verification successful:', data)
-    return data
-  } catch (err) {
-    console.error('Email verification error:', err)
-    throw err
-  }
-}
+// Computed Properties
+const isLoading = ref(true)
 
 onMounted(async () => {
   const token = route.query.token as string
@@ -69,11 +48,12 @@ onMounted(async () => {
   }
 
   try {
-    await verifyEmailToken(token)
+    clearError()
+    await verifyEmail({ token })
     isVerified.value = true
     error.value = undefined
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred'
+  } catch (err: any) {
+    error.value = err.message || 'Unknown error occurred'
     isVerified.value = false
   } finally {
     isLoading.value = false

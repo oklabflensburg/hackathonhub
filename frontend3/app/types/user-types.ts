@@ -8,31 +8,50 @@ import type { Hackathon } from './hackathon-types'
 
 export interface User {
   id: number
+  github_id?: string
+  google_id?: string
   username: string
-  email: string
+  avatar_url: string
+  email?: string
+  email_verified?: boolean
+  auth_method?: 'github' | 'google' | 'email'
+  created_at: string
+  last_login?: string
   name?: string
-  avatarUrl?: string
   bio?: string
   location?: string
   company?: string
-  githubId?: number
-  googleId?: string
-  emailVerified: boolean
-  authMethod?: string
-  lastLogin?: string
-  createdAt: string
-  updatedAt?: string
-  // Optional social media usernames (not provided by backend but used by frontend components)
-  githubUsername?: string
-  twitterUsername?: string
-  website?: string
+  updated_at?: string
+  is_admin?: boolean
+  // Extended fields from /api/me (UserWithDetails)
+  teams?: Array<{
+    id: number
+    team_id: number
+    user_id: number
+    role: 'owner' | 'member'
+    joined_at: string
+    team?: {
+      id: number
+      name: string
+      description: string
+      hackathon_id: number
+      max_members: number
+      is_open: boolean
+      created_by: number
+      created_at: string
+      member_count?: number
+    }
+  }>
+  projects?: any[]
+  votes?: any[]
+  comments?: any[]
+  hackathon_registrations?: any[]
 }
 
 export interface UserProfile extends User {
   stats?: UserStats
-  teams?: Team[]
-  projects?: Project[]
-  hackathons?: Hackathon[]
+  // Note: teams, projects, hackathons are already defined in User interface
+  // These are kept for backward compatibility
 }
 
 export interface UserStats {

@@ -37,25 +37,30 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
 import { useUIStore } from '~/stores/ui'
-import { useAuthStore } from '~/stores/auth'
+import { useAuth } from '~/composables/useAuth'
 import ResetPasswordForm from '~/components/organisms/auth/ResetPasswordForm.vue'
 
 const { t } = useI18n()
 const route = useRoute()
-const config = useRuntimeConfig()
 const uiStore = useUIStore()
-const authStore = useAuthStore()
+const { resetPassword, isLoading: authLoading, error: authError, clearError } = useAuth({
+  autoRedirect: false
+})
 
 const token = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-const isLoading = ref(false)
 const invalidToken = ref(false)
-const errorMessage = ref<string | undefined>(undefined)
 const successMessage = ref<string | undefined>(undefined)
 
+// Computed Properties
 const passwordMismatch = computed(() => {
   return Boolean(password.value && confirmPassword.value && password.value !== confirmPassword.value)
+})
+const isLoading = computed(() => authLoading.value)
+const errorMessage = computed(() => {
+  const err = authError.value
+  return err === null ? undefined : err
 })
 
 onMounted(() => {
@@ -63,7 +68,6 @@ onMounted(() => {
   const tokenParam = route.query.token as string
   if (!tokenParam) {
     invalidToken.value = true
-    errorMessage.value = t('auth.resetPassword.missingToken')
     uiStore.showError(
       t('auth.resetPassword.missingToken'),
       t('auth.resetPassword.title')
@@ -75,7 +79,6 @@ onMounted(() => {
 
 const handleResetPassword = async () => {
   if (passwordMismatch.value) {
-    errorMessage.value = t('auth.resetPassword.passwordMismatch')
     uiStore.showError(
       t('auth.resetPassword.passwordMismatch'),
       t('auth.resetPassword.title')
@@ -83,36 +86,21 @@ const handleResetPassword = async () => {
     return
   }
   
-  isLoading.value = true
-  errorMessage.value = undefined
+  clearError()
   successMessage.value = undefined
   
   try {
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
-    const response = await fetch(`${backendUrl}/api/auth/reset-password`, {
-      method: 'POST',
-      body: JSON.stringify({ 
-        token: token.value,
-        new_password: password.value 
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    await resetPassword({ 
+      token: token.value,
+      newPassword: password.value 
     })
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.detail || `HTTP error ${response.status}`)
-    }
-    
-    const data = await response.json()
-    
     // Show success message in the form
-    successMessage.value = data.message || t('auth.resetPassword.successMessage')
+    successMessage.value = t('auth.resetPassword.successMessage')
     
     // Also show notification
     uiStore.showSuccess(
-      data.message || t('auth.resetPassword.successMessage'),
+      t('auth.resetPassword.successMessage'),
       t('auth.resetPassword.title')
     )
     
@@ -128,10 +116,8 @@ const handleResetPassword = async () => {
   } catch (error: any) {
     console.error('Reset password error:', error)
     
-    // Show error message in the form
-    errorMessage.value = error.message || t('auth.resetPassword.errorMessage')
-    
-    // Also show notification
+    // Error message wird bereits vom Composable gesetzt
+    // Zusätzliche Notification anzeigen
     uiStore.showError(
       error.message || t('auth.resetPassword.errorMessage'),
       t('auth.resetPassword.title')
@@ -141,8 +127,6 @@ const handleResetPassword = async () => {
     if (error.message.includes('Invalid') || error.message.includes('expired')) {
       invalidToken.value = true
     }
-  } finally {
-    isLoading.value = false
   }
 }
 </script>

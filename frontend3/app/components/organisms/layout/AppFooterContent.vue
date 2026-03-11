@@ -18,7 +18,7 @@
           :description="t('footer.subscribeToNewsletter')"
           :placeholder="t('footer.emailPlaceholder')"
           :email="newsletterEmail"
-          :button-label="newsletterLoading ? t('footer.subscribing') : t('footer.subscribe')"
+          :button-label="isLoading ? t('footer.subscribing') : t('footer.subscribe')"
           :disabled="!canSubscribe"
           :validation-message="validationMessage"
           :validation-class="validationClass"
@@ -52,11 +52,13 @@ import Grid from '~/components/molecules/Grid.vue'
 const { t } = useI18n()
 const uiStore = useUIStore()
 const preferences = usePreferencesStore()
-const apiUrl = useRuntimeConfig().public.apiUrl
+const { subscribe, isLoading, error } = useNewsletter({
+  autoErrorHandling: false, // Wir behandeln Errors selbst
+  autoSuccessHandling: false // Wir behandeln Success selbst
+})
 
 const currentYear = new Date().getFullYear()
 const newsletterEmail = ref('')
-const newsletterLoading = ref(false)
 const subscribedEmails = ref<Set<string>>(new Set())
 
 const quickLinks = computed(() => [
@@ -79,7 +81,7 @@ onMounted(() => {
 
 const isValidEmail = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newsletterEmail.value))
 const isAlreadySubscribed = computed(() => subscribedEmails.value.has(newsletterEmail.value.toLowerCase()))
-const canSubscribe = computed(() => !!newsletterEmail.value && isValidEmail.value && !newsletterLoading.value && !isAlreadySubscribed.value)
+const canSubscribe = computed(() => !!newsletterEmail.value && isValidEmail.value && !isLoading.value && !isAlreadySubscribed.value)
 
 const validationMessage = computed(() => {
   if (newsletterEmail.value && !isValidEmail.value) return t('validation.emailInvalid')
@@ -96,34 +98,17 @@ const validationClass = computed(() => {
 const subscribeToNewsletter = async () => {
   if (!canSubscribe.value) return
 
-  newsletterLoading.value = true
   try {
-    const idempotencyKey = `newsletter-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-    const response = await fetch(`${apiUrl}/api/newsletter/subscribe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Idempotency-Key': idempotencyKey,
-      },
-      body: JSON.stringify({ email: newsletterEmail.value, source: 'website_footer' }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      uiStore.showError(data.detail || t('footer.failedToSubscribe'))
-      return
-    }
-
+    await subscribe(newsletterEmail.value, 'website_footer')
+    
+    // Erfolg - lokalen State aktualisieren
     preferences.newsletter.subscribe(newsletterEmail.value)
     subscribedEmails.value = new Set(preferences.newsletter.getSubscribedEmails())
-    uiStore.showSuccess(data.message || t('footer.successfullySubscribed'))
+    uiStore.showSuccess(t('footer.successfullySubscribed'))
     newsletterEmail.value = ''
-  } catch (error) {
-    console.error('Newsletter subscription error:', error)
-    uiStore.showError(t('footer.failedToSubscribe'))
-  } finally {
-    newsletterLoading.value = false
+  } catch (err: any) {
+    // Error wird bereits vom Composable gesetzt, aber wir zeigen eine benutzerdefinierte Nachricht
+    uiStore.showError(err.message || t('footer.failedToSubscribe'))
   }
 }
 </script>

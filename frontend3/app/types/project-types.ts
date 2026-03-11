@@ -3,6 +3,8 @@
  * Definiert alle Typen für Projekt-bezogene Komponenten
  */
 
+import type { Ref } from 'vue'
+
 /**
  * Benutzer (vereinfachte Version für Projekt-Komponenten)
  */
@@ -118,6 +120,7 @@ export interface Project {
   status: ProjectStatus
   visibility: ProjectVisibility
   featuredImage?: string
+  imagePath?: string
   galleryImages?: string[]
   
   // Metadaten
@@ -480,6 +483,142 @@ export const PROJECT_SORT_LABELS: Record<ProjectSortOption, string> = {
   [ProjectSortOption.TRENDING]: 'Trending',
   [ProjectSortOption.DEADLINE]: 'Deadline',
   [ProjectSortOption.ALPHABETICAL]: 'Alphabetisch',
+}
+
+/**
+ * API-spezifische Typen für Projekte-Composable
+ */
+
+export interface VoteData {
+  voteType: 'upvote' | 'downvote'
+}
+
+export interface VoteStats {
+  upvotes: number
+  downvotes: number
+  totalScore: number
+  userVote?: 'upvote' | 'downvote'
+}
+
+export interface ApiProject {
+  id: number
+  title: string
+  description?: string
+  repository_url?: string
+  live_url?: string
+  technologies?: string
+  status?: string
+  is_public?: boolean
+  hackathon_id?: number
+  team_id?: number
+  image_path?: string
+  owner_id?: number
+  created_at: string
+  updated_at?: string
+  upvote_count: number
+  downvote_count: number
+  vote_score: number
+  comment_count: number
+  view_count: number
+  owner?: any
+  hackathon?: any
+  team?: any
+}
+
+export interface ApiProjectCreateData {
+  title: string
+  description?: string
+  repository_url?: string
+  live_url?: string
+  technologies?: string
+  status?: string
+  is_public?: boolean
+  hackathon_id?: number
+  team_id?: number
+  image_path?: string
+}
+
+export interface ApiProjectUpdateData {
+  title?: string
+  description?: string
+  repository_url?: string
+  live_url?: string
+  technologies?: string
+  status?: string
+  is_public?: boolean
+  hackathon_id?: number
+  team_id?: number
+  image_path?: string
+}
+
+/**
+ * Frontend-spezifische Typen (camelCase, string IDs)
+ */
+export interface ProjectCreateData {
+  title: string
+  description?: string
+  repositoryUrl?: string
+  liveUrl?: string
+  technologies?: string
+  status?: string
+  isPublic?: boolean
+  hackathonId?: string
+  teamId?: string
+  imagePath?: string
+}
+
+export interface ProjectUpdateData {
+  title?: string
+  description?: string
+  repositoryUrl?: string
+  liveUrl?: string
+  technologies?: string
+  status?: string
+  isPublic?: boolean
+  hackathonId?: string
+  teamId?: string
+  imagePath?: string
+}
+
+/**
+ * Composable Return Type für useProjects
+ */
+export interface UseProjectsReturn {
+  // State
+  isLoading: Ref<boolean>
+  error: Ref<string | null>
+  projects: Ref<Project[]>
+  currentProject: Ref<Project | null>
+  projectVoteStats: Ref<Record<string, VoteStats>>
+  
+  // Computed
+  hasProjects: Ref<boolean>
+  projectCount: Ref<number>
+  
+  // Methods
+  fetchProjects: (filters?: {
+    hackathonId?: string
+    teamId?: string
+    userId?: string
+    status?: string
+    search?: string
+    limit?: number
+    offset?: number
+  }) => Promise<Project[]>
+  
+  fetchProject: (projectId: string) => Promise<Project>
+  createProject: (projectData: ProjectCreateData) => Promise<Project>
+  updateProject: (projectId: string, projectData: ProjectUpdateData) => Promise<Project>
+  deleteProject: (projectId: string) => Promise<void>
+  voteForProject: (projectId: string, voteType: 'upvote' | 'downvote') => Promise<void>
+  removeVote: (projectId: string) => Promise<void>
+  fetchVoteStats: (projectId: string) => Promise<VoteStats>
+  incrementViewCount: (projectId: string) => Promise<void>
+  
+  // Utilities
+  clearError: () => void
+  clearLoading: () => void
+  reset: () => void
 }
 
 /**

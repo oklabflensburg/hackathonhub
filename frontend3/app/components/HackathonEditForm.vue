@@ -259,6 +259,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useFileUpload } from '~/composables/useFileUpload'
 
 const props = defineProps<{
   visible: boolean
@@ -289,6 +290,16 @@ const imageInput = ref<HTMLInputElement>()
 const uploading = ref(false)
 const uploadError = ref<string | null>(null)
 
+// File upload composable
+const {
+  uploadSingle,
+  validateFile: validateFileComposable,
+  createPreviewUrl
+} = useFileUpload({
+  type: 'hackathon',
+  autoErrorHandling: false // We'll handle errors manually
+})
+
 const triggerImageUpload = () => {
   imageInput.value?.click()
 }
@@ -301,8 +312,8 @@ const handleImageUpload = async (event: Event) => {
   
   const file = input.files[0]
   
-  // Validate file
-  const validationError = validateFile(file)
+  // Validate file using composable
+  const validationError = validateFileComposable(file)
   if (validationError) {
     uploadError.value = validationError
     return
@@ -312,12 +323,12 @@ const handleImageUpload = async (event: Event) => {
   uploadError.value = null
   
   try {
-    // Create preview for immediate display
+    // Create preview for immediate display using utility
     const previewUrl = await createPreviewUrl(file)
     localFormData.value.image_url = previewUrl
     
-    // Upload file to backend
-    const response = await uploadFile(file, {
+    // Upload file to backend using composable
+    const response = await uploadSingle(file, {
       type: 'hackathon'
     })
     
@@ -340,7 +351,4 @@ const removeImage = () => {
   }
   uploadError.value = null
 }
-
-// Import file upload utilities
-import { uploadFile, createPreviewUrl, validateFile } from '~/utils/fileUpload'
 </script>

@@ -1,684 +1,439 @@
-import { ref, computed, watch } from 'vue'
-import type { Project, ProjectFilterOptions } from '../types/project-types'
-import { ProjectSortOption } from '../types/project-types'
-import { useAuthStore } from '~/stores/auth'
+/**
+ * Projects Composable
+ * Bietet eine konsistente Schnittstelle für alle Projekt-Operationen
+ * Kapselt API-Aufrufe und bietet reaktiven State, Loading-States und Error-Handling
+ * 
+ * Migriert zur Verwendung zentraler Typ-Definitionen (project-types.ts)
+ */
+
+import { ref, computed } from 'vue'
+import { useApiClient } from '~/utils/api-client'
 import { useUIStore } from '~/stores/ui'
+import type { 
+  Project, 
+  ProjectCreateData, 
+  ProjectUpdateData,
+  ProjectStatus,
+  ProjectVisibility,
+  ProjectFilterOptions,
+  ProjectSortOption,
+  ProjectListResponse,
+  ProjectStats,
+  ProjectVote,
+  ProjectComment,
+  VoteStats,
+  VoteData,
+  UseProjectsReturn
+} from '~/types/project-types'
+import { snakeToCamel, mapApiProjectToProject, mapPaginatedResponse, idToNumber, idToString } from '~/utils/api-mappers'
+
+export interface UseProjectsOptions {
+  /** Automatisches Error-Handling (Notifications) */
+  autoErrorHandling?: boolean
+  /** Automatisches Success-Handling (Notifications) */
+  autoSuccessHandling?: boolean
+  /** Initiale Projekt-ID für Single-Project-Operationen */
+  initialProjectId?: string
+}
 
 /**
- * Composable für Projekt-bezogene Daten und Logik
- * Bietet Funktionen zum Laden, Filtern, Sortieren und Verwalten von Projekten
- * Verwendet echte API-Aufrufe statt Mock-Daten
+ * Projects Composable
  */
-export function useProjects() {
-  // Stores
-  const authStore = useAuthStore()
+export function useProjects(options: UseProjectsOptions = {}): UseProjectsReturn {
+  const {
+    autoErrorHandling = true,
+    autoSuccessHandling = true,
+    initialProjectId
+  } = options
+
+  // Stores und Services
   const uiStore = useUIStore()
+  const apiClient = useApiClient()
 
   // State
-  const projects = ref<Project[]>([])
-  const loading = ref(false)
+  const isLoading = ref(false)
   const error = ref<string | null>(null)
-  
-  // Filter und Sortierung
-  const filters = ref<ProjectFilterOptions>({})
-  const sortOption = ref<ProjectSortOption>(ProjectSortOption.NEWEST)
-  const searchQuery = ref('')
-  const currentPage = ref(1)
-  const itemsPerPage = ref(12)
-  const totalItems = ref(0)
-  
+  const projects = ref<Project[]>([])
+  const currentProject = ref<Project | null>(null)
+  const projectVoteStats = ref<Record<string, VoteStats>>({})
+
   // Computed Properties
-  const filteredProjects = computed(() => {
-    let result = [...projects.value]
-    
-    // Search Filter
-    if (searchQuery.value.trim()) {
-      const query = searchQuery.value.toLowerCase().trim()
-      result = result.filter(project =>
-        project.title.toLowerCase().includes(query) ||
-        project.description.toLowerCase().includes(query) ||
-        project.tags?.some(tag => tag.name.toLowerCase().includes(query)) ||
-        project.technologies?.some(tech => tech.name.toLowerCase().includes(query))
-      )
-    }
-    
-    // Status Filter
-    if (filters.value.status && filters.value.status.length > 0) {
-      result = result.filter(project =>
-        filters.value.status!.includes(project.status)
-      )
-    }
-    
-    // Technology Filter
-    if (filters.value.technologies && filters.value.technologies.length > 0) {
-      result = result.filter(project =>
-        project.technologies?.some(tech =>
-          filters.value.technologies!.includes(tech.id)
-        )
-      )
-    }
-    
-    // Tag Filter
-    if (filters.value.tags && filters.value.tags.length > 0) {
-      result = result.filter(project =>
-        project.tags?.some(tag =>
-          filters.value.tags!.includes(tag.id)
-        )
-      )
-    }
-    
-    // Hackathon Filter
-    if (filters.value.hackathonId) {
-      result = result.filter(project =>
-        project.hackathonId === filters.value.hackathonId
-      )
-    }
-    
-    // Visibility Filter
-    if (filters.value.visibility && filters.value.visibility.length > 0) {
-      result = result.filter(project =>
-        filters.value.visibility!.includes(project.visibility)
-      )
-    }
-    
-    // Bookmarked Filter
-    if (filters.value.bookmarked !== undefined) {
-      result = result.filter(project =>
-        filters.value.bookmarked ? project.isBookmarked : !project.isBookmarked
-      )
-    }
-    
-    // Voted Filter
-    if (filters.value.voted) {
-      result = result.filter(project => {
-        if (filters.value.voted === 'upvoted') {
-          return project.userVote === 1
-        } else if (filters.value.voted === 'downvoted') {
-          return project.userVote === -1
-        }
-        return true
-      })
-    }
-    
-    // Team Size Filter
-    if (filters.value.teamSize) {
-      result = result.filter(project => {
-        const teamSize = project.team?.length || 0
-        const min = filters.value.teamSize!.min || 0
-        const max = filters.value.teamSize!.max || Infinity
-        return teamSize >= min && teamSize <= max
-      })
-    }
-    
-    // Date Range Filter
-    if (filters.value.createdAt) {
-      result = result.filter(project => {
-        const projectDate = new Date(project.createdAt).getTime()
-        const from = filters.value.createdAt!.from
-          ? new Date(filters.value.createdAt!.from).getTime()
-          : -Infinity
-        const to = filters.value.createdAt!.to
-          ? new Date(filters.value.createdAt!.to).getTime()
-          : Infinity
-        return projectDate >= from && projectDate <= to
-      })
-    }
-    
-    return result
-  })
-  
-  const sortedProjects = computed(() => {
-    const projectsToSort = [...filteredProjects.value]
-    
-    switch (sortOption.value) {
-      case ProjectSortOption.NEWEST:
-        return projectsToSort.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-      
-      case ProjectSortOption.OLDEST:
-        return projectsToSort.sort((a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        )
-      
-      case ProjectSortOption.MOST_VIEWED:
-        return projectsToSort.sort((a, b) =>
-          b.stats.views - a.stats.views
-        )
-      
-      case ProjectSortOption.MOST_VOTED:
-        return projectsToSort.sort((a, b) =>
-          b.stats.votes - a.stats.votes
-        )
-      
-      case ProjectSortOption.MOST_COMMENTED:
-        return projectsToSort.sort((a, b) =>
-          b.stats.comments - a.stats.comments
-        )
-      
-      case ProjectSortOption.TRENDING:
-        // Simple trending algorithm based on recent activity
-        return projectsToSort.sort((a, b) => {
-          const aScore = calculateTrendingScore(a)
-          const bScore = calculateTrendingScore(b)
-          return bScore - aScore
-        })
-      
-      case ProjectSortOption.DEADLINE:
-        return projectsToSort.sort((a, b) => {
-          if (!a.deadline && !b.deadline) return 0
-          if (!a.deadline) return 1
-          if (!b.deadline) return -1
-          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-        })
-      
-      case ProjectSortOption.ALPHABETICAL:
-        return projectsToSort.sort((a, b) =>
-          a.title.localeCompare(b.title)
-        )
-      
-      default:
-        return projectsToSort
-    }
-  })
-  
-  const paginatedProjects = computed(() => {
-    const startIndex = (currentPage.value - 1) * itemsPerPage.value
-    const endIndex = startIndex + itemsPerPage.value
-    return sortedProjects.value.slice(startIndex, endIndex)
-  })
-  
-  const totalPages = computed(() => {
-    return Math.ceil(sortedProjects.value.length / itemsPerPage.value)
-  })
-  
-  const hasFilters = computed(() => {
-    return Object.keys(filters.value).length > 0 || searchQuery.value.trim() !== ''
-  })
-  
-  const activeFilterCount = computed(() => {
-    let count = 0
-    
-    if (searchQuery.value.trim()) count++
-    
-    if (filters.value.status && filters.value.status.length > 0) {
-      count += filters.value.status.length
-    }
-    
-    if (filters.value.technologies && filters.value.technologies.length > 0) {
-      count += filters.value.technologies.length
-    }
-    
-    if (filters.value.tags && filters.value.tags.length > 0) {
-      count += filters.value.tags.length
-    }
-    
-    if (filters.value.hackathonId) count++
-    if (filters.value.visibility && filters.value.visibility.length > 0) count++
-    if (filters.value.bookmarked !== undefined) count++
-    if (filters.value.voted) count++
-    if (filters.value.teamSize) count++
-    if (filters.value.createdAt) count++
-    
-    return count
-  })
-  
-  // Helper Functions
-  const calculateTrendingScore = (project: Project): number => {
-    // Simple trending score based on recent activity
-    const now = new Date().getTime()
-    const createdAt = new Date(project.createdAt).getTime()
-    const ageInDays = (now - createdAt) / (1000 * 60 * 60 * 24)
-    
-    // Weight recent projects higher
-    const recencyScore = Math.max(0, 30 - ageInDays) / 30
-    
-    // Weight engagement metrics
-    const viewScore = Math.min(project.stats.views / 1000, 1)
-    const voteScore = Math.min(project.stats.votes / 100, 1)
-    const commentScore = Math.min(project.stats.comments / 50, 1)
-    
-    // Combined score
-    return (
-      recencyScore * 0.4 +
-      viewScore * 0.3 +
-      voteScore * 0.2 +
-      commentScore * 0.1
-    )
-  }
-  
-  // Methods
-  const loadProjects = async (options: {
-    forceRefresh?: boolean
-    userId?: string
+  const hasProjects = computed(() => projects.value.length > 0)
+  const projectCount = computed(() => projects.value.length)
+
+  /**
+   * Alle Projekte abrufen
+   */
+  async function fetchProjects(filters?: {
     hackathonId?: string
-  } = {}) => {
-    if (loading.value && !options.forceRefresh) return
-    
+    teamId?: string
+    userId?: string
+    status?: string
+    search?: string
+    limit?: number
+    offset?: number
+  }): Promise<Project[]> {
     try {
-      loading.value = true
+      isLoading.value = true
       error.value = null
-      
-      // Build query parameters
+
       const queryParams = new URLSearchParams()
-      if (options.userId) queryParams.append('user', options.userId)
-      if (options.hackathonId) queryParams.append('hackathon', options.hackathonId)
-      if (searchQuery.value.trim()) queryParams.append('search', searchQuery.value)
+      if (filters?.hackathonId) queryParams.append('hackathon_id', idToNumber(filters.hackathonId).toString())
+      if (filters?.teamId) queryParams.append('team_id', idToNumber(filters.teamId).toString())
+      if (filters?.userId) queryParams.append('user_id', idToNumber(filters.userId).toString())
+      if (filters?.status) queryParams.append('status', filters.status)
+      if (filters?.search) queryParams.append('search', filters.search)
+      if (filters?.limit) queryParams.append('limit', filters.limit.toString())
+      if (filters?.offset) queryParams.append('offset', filters.offset.toString())
+
+      const url = `/api/projects${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+      const response = await apiClient.get<any[]>(url)
+
+      // API-Response zu Frontend-Typen mappen
+      const mappedProjects = response.map(mapApiProjectToProject)
+      projects.value = mappedProjects
+      return mappedProjects
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Abrufen der Projekte'
       
-      // Apply filters
-      if (filters.value.status && filters.value.status.length > 0) {
-        queryParams.append('status', filters.value.status.join(','))
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Projekte Fehler')
       }
       
-      const queryString = queryParams.toString()
-      const url = `/api/v1/projects${queryString ? `?${queryString}` : ''}`
-      
-      const response = await authStore.fetchWithAuth(url)
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load projects: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      projects.value = data
-      totalItems.value = data.length
-      
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to load projects'
-      console.error('Error loading projects:', err)
-      uiStore.showNotification({
-        title: 'Fehler',
-        type: 'error',
-        message: 'Projekte konnten nicht geladen werden'
-      })
+      throw err
     } finally {
-      loading.value = false
+      isLoading.value = false
     }
   }
-  
-  const loadProject = async (projectId: string) => {
+
+  /**
+   * Einzelnes Projekt abrufen
+   */
+  async function fetchProject(projectId: string): Promise<Project> {
     try {
-      loading.value = true
+      isLoading.value = true
       error.value = null
+
+      const numericId = idToNumber(projectId)
+      const response = await apiClient.get<any>(`/api/projects/${numericId}`)
       
-      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}`)
+      // API-Response zu Frontend-Typ mappen
+      const mappedProject = mapApiProjectToProject(response)
+      currentProject.value = mappedProject
+
+      // View-Count inkrementieren
+      await incrementViewCount(projectId)
+
+      return mappedProject
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Abrufen des Projekts'
       
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Project not found')
-        }
-        throw new Error(`Failed to load project: ${response.statusText}`)
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Projekt Fehler')
       }
       
-      const project = await response.json()
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Projekt erstellen
+   */
+  async function createProject(projectData: ProjectCreateData): Promise<Project> {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      // Frontend-Typ zu API-Payload mappen (camelCase → snake_case, string → number IDs)
+      const apiPayload = {
+        title: projectData.title,
+        description: projectData.description,
+        repository_url: projectData.repositoryUrl,
+        live_url: projectData.liveUrl,
+        technologies: projectData.technologies,
+        status: projectData.status,
+        is_public: projectData.isPublic,
+        hackathon_id: projectData.hackathonId ? idToNumber(projectData.hackathonId) : undefined,
+        team_id: projectData.teamId ? idToNumber(projectData.teamId) : undefined,
+        image_path: projectData.imagePath
+      }
+
+      const response = await apiClient.post<any>('/api/projects', apiPayload, {
+        skipErrorNotification: true // Wir behandeln Errors selbst
+      })
+
+      // API-Response zu Frontend-Typ mappen
+      const mappedProject = mapApiProjectToProject(response)
+
+      // Zum lokalen State hinzufügen
+      projects.value = [mappedProject, ...projects.value]
+      currentProject.value = mappedProject
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Projekt erfolgreich erstellt', 'Projekt')
+      }
+
+      return mappedProject
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Erstellen des Projekts'
       
-      // Update local state if project exists in list
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Projekt Erstellung Fehler')
+      }
+      
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Projekt aktualisieren
+   */
+  async function updateProject(projectId: string, projectData: ProjectUpdateData): Promise<Project> {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      const numericId = idToNumber(projectId)
+      
+      // Frontend-Typ zu API-Payload mappen
+      const apiPayload = {
+        title: projectData.title,
+        description: projectData.description,
+        repository_url: projectData.repositoryUrl,
+        live_url: projectData.liveUrl,
+        technologies: projectData.technologies,
+        status: projectData.status,
+        is_public: projectData.isPublic,
+        hackathon_id: projectData.hackathonId ? idToNumber(projectData.hackathonId) : undefined,
+        team_id: projectData.teamId ? idToNumber(projectData.teamId) : undefined,
+        image_path: projectData.imagePath
+      }
+
+      const response = await apiClient.put<any>(`/api/projects/${numericId}`, apiPayload, {
+        skipErrorNotification: true
+      })
+
+      // API-Response zu Frontend-Typ mappen
+      const mappedProject = mapApiProjectToProject(response)
+
+      // Lokalen State aktualisieren
+      if (currentProject.value?.id === projectId) {
+        currentProject.value = mappedProject
+      }
+
+      // In der Projekte-Liste aktualisieren
       const index = projects.value.findIndex(p => p.id === projectId)
       if (index !== -1) {
-        projects.value[index] = project
+        projects.value[index] = mappedProject
+      }
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Projekt erfolgreich aktualisiert', 'Projekt')
+      }
+
+      return mappedProject
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Aktualisieren des Projekts'
+      
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Projekt Update Fehler')
       }
       
-      return project
-      
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to load project'
-      console.error('Error loading project:', err)
-      uiStore.showNotification({
-        title: 'Fehler',
-        type: 'error',
-        message: 'Projekt konnte nicht geladen werden'
-      })
       throw err
     } finally {
-      loading.value = false
+      isLoading.value = false
     }
   }
-  
-  const createProject = async (projectData: Partial<Project>) => {
+
+  /**
+   * Projekt löschen
+   */
+  async function deleteProject(projectId: string): Promise<void> {
     try {
-      loading.value = true
+      isLoading.value = true
       error.value = null
-      
-      const response = await authStore.fetchWithAuth('/api/v1/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(projectData)
+
+      const numericId = idToNumber(projectId)
+      await apiClient.delete(`/api/projects/${numericId}`, {
+        skipErrorNotification: true
       })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to create project: ${response.statusText}`)
-      }
-      
-      const newProject = await response.json()
-      projects.value.unshift(newProject)
-      
-      uiStore.showNotification({
-        title: 'Erfolg',
-        type: 'success',
-        message: 'Projekt erfolgreich erstellt'
-      })
-      
-      return newProject
-      
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to create project'
-      console.error('Error creating project:', err)
-      uiStore.showNotification({
-        title: 'Fehler',
-        type: 'error',
-        message: 'Projekt konnte nicht erstellt werden'
-      })
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-  
-  const updateProject = async (projectId: string, updates: Partial<Project>) => {
-    try {
-      loading.value = true
-      error.value = null
-      
-      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updates)
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to update project: ${response.statusText}`)
-      }
-      
-      const updatedProject = await response.json()
-      
-      // Update im lokalen State
-      const index = projects.value.findIndex(p => p.id === projectId)
-      if (index !== -1) {
-        const existingProject = projects.value[index]
-        if (existingProject) {
-          // Type-safe merge of partial updates with existing project
-          const mergedProject = {
-            ...existingProject,
-            ...updates,
-            // Ensure required fields are preserved
-            id: existingProject.id,
-            title: updates.title ?? existingProject.title,
-            slug: updates.slug ?? existingProject.slug,
-            description: updates.description ?? existingProject.description,
-            status: updates.status ?? existingProject.status,
-            visibility: updates.visibility ?? existingProject.visibility,
-            createdAt: existingProject.createdAt,
-            updatedAt: new Date().toISOString(),
-          }
-          projects.value[index] = mergedProject
-        }
-      }
-      
-      uiStore.showNotification({
-        title: 'Erfolg',
-        type: 'success',
-        message: 'Projekt erfolgreich aktualisiert'
-      })
-      
-      return updatedProject
-      
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to update project'
-      console.error('Error updating project:', err)
-      uiStore.showNotification({
-        title: 'Fehler',
-        type: 'error',
-        message: 'Projekt konnte nicht aktualisiert werden'
-      })
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-  
-  const deleteProject = async (projectId: string) => {
-    try {
-      loading.value = true
-      error.value = null
-      
-      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}`, {
-        method: 'DELETE'
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to delete project: ${response.statusText}`)
-      }
-      
-      // Remove from local state
+
+      // Aus lokalem State entfernen
       projects.value = projects.value.filter(p => p.id !== projectId)
-      totalItems.value = Math.max(0, totalItems.value - 1)
+      if (currentProject.value?.id === projectId) {
+        currentProject.value = null
+      }
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Projekt erfolgreich gelöscht', 'Projekt')
+      }
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Löschen des Projekts'
       
-      uiStore.showNotification({
-        title: 'Erfolg',
-        type: 'success',
-        message: 'Projekt erfolgreich gelöscht'
-      })
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Projekt Löschung Fehler')
+      }
       
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to delete project'
-      console.error('Error deleting project:', err)
-      uiStore.showNotification({
-        title: 'Fehler',
-        type: 'error',
-        message: 'Projekt konnte nicht gelöscht werden'
-      })
       throw err
     } finally {
-      loading.value = false
+      isLoading.value = false
     }
   }
-  
-  const voteProject = async (projectId: string, voteValue: 1 | -1 | null) => {
+
+  /**
+   * Für Projekt voten
+   */
+  async function voteForProject(projectId: string, voteType: 'upvote' | 'downvote'): Promise<void> {
     try {
-      const voteType = voteValue === 1 ? 'upvote' : voteValue === -1 ? 'downvote' : 'remove'
-      
-      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}/vote`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ vote_type: voteType })
+      error.value = null
+
+      const numericId = idToNumber(projectId)
+      await apiClient.post(`/api/projects/${numericId}/vote`, {
+        vote_type: voteType
+      }, {
+        skipErrorNotification: true
       })
+
+      // Vote-Stats aktualisieren
+      await fetchVoteStats(projectId)
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        const message = voteType === 'upvote' ? 'Upvote erfolgreich' : 'Downvote erfolgreich'
+        uiStore.showSuccess(message, 'Vote')
+      }
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Voten'
       
-      if (!response.ok) {
-        throw new Error(`Failed to vote on project: ${response.statusText}`)
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Vote Fehler')
       }
       
-      // Update im lokalen State
-      const project = projects.value.find(p => p.id === projectId)
-      if (project) {
-        const previousVote = project.userVote
-        
-        // Update vote count
-        if (previousVote === 1 && voteValue !== 1) {
-          project.stats.votes = Math.max(0, project.stats.votes - 1)
-        } else if (previousVote === -1 && voteValue !== -1) {
-          project.stats.votes = Math.max(0, project.stats.votes + 1)
-        } else if (previousVote !== 1 && voteValue === 1) {
-          project.stats.votes += 1
-        } else if (previousVote !== -1 && voteValue === -1) {
-          project.stats.votes = Math.max(0, project.stats.votes - 1)
-        }
-        
-        project.userVote = voteValue
-      }
-      
-      uiStore.showNotification({
-        title: 'Erfolg',
-        type: 'success',
-        message: voteValue === 1 ? 'Projekt positiv bewertet' : 
-                voteValue === -1 ? 'Projekt negativ bewertet' : 
-                'Bewertung entfernt'
-      })
-      
-    } catch (err) {
-      console.error('Error voting on project:', err)
-      uiStore.showNotification({
-        title: 'Fehler',
-        type: 'error',
-        message: 'Bewertung konnte nicht gespeichert werden'
-      })
       throw err
     }
   }
-  
-  const bookmarkProject = async (projectId: string, isBookmarked: boolean) => {
+
+  /**
+   * Vote entfernen
+   */
+  async function removeVote(projectId: string): Promise<void> {
     try {
-      const response = await authStore.fetchWithAuth(`/api/v1/projects/${projectId}/bookmark`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ bookmarked: isBookmarked })
+      error.value = null
+
+      const numericId = idToNumber(projectId)
+      await apiClient.delete(`/api/projects/${numericId}/vote`, {
+        skipErrorNotification: true
       })
+
+      // Vote-Stats aktualisieren
+      await fetchVoteStats(projectId)
+
+      // Success Notification
+      if (autoSuccessHandling) {
+        uiStore.showSuccess('Vote erfolgreich entfernt', 'Vote')
+      }
+    } catch (err: any) {
+      error.value = err.message || 'Fehler beim Entfernen des Votes'
       
-      if (!response.ok) {
-        throw new Error(`Failed to bookmark project: ${response.statusText}`)
+      if (autoErrorHandling && error.value) {
+        uiStore.showError(error.value, 'Vote Entfernung Fehler')
       }
       
-      // Update im lokalen State
-      const project = projects.value.find(p => p.id === projectId)
-      if (project) {
-        project.isBookmarked = isBookmarked
-        
-        // Update bookmark count
-        if (isBookmarked) {
-          project.stats.bookmarks += 1
-        } else {
-          project.stats.bookmarks = Math.max(0, project.stats.bookmarks - 1)
-        }
-      }
-      
-      uiStore.showNotification({
-        title: 'Erfolg',
-        type: 'success',
-        message: isBookmarked ? 'Projekt als Lesezeichen gespeichert' : 'Lesezeichen entfernt'
-      })
-      
-    } catch (err) {
-      console.error('Error bookmarking project:', err)
-      uiStore.showNotification({
-        title: 'Fehler',
-        type: 'error',
-        message: 'Lesezeichen konnte nicht gespeichert werden'
-      })
       throw err
     }
   }
-  
-  const setFilters = (newFilters: ProjectFilterOptions) => {
-    filters.value = { ...filters.value, ...newFilters }
-    currentPage.value = 1 // Reset to first page when filters change
-  }
-  
-  const clearFilters = () => {
-    filters.value = {}
-    searchQuery.value = ''
-    currentPage.value = 1
-  }
-  
-  const setSortOption = (option: ProjectSortOption) => {
-    sortOption.value = option
-  }
-  
-  const setSearchQuery = (query: string) => {
-    searchQuery.value = query
-    currentPage.value = 1
-  }
-  
-  const setPage = (page: number) => {
-    if (page >= 1 && page <= totalPages.value) {
-      currentPage.value = page
+
+  /**
+   * Vote-Statistiken abrufen
+   */
+  async function fetchVoteStats(projectId: string): Promise<VoteStats> {
+    try {
+      const numericId = idToNumber(projectId)
+      const response = await apiClient.get<any>(`/api/projects/${numericId}/vote-stats`)
+      
+      // API-Response zu Frontend-Typ mappen (snake_case → camelCase)
+      const mappedStats = snakeToCamel(response) as VoteStats
+      projectVoteStats.value[projectId] = mappedStats
+      return mappedStats
+    } catch (err: any) {
+      console.error('Fehler beim Abrufen der Vote-Statistiken:', err)
+      throw err
     }
   }
-  
-  const setItemsPerPage = (count: number) => {
-    itemsPerPage.value = Math.max(1, count)
-    currentPage.value = 1
-  }
-  
-  const getProjectById = (projectId: string) => {
-    return projects.value.find(p => p.id === projectId)
-  }
-  
-  const getRelatedProjects = (project: Project, limit: number = 3): Project[] => {
-    if (!project) return []
-    
-    return projects.value
-      .filter(p => p.id !== project.id)
-      .filter(p => {
-        // Find related projects by shared technologies
-        const sharedTechnologies = project.technologies?.filter(tech =>
-          p.technologies?.some(pTech => pTech.id === tech.id)
-        ) || []
-        
-        // Find related projects by shared tags
-        const sharedTags = project.tags?.filter(tag =>
-          p.tags?.some(pTag => pTag.id === tag.id)
-        ) || []
-        
-        // Find related projects by same hackathon
-        const sameHackathon = project.hackathonId && p.hackathonId === project.hackathonId
-        
-        return sharedTechnologies.length > 0 || sharedTags.length > 0 || sameHackathon
+
+  /**
+   * View-Count inkrementieren
+   */
+  async function incrementViewCount(projectId: string): Promise<void> {
+    try {
+      const numericId = idToNumber(projectId)
+      await apiClient.post(`/api/projects/${numericId}/view`, {}, {
+        skipErrorNotification: true
       })
-      .slice(0, limit)
+    } catch (err: any) {
+      // View-Count-Fehler sind nicht kritisch, nur loggen
+      console.warn('Fehler beim Inkrementieren des View-Counts:', err)
+    }
   }
-  
-  // Watch for filter changes to update total items
-  watch([filters, searchQuery], () => {
-    totalItems.value = sortedProjects.value.length
-  })
-  
-  // Initial load
-  loadProjects()
-  
+
+  /**
+   * Error zurücksetzen
+   */
+  function clearError(): void {
+    error.value = null
+  }
+
+  /**
+   * Loading-State zurücksetzen
+   */
+  function clearLoading(): void {
+    isLoading.value = false
+  }
+
+  /**
+   * Composable zurücksetzen
+   */
+  function reset(): void {
+    isLoading.value = false
+    error.value = null
+    projects.value = []
+    currentProject.value = null
+    projectVoteStats.value = {}
+  }
+
   return {
     // State
-    projects: paginatedProjects,
-    allProjects: sortedProjects,
-    loading,
-    error,
-    
-    // Filter State
-    filters,
-    sortOption,
-    searchQuery,
-    currentPage,
-    itemsPerPage,
-    totalItems,
-    totalPages,
+    isLoading: computed(() => isLoading.value),
+    error: computed(() => error.value),
+    projects: computed(() => projects.value),
+    currentProject: computed(() => currentProject.value),
+    projectVoteStats: computed(() => projectVoteStats.value),
     
     // Computed
-    hasFilters,
-    activeFilterCount,
+    hasProjects,
+    projectCount,
     
     // Methods
-    loadProjects,
-    loadProject,
+    fetchProjects,
+    fetchProject,
     createProject,
     updateProject,
     deleteProject,
-    voteProject,
-    bookmarkProject,
-    setFilters,
-    clearFilters,
-    setSortOption,
-    setSearchQuery,
-    setPage,
-    setItemsPerPage,
-    getProjectById,
-    getRelatedProjects,
+    voteForProject,
+    removeVote,
+    fetchVoteStats,
+    incrementViewCount,
+    
+    // Utilities
+    clearError,
+    clearLoading,
+    reset
   }
 }
-
-export type UseProjectsReturn = ReturnType<typeof useProjects>

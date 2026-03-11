@@ -441,6 +441,12 @@
       "inPerson": "In-person",
       "hybrid": "Hybrid"
     },
+    "sortOptions": {
+      "newest": "Newest First",
+      "popular": "Most Popular",
+      "upcoming": "Upcoming",
+      "active": "Active"
+    },
     "loading": "Loading hackathons...",
     "failedToLoad": "Failed to load hackathons",
     "tryAgain": "Try Again",

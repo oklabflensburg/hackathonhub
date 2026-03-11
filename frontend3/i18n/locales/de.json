@@ -443,6 +443,12 @@
       "inPerson": "Vor Ort",
       "hybrid": "Hybrid"
     },
+    "sortOptions": {
+      "newest": "Neueste zuerst",
+      "popular": "Beliebteste",
+      "upcoming": "Bevorstehend",
+      "active": "Aktiv"
+    },
     "loading": "Hackathons werden geladen...",
     "failedToLoad": "Hackathons konnten nicht geladen werden",
     "tryAgain": "Erneut versuchen",
