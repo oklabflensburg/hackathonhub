@@ -46,7 +46,7 @@ class ProfileSettings(BaseModel):
     )
     email: EmailStr
     name: Optional[str] = Field(None, max_length=100)
-    avatar_url: Optional[str] = Field(None, max_length=500)
+    avatar_url: Optional[str] = Field(None, max_length=1000)
     bio: Optional[str] = Field(None, max_length=500)
     location: Optional[str] = Field(None, max_length=100)
     company: Optional[str] = Field(None, max_length=100)
