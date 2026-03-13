@@ -1,32 +1,39 @@
 """
 Notification API routes.
 """
+from typing import Any, Dict, List
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
 
-from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.database import get_db
 from app.domain.schemas.notification import (
-    UserNotification, UserNotificationCreate,
-    UserNotificationPreference, UserNotificationPreferenceCreate,
-    PushSubscription, PushSubscriptionCreate
-)
-from app.repositories.notification_repository import (
-    NotificationRepository,
-    NotificationPreferenceRepository,
-    PushSubscriptionRepository
+    PushSubscription,
+    PushSubscriptionCreate,
+    UserNotification,
+    UserNotificationCreate,
+    UserNotificationPreference,
+    UserNotificationPreferenceCreate,
 )
 from app.i18n.dependencies import get_locale
-from app.i18n.helpers import (
-    raise_not_found,
-    raise_internal_server_error
+from app.i18n.helpers import raise_internal_server_error, raise_not_found
+from app.repositories.notification_repository import (
+    NotificationPreferenceRepository,
+    NotificationRepository,
+    PushSubscriptionRepository,
 )
+from app.services.in_app_notification_service import InAppNotificationService
+from app.services.notification_preference_service import (
+    notification_preference_service,
+)
+from app.services.notification_service import notification_service
 
 router = APIRouter()
 notification_repository = NotificationRepository()
 preference_repository = NotificationPreferenceRepository()
 push_subscription_repository = PushSubscriptionRepository()
+in_app_service = InAppNotificationService()
 
 
 @router.get("", response_model=List[UserNotification])
@@ -35,80 +42,71 @@ async def get_notifications(
     limit: int = 100,
     unread_only: bool = False,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    """Get user notifications."""
-    notifications = notification_repository.get_user_notifications(
+    return notification_service.get_user_notifications(
         db=db,
         user_id=current_user.id,
         skip=skip,
         limit=limit,
-        unread_only=unread_only
+        unread_only=unread_only,
     )
-    return notifications
 
 
 @router.post("", response_model=UserNotification)
 async def create_notification(
     notification: UserNotificationCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    """Create a new notification."""
-    # Create notification data with user_id
-    notification_data = notification.model_dump()
-    notification_data["user_id"] = current_user.id
-
-    # Create notification using repository
-    db_notification = notification_repository.create(
-        db, obj_in=notification_data)
-
-    return db_notification
+    dispatch = notification_service.dispatch_notification(
+        db=db,
+        notification_type=notification.notification_type,
+        user_id=current_user.id,
+        title=notification.title,
+        message=notification.message,
+        data=notification.data or {},
+        requested_channels=["in_app"],
+    )
+    return dispatch.notification
 
 
 @router.post("/read-all")
 async def mark_all_notifications_as_read(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    """Mark all notifications as read."""
     count = notification_repository.mark_all_as_read(db, current_user.id)
-    return {
-        "message": "All notifications marked as read",
-        "count": count
-    }
+    return {"message": "All notifications marked as read", "count": count}
 
 
-@router.get("/preferences", response_model=List[UserNotificationPreference])
+@router.get("/preferences")
 async def get_notification_preferences(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    """Get user notification preferences."""
-    preferences = preference_repository.get_user_preferences(
+    return notification_preference_service.get_user_preferences(
         db, current_user.id
     )
-    return preferences
 
 
 @router.put(
     "/preferences/{preference_id}",
-    response_model=UserNotificationPreference
+    response_model=UserNotificationPreference,
 )
 async def update_notification_preference(
     preference_id: int,
     preference_update: UserNotificationPreferenceCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    locale: str = Depends(get_locale)
+    locale: str = Depends(get_locale),
 ):
-    """Update a notification preference."""
     preference = preference_repository.get(db, preference_id)
     if not preference or preference.user_id != current_user.id:
         raise_not_found(locale, "preference")
 
     updated_preference = preference_repository.update(
-        db, db_obj=preference, obj_in=preference_update.dict()
+        db, db_obj=preference, obj_in=preference_update.model_dump()
     )
     return updated_preference
 
@@ -119,66 +117,65 @@ async def update_notification_preference_by_type(
     channel: str,
     preference_update: UserNotificationPreferenceCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    """Update or create a notification preference by type and channel."""
-    # Use the repository's update_or_create_preference method
     updated_preference = preference_repository.update_or_create_preference(
         db=db,
         user_id=current_user.id,
         notification_type=notification_type,
         channel=channel,
-        enabled=preference_update.enabled
+        enabled=preference_update.enabled,
     )
-
     return updated_preference
+
+
+@router.put("/preferences")
+async def bulk_update_notification_preferences(
+    preferences: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    success = notification_preference_service.update_user_preferences(
+        db, current_user.id, preferences
+    )
+    return {"success": success}
 
 
 @router.get("/push-subscriptions", response_model=List[PushSubscription])
 async def get_push_subscriptions(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    """Get user push subscriptions."""
-    subscriptions = push_subscription_repository.get_user_subscriptions(
+    return push_subscription_repository.get_user_subscriptions(
         db, current_user.id
     )
-    return subscriptions
 
 
 @router.post("/push-subscriptions", response_model=PushSubscription)
 async def create_push_subscription(
     subscription: PushSubscriptionCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    """Create a push subscription."""
-    # Check if subscription with same endpoint already exists
     existing = push_subscription_repository.get_by_endpoint(
         db, subscription.endpoint
     )
     if existing:
-        # Update existing subscription
         updated_subscription = push_subscription_repository.update(
-            db, db_obj=existing, obj_in=subscription.dict()
+            db, db_obj=existing, obj_in=subscription.model_dump()
         )
         return updated_subscription
 
-    # Create new subscription
-    subscription_data = subscription.dict()
+    subscription_data = subscription.model_dump()
     subscription_data["user_id"] = current_user.id
-    new_subscription = push_subscription_repository.create(
-        db, obj_in=subscription_data
-    )
-    return new_subscription
+    return push_subscription_repository.create(db, obj_in=subscription_data)
 
 
 @router.get("/unread-count")
 async def get_unread_count(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-    """Get count of unread notifications for the current user."""
     count = notification_repository.count_unread(db, current_user.id)
     return {"count": count}
 
@@ -188,9 +185,8 @@ async def get_notification(
     notification_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    locale: str = Depends(get_locale)
+    locale: str = Depends(get_locale),
 ):
-    """Get a specific notification by ID."""
     notification = notification_repository.get(db, notification_id)
     if not notification or notification.user_id != current_user.id:
         raise_not_found(locale, "notification")
@@ -202,9 +198,8 @@ async def mark_notification_as_read(
     notification_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    locale: str = Depends(get_locale)
+    locale: str = Depends(get_locale),
 ):
-    """Mark a notification as read."""
     success = notification_repository.mark_as_read(
         db, notification_id, current_user.id
     )
@@ -212,8 +207,26 @@ async def mark_notification_as_read(
         raise_not_found(locale, "notification")
     return {
         "message": "Notification marked as read",
-        "notification_id": notification_id
+        "notification_id": notification_id,
     }
+
+
+@router.delete("/{notification_id}")
+async def delete_notification(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale),
+):
+    notification = notification_repository.get(db, notification_id)
+    if not notification or notification.user_id != current_user.id:
+        raise_not_found(locale, "notification")
+
+    success = notification_repository.delete(db, id=notification_id)
+    if not success:
+        raise_internal_server_error(locale, "notification_deletion")
+
+    return {"message": "Notification deleted successfully"}
 
 
 @router.delete("/push-subscriptions/{subscription_id}")
@@ -221,9 +234,8 @@ async def delete_push_subscription(
     subscription_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    locale: str = Depends(get_locale)
+    locale: str = Depends(get_locale),
 ):
-    """Delete a push subscription."""
     subscription = push_subscription_repository.get(db, subscription_id)
     if not subscription or subscription.user_id != current_user.id:
         raise_not_found(locale, "subscription")
@@ -233,3 +245,120 @@ async def delete_push_subscription(
         raise_internal_server_error(locale, "subscription_deletion")
 
     return {"message": "Subscription deleted successfully"}
+
+
+@router.post("/in-app", response_model=UserNotification, status_code=201)
+async def create_in_app_notification(
+    notification_data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    payload = dict(notification_data.get("metadata") or {})
+    if notification_data.get("action_url"):
+        payload["action_url"] = notification_data["action_url"]
+    if notification_data.get("priority"):
+        payload["priority"] = notification_data["priority"]
+    if notification_data.get("expires_at"):
+        payload["expires_at"] = notification_data["expires_at"]
+    notification = in_app_service.store_notification(
+        db=db,
+        user_id=current_user.id,
+        title=notification_data.get("title", ""),
+        body=notification_data.get("message", ""),
+        notification_type=notification_data.get("type", "system_announcement"),
+        priority=notification_data.get("priority", "normal"),
+        data={"metadata": payload} if payload else {},
+        action_url=notification_data.get("action_url"),
+        expires_in_days=30,
+    )
+    return notification
+
+
+@router.get("/in-app/list")
+async def get_in_app_notifications(
+    skip: int = 0,
+    limit: int = 50,
+    unread_only: bool = False,
+    include_expired: bool = False,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    notifications = in_app_service.get_user_notifications(
+        db=db,
+        user_id=current_user.id,
+        offset=skip,
+        limit=limit,
+        unread_only=unread_only,
+        include_expired=include_expired,
+    )
+    return {
+        "notifications": [
+            UserNotification.model_validate(notification).model_dump()
+            for notification in notifications
+        ],
+        "total": len(notifications),
+        "skip": skip,
+        "limit": limit,
+    }
+
+
+@router.get("/in-app/unread-count")
+async def get_in_app_unread_count(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return {"count": in_app_service.get_unread_count(db, current_user.id)}
+
+
+@router.post("/in-app/{notification_id}/read")
+async def mark_in_app_notification_as_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale),
+):
+    success = in_app_service.mark_as_read(db, notification_id, current_user.id)
+    if not success:
+        raise_not_found(locale, "notification")
+    return {
+        "message": "Notification marked as read",
+        "notification_id": notification_id,
+    }
+
+
+@router.post("/in-app/mark-all-read")
+async def mark_all_in_app_notifications_as_read(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    count = in_app_service.mark_all_as_read(db, current_user.id)
+    return {"message": f"Marked {count} notifications as read", "count": count}
+
+
+@router.delete("/in-app/{notification_id}")
+async def delete_in_app_notification(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale),
+):
+    notification = notification_repository.get(db, notification_id)
+    if not notification or notification.user_id != current_user.id:
+        raise_not_found(locale, "notification")
+
+    success = notification_repository.delete(db, id=notification_id)
+    if not success:
+        raise_internal_server_error(locale, "notification_deletion")
+
+    return {"message": "Notification deleted successfully"}
+
+
+@router.post("/in-app/cleanup")
+async def cleanup_expired_notifications(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    count = in_app_service.cleanup_expired_notifications(db)
+    return {
+        "message": f"Cleaned up {count} expired notifications", "count": count
+    }

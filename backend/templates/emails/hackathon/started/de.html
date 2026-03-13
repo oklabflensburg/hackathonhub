@@ -1,0 +1,46 @@
+<div class="content">
+    <h1>{{ hackathon_name }} hat begonnen!</h1>
+    
+    <p>Hallo {{ user_name }},</p>
+    
+    <p>Der Hackathon, für den du dich registriert hast, <strong>{{ hackathon_name }}</strong>, hat offiziell begonnen!</p>
+    
+    <div class="highlight-box">
+        <h2>Wichtige Informationen</h2>
+        <ul>
+            <li><strong>Startzeit:</strong> {{ start_time }}</li>
+            <li><strong>Endzeit:</strong> {{ end_time }}</li>
+            <li><strong>Dauer:</strong> {{ duration_hours }} Stunden</li>
+            <li><strong>Aktuelle Phase:</strong> {{ current_phase }}</li>
+        </ul>
+    </div>
+    
+    <p>Das musst du jetzt tun:</p>
+    <ol>
+        <li>Überprüfe die finalen Challenge-Briefs und Regeln</li>
+        <li>Bilde oder trete einem Team bei, falls noch nicht geschehen</li>
+        <li>Beginne mit deinem Projekt</li>
+        <li>Checke regelmäßig auf Ankündigungen</li>
+        <li>Reiche dein Projekt vor der Deadline ein</li>
+    </ol>
+    
+    <div class="cta-button">
+        <a href="{{ hackathon_dashboard_url }}" class="button">Zum Hackathon-Dashboard</a>
+    </div>
+    
+    <div class="cta-button">
+        <a href="{{ submission_portal_url }}" class="button secondary">Projekt einreichen</a>
+    </div>
+    
+    <p>Wichtige Ressourcen:</p>
+    <ul>
+        <li><a href="{{ slack_channel_url }}">Slack Channel</a> für Echtzeit-Kommunikation</li>
+        <li><a href="{{ resources_url }}">Ressourcen & Dokumentation</a></li>
+        <li><a href="{{ mentor_schedule_url }}">Mentoren-Zeitplan</a></li>
+    </ul>
+    
+    <p>Viel Glück und happy hacking!</p>
+    
+    <p>Mit freundlichen Grüßen,<br>
+    Das {{ hackathon_name }} Organisationsteam</p>
+</div>

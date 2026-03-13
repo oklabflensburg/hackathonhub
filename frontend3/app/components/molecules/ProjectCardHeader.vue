@@ -65,12 +65,12 @@
           <div class="flex items-center gap-2">
             <!-- Avatar -->
             <div
-              v-if="getOwner()?.user?.avatarUrl"
+              v-if="getOwnerAvatarUrl"
               class="author-avatar"
               :class="avatarClasses"
             >
               <img
-                :src="getOwner()?.user?.avatarUrl"
+                :src="getOwnerAvatarUrl"
                 :alt="`Avatar of ${getOwner()?.user?.username}`"
                 class="w-full h-full rounded-full object-cover"
               />
@@ -189,6 +189,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'click': [project: Project]
 }>()
+
+const getOwnerAvatarUrl = computed(() => getOwner()?.user?.avatarUrl || getOwner()?.user?.avatar_url)
 
 // Computed Properties
 const headerClasses = computed(() => {

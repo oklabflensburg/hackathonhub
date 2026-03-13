@@ -2,390 +2,238 @@
 Notification preference service for managing user notification settings.
 """
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List, Set
+
 from sqlalchemy.orm import Session
 
-from app.repositories.notification_repository import (
-    NotificationTypeRepository,
-    NotificationPreferenceRepository
-)
 from app.domain.schemas.notification import NotificationTypeCreate
+from app.repositories.notification_repository import (
+    NotificationPreferenceRepository,
+    NotificationTypeRepository,
+)
+from app.services.notification_registry import (
+    get_definition,
+    is_known_type,
+    iter_definitions,
+)
 
 logger = logging.getLogger(__name__)
+
+VALID_CHANNELS = ("email", "push", "in_app")
 
 
 class NotificationPreferenceService:
     """Service for managing user notification preferences."""
-    
-    # Default notification types with their categories and default channels
-    DEFAULT_NOTIFICATION_TYPES = [
-        {
-            "type_key": "team_invitation_sent",
-            "category": "team",
-            "default_channels": "email,push,in_app",
-            "description": "When you're invited to join a team"
-        },
-        {
-            "type_key": "team_invitation_accepted",
-            "category": "team",
-            "default_channels": "email,in_app",
-            "description": "When someone accepts your team invitation"
-        },
-        {
-            "type_key": "team_member_added",
-            "category": "team",
-            "default_channels": "email,push,in_app",
-            "description": "When you're added to a team"
-        },
-        {
-            "type_key": "team_created",
-            "category": "team",
-            "default_channels": "in_app",
-            "description": "When a team you're in is created"
-        },
-        {
-            "type_key": "project_created",
-            "category": "project",
-            "default_channels": "email,push,in_app",
-            "description": "When a project is created in your team"
-        },
-        {
-            "type_key": "project_commented",
-            "category": "project",
-            "default_channels": "email,push,in_app",
-            "description": "When someone comments on your project"
-        },
-        {
-            "type_key": "project_updated",
-            "category": "project",
-            "default_channels": "email,in_app",
-            "description": "When a project you follow is updated"
-        },
-        {
-            "type_key": "hackathon_registered",
-            "category": "hackathon",
-            "default_channels": "email,in_app",
-            "description": "When you register for a hackathon"
-        },
-        {
-            "type_key": "hackathon_starting_soon",
-            "category": "hackathon",
-            "default_channels": "email,push",
-            "description": "When a hackathon you registered for starts soon"
-        },
-        {
-            "type_key": "hackathon_started",
-            "category": "hackathon",
-            "default_channels": "email,push,in_app",
-            "description": "When a hackathon you registered for starts"
-        },
-        {
-            "type_key": "comment_reply",
-            "category": "system",
-            "default_channels": "email,push,in_app",
-            "description": "When someone replies to your comment"
-        },
-        {
-            "type_key": "vote_received",
-            "category": "system",
-            "default_channels": "in_app",
-            "description": "When your project receives a vote"
-        },
-        {
-            "type_key": "system_announcement",
-            "category": "system",
-            "default_channels": "email,in_app",
-            "description": "System announcements and updates"
-        },
-        {
-            "type_key": "security_alert",
-            "category": "system",
-            "default_channels": "email,push",
-            "description": "Security alerts and account notifications"
-        }
-    ]
-    
+
     def __init__(self):
         self.type_repository = NotificationTypeRepository()
         self.preference_repository = NotificationPreferenceRepository()
-    
+
     def initialize_notification_types(self, db: Session) -> bool:
-        """
-        Initialize the notification types in the database.
-        Creates default notification types if they don't exist.
-        
-        Args:
-            db: Database session
-            
-        Returns:
-            bool: True if initialization was successful
-        """
         try:
-            for notification_type in self.DEFAULT_NOTIFICATION_TYPES:
-                # Check if type already exists
+            for definition in iter_definitions():
                 existing = self.type_repository.get_by_type_key(
-                    db, notification_type["type_key"]
+                    db, definition.type_key
                 )
-                if not existing:
-                    # Create new notification type
-                    type_create = NotificationTypeCreate(**notification_type)
-                    self.type_repository.create(db, obj_in=type_create)
-            
-            count = len(self.DEFAULT_NOTIFICATION_TYPES)
-            logger.info(f"Initialized {count} notification types")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to initialize notification types: {e}")
-            return False
-    
-    def get_user_preferences(
-        self,
-        db: Session,
-        user_id: int
-    ) -> Dict[str, Any]:
-        """
-        Get comprehensive notification preferences for a user.
-        
-        Args:
-            db: Database session
-            user_id: User ID
-            
-        Returns:
-            Dict with user preferences structure
-        """
-        try:
-            # Get all notification types
-            notification_types = self.type_repository.get_all(db)
-            
-            # Get user's specific preferences
-            user_prefs = self.preference_repository.get_by_user_id(db, user_id)
-            
-            # Create a map of user preferences for quick lookup
-            user_prefs_map = {}
-            for pref in user_prefs:
-                key = f"{pref.notification_type}:{pref.channel}"
-                user_prefs_map[key] = pref.enabled
-            
-            # Build structured preferences
-            preferences = {
-                "global_enabled": True,  # Default to enabled
-                "channels": {
-                    "email": True,
-                    "push": True,
-                    "in_app": True
-                },
-                "categories": {}
-            }
-            
-            # Organize by category
-            for nt in notification_types:
-                category = nt.category
-                type_key = nt.type_key
-                
-                if category not in preferences["categories"]:
-                    preferences["categories"][category] = {
-                        "enabled": True,
-                        "channels": self._parse_channels(nt.default_channels),
-                        "types": {}
-                    }
-                
-                # Get default channels for this type
-                default_channels = self._parse_channels(nt.default_channels)
-                
-                # Build type preferences
-                type_prefs = {
-                    "enabled": True,
-                    "channels": {}
-                }
-                
-                # Set channel preferences
-                for channel in ["email", "push", "in_app"]:
-                    # Check if user has a specific preference
-                    pref_key = f"{type_key}:{channel}"
-                    if pref_key in user_prefs_map:
-                        type_prefs["channels"][channel] = (
-                            user_prefs_map[pref_key]
-                        )
-                    else:
-                        # Use default if channel is in default channels
-                        is_default = channel in default_channels
-                        type_prefs["channels"][channel] = is_default
-                
-                category_types = preferences["categories"][category]["types"]
-                category_types[type_key] = type_prefs
-            
-            return preferences
-            
-        except Exception as e:
-            logger.error(
-                f"Failed to get user preferences for user {user_id}: {e}"
-            )
-            # Return default preferences on error
-            return self._get_default_preferences()
-    
-    def update_user_preferences(
-        self,
-        db: Session,
-        user_id: int,
-        preferences: Dict[str, Any]
-    ) -> bool:
-        """
-        Update user notification preferences.
-        
-        Args:
-            db: Database session
-            user_id: User ID
-            preferences: New preferences structure
-            
-        Returns:
-            bool: True if update was successful
-        """
-        try:
-            # For now, we'll implement a simplified version
-            # In a full implementation, we would parse
-            # the preferences structure
-            # and update individual preference records
-            
+                payload = NotificationTypeCreate(
+                    type_key=definition.type_key,
+                    category=definition.category,
+                    default_channels=",".join(definition.default_channels),
+                    description=definition.description,
+                )
+                if existing:
+                    self.type_repository.update(
+                        db, db_obj=existing, obj_in=payload.model_dump()
+                    )
+                else:
+                    self.type_repository.create(
+                        db, obj_in=payload.model_dump()
+                    )
+
             logger.info(
-                f"Updating notification preferences for user {user_id}"
+                "Initialized %s notification types",
+                len(tuple(iter_definitions()))
             )
-            
-            # This is a placeholder - actual implementation would:
-            # 1. Parse the preferences structure
-            # 2. Update or create UserNotificationPreference records
-            # 3. Handle channel-specific preferences
-            
             return True
-            
-        except Exception as e:
+        except Exception as exc:
+            logger.error("Failed to initialize notification types: %s", exc)
+            return False
+
+    def get_user_preferences(
+        self, db: Session, user_id: int
+    ) -> Dict[str, Any]:
+        notification_types = self.type_repository.get_all(db)
+        user_prefs = self.preference_repository.get_user_preferences(
+            db, user_id
+        )
+        user_prefs_map = {
+            f"{pref.notification_type}:{pref.channel}": pref.enabled
+            for pref in user_prefs
+        }
+
+        preferences = {
+            "global_enabled": True,
+            "channels": {channel: True for channel in VALID_CHANNELS},
+            "categories": {},
+        }
+
+        for notification_type in notification_types:
+            category = notification_type.category
+            default_channels = self._parse_channels(
+                notification_type.default_channels
+            )
+            category_entry = preferences["categories"].setdefault(
+                category,
+                {
+                    "enabled": True,
+                    "channels": {
+                        channel: channel in default_channels
+                        for channel in VALID_CHANNELS
+                    },
+                    "types": {},
+                },
+            )
+            category_entry["types"][notification_type.type_key] = {
+                "enabled": True,
+                "channels": {
+                    channel: user_prefs_map.get(
+                        f"{notification_type.type_key}:{channel}",
+                        channel in default_channels,
+                    )
+                    for channel in VALID_CHANNELS
+                },
+            }
+
+        return preferences
+
+    def update_user_preferences(
+        self, db: Session, user_id: int, preferences: Dict[str, Any]
+    ) -> bool:
+        try:
+            updates = self._flatten_preferences_payload(preferences)
+            for notification_type, channel_map in updates.items():
+                if not is_known_type(notification_type):
+                    logger.warning(
+                        "Ignoring unknown notification type during update: %s",
+                        notification_type,
+                    )
+                    continue
+                for channel, enabled in channel_map.items():
+                    self.preference_repository.update_or_create_preference(
+                        db,
+                        user_id=user_id,
+                        notification_type=notification_type,
+                        channel=channel,
+                        enabled=enabled,
+                    )
+            return True
+        except Exception as exc:
             logger.error(
-                f"Failed to update preferences for user {user_id}: {e}"
+                "Failed to update preferences for user %s: %s",
+                user_id,
+                exc,
             )
             return False
-    
+
     def get_notification_types_with_preferences(
-        self,
-        db: Session,
-        user_id: int
+        self, db: Session, user_id: int
     ) -> List[Dict[str, Any]]:
-        """
-        Get all notification types with user's preferences.
-        
-        Args:
-            db: Database session
-            user_id: User ID
-            
-        Returns:
-            List of notification types with preference info
-        """
-        try:
-            notification_types = self.type_repository.get_all(db)
-            user_prefs = self.preference_repository.get_by_user_id(db, user_id)
-            
-            # Create preference map
-            pref_map = {}
-            for pref in user_prefs:
-                key = f"{pref.notification_type}:{pref.channel}"
-                pref_map[key] = pref.enabled
-            
-            result = []
-            for nt in notification_types:
-                type_info = {
-                    "type_key": nt.type_key,
-                    "category": nt.category,
-                    "description": nt.description,
-                    "default_channels": self._parse_channels(
-                        nt.default_channels
-                    ),
-                    "user_preferences": {}
-                }
-                
-                # Add channel preferences
-                for channel in ["email", "push", "in_app"]:
-                    key = f"{nt.type_key}:{channel}"
-                    if key in pref_map:
-                        type_info["user_preferences"][channel] = pref_map[key]
-                    else:
-                        # Use default
-                        is_default = channel in type_info["default_channels"]
-                        type_info["user_preferences"][channel] = is_default
-                
-                result.append(type_info)
-            
-            return result
-            
-        except Exception as e:
-            logger.error(
-                f"Failed to get notification types with preferences: {e}"
-            )
-            return []
-    
+        prefs = self.get_user_preferences(db, user_id)
+        result = []
+        for category_data in prefs["categories"].values():
+            for type_key, type_preferences in category_data["types"].items():
+                definition = get_definition(type_key)
+                category = definition.category if definition else "system"
+                description = definition.description if definition else None
+                default_channels = list(
+                    definition.default_channels if definition else ()
+                )
+                result.append(
+                    {
+                        "type_key": type_key,
+                        "category": category,
+                        "description": description,
+                        "default_channels": default_channels,
+                        "user_preferences": type_preferences["channels"],
+                    }
+                )
+        return result
+
     def should_send_notification(
-        self,
-        db: Session,
-        user_id: int,
-        notification_type: str,
-        channel: str
+        self, db: Session, user_id: int, notification_type: str, channel: str
     ) -> bool:
-        """
-        Check if a notification should be sent to a user
-        via a specific channel.
-        
-        Args:
-            db: Database session
-            user_id: User ID
-            notification_type: Type of notification
-            channel: Delivery channel ('email', 'push', 'in_app')
-            
-        Returns:
-            bool: True if notification should be sent
-        """
-        try:
-            # Get user preference for this notification type and channel
-            preference = self.preference_repository.get_by_user_type_channel(
+        if channel not in VALID_CHANNELS or not is_known_type(
+            notification_type
+        ):
+            return False
+
+        preference = self.preference_repository.get_preference(
+            db, user_id, notification_type, channel
+        )
+        if preference is not None:
+            return preference.enabled
+
+        definition = get_definition(notification_type)
+        return channel in (definition.default_channels if definition else ())
+
+    def get_allowed_channels(
+        self, db: Session, user_id: int, notification_type: str
+    ) -> List[str]:
+        if not is_known_type(notification_type):
+            return []
+        return [
+            channel
+            for channel in VALID_CHANNELS
+
+            if self.should_send_notification(
                 db, user_id, notification_type, channel
             )
-            
-            if preference:
-                return preference.enabled
-            
-            # If no preference exists, check default for this notification type
-            notification_type_obj = self.type_repository.get_by_type_key(
-                db, notification_type
+        ]
+
+    def _flatten_preferences_payload(
+        self, preferences: Dict[str, Any]
+    ) -> Dict[str, Dict[str, bool]]:
+        flattened: Dict[str, Dict[str, bool]] = {}
+
+        direct_types = preferences.get("types", {})
+        for notification_type, channel_map in direct_types.items():
+            flattened[notification_type] = self._normalize_channel_map(
+                channel_map
             )
-            if notification_type_obj:
-                default_channels = self._parse_channels(
-                    notification_type_obj.default_channels
+
+        categories = preferences.get("categories", {})
+        for category_data in categories.values():
+            for notification_type, type_data in category_data.get(
+                "types", {}
+            ).items():
+                flattened[notification_type] = self._normalize_channel_map(
+                    type_data
                 )
-                return channel in default_channels
-            
-            # If notification type doesn't exist, default to True
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to check notification preference: {e}")
-            # Default to True on error to avoid blocking notifications
-            return True
-    
-    def _parse_channels(self, channels_str: str) -> List[str]:
-        """Parse comma-separated channels string into list."""
+
+        return flattened
+
+    def _normalize_channel_map(
+        self, payload: Dict[str, Any]
+    ) -> Dict[str, bool]:
+        if "channels" in payload and isinstance(payload["channels"], dict):
+            candidate = payload["channels"]
+        else:
+            candidate = payload
+
+        normalized: Dict[str, bool] = {}
+        for channel in VALID_CHANNELS:
+            if channel in candidate:
+                normalized[channel] = bool(candidate[channel])
+        return normalized
+
+    def _parse_channels(self, channels_str: str) -> Set[str]:
         if not channels_str:
-            return []
-        channels = channels_str.split(",")
-        return [channel.strip() for channel in channels if channel.strip()]
-    
-    def _get_default_preferences(self) -> Dict[str, Any]:
-        """Get default preferences structure."""
+            return set()
         return {
-            "global_enabled": True,
-            "channels": {
-                "email": True,
-                "push": True,
-                "in_app": True
-            },
-            "categories": {}
+            channel.strip()
+            for channel in channels_str.split(",")
+            if channel.strip()
         }
 
 
-# Global service instance
 notification_preference_service = NotificationPreferenceService()

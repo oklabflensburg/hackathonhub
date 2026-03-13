@@ -76,12 +76,23 @@
             <ProjectDetailSidebar
               :project="project"
               :can-edit-project="canEditProject"
+              :can-view-reports="canViewProjectReports"
               @delete-project="deleteProject"
+              @report-project="openProjectReportModal"
             />
           </div>
         </template>
       </DetailLayout>
     </div>
+
+    <ReportModal
+      :visible="reportModalOpen"
+      title="Report project"
+      :description="`Describe why you are reporting ${project?.title || 'this project'}.`"
+      :loading="reportLoading"
+      @close="closeProjectReportModal"
+      @submit="submitProjectReport"
+    />
   </div>
 </template>
 
@@ -90,10 +101,12 @@ import { computed, onMounted, ref } from 'vue'
 import { format } from 'date-fns'
 import { useRoute, useRouter } from '#imports'
 import { useAuthStore } from '~/stores/auth'
+import { useUIStore } from '~/stores/ui'
 import { useVotingStore } from '~/stores/voting'
 import { generateProjectPlaceholder } from '~/utils/placeholderImages'
 import { resolveImageUrl } from '~/utils/imageUrl'
 import { useComments } from '~/composables/useComments'
+import { useReports } from '~/composables/useReports'
 import { ProjectImage, ProjectDescription } from '~/components/molecules'
 import TechnologyTags from '~/components/organisms/pages/projects/TechnologyTags.vue'
 import ProjectLinks from '~/components/organisms/pages/projects/ProjectLinks.vue'
@@ -102,16 +115,21 @@ import CommentSection from '~/components/organisms/comments/CommentSection.vue'
 import LoadingSpinner from '~/components/atoms/LoadingSpinner.vue'
 import DetailLayout from '~/components/templates/DetailLayout.vue'
 import ProjectDetailSidebar from '~/components/organisms/projects/ProjectDetailSidebar.vue'
+import ReportModal from '~/components/organisms/reports/ReportModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const votingStore = useVotingStore()
+const uiStore = useUIStore()
 const { t } = useI18n()
+const { createReport } = useReports()
 
 const loading = ref(true)
 const error = ref<string | null>(null)
 const project = ref<any>(null)
+const reportModalOpen = ref(false)
+const reportLoading = ref(false)
 
 const projectId = computed(() => Number(route.params.id))
 const projectCommentCount = ref(0)
@@ -142,6 +160,11 @@ const projectImage = computed(() => {
 })
 
 const canEditProject = computed(() => Number(authStore.user?.id) === Number(project.value?.owner_id))
+const canViewProjectReports = computed(() => {
+  if (!authStore.isAuthenticated || !project.value) return false
+  if (Number(authStore.user?.id) === Number(project.value?.owner_id)) return true
+  return authStore.isSuperuser || authStore.hasPermission('reports:view')
+})
 
 const formatDate = (value: string) => {
   try {
@@ -194,6 +217,35 @@ const handleDeleteComment = async (commentId: number) => {
 
 const handleVoteComment = async (commentId: number, voteType: 'upvote' | 'downvote') => {
   await voteComment(commentId, voteType)
+}
+
+function openProjectReportModal() {
+  if (!authStore.isAuthenticated) {
+    uiStore.showWarning('Please sign in to report this project', 'Authentication required')
+    return
+  }
+  reportModalOpen.value = true
+}
+
+function closeProjectReportModal() {
+  reportModalOpen.value = false
+}
+
+async function submitProjectReport(reason: string) {
+  if (!reason) {
+    uiStore.showError('Please provide a reason for the report')
+    return
+  }
+  try {
+    reportLoading.value = true
+    await createReport('project', projectId.value, reason)
+    uiStore.showSuccess('Project report submitted')
+    closeProjectReportModal()
+  } catch (err: any) {
+    uiStore.showError(err?.message || 'Failed to report project')
+  } finally {
+    reportLoading.value = false
+  }
 }
 
 const deleteProject = async () => {

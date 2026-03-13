@@ -214,10 +214,26 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "project_created_subject": (
                 "New project created - Hackathon Dashboard"
             ),
+            "hackathon_registered_subject": (
+                "You're registered for {hackathon_name} - Hackathon Dashboard"
+            ),
+            "hackathon_started_subject": (
+                "{hackathon_name} has started! - Hackathon Dashboard"
+            ),
+            "project_commented_subject": (
+                "New comment on your project - Hackathon Dashboard"
+            ),
+            "team_created_subject": (
+                "Your team has been created! - Hackathon Dashboard"
+            ),
             "team_invitation_title": "Team Invitation",
             "team_invitation_accepted_title": "Invitation Accepted",
             "team_member_added_title": "Team Member Added",
-            "project_created_title": "New Project"
+            "project_created_title": "New Project",
+            "hackathon_registered_title": "Hackathon Registration",
+            "hackathon_started_title": "Hackathon Started",
+            "project_commented_title": "New Project Comment",
+            "team_created_title": "Team Created"
         }
     },
     "de": {
@@ -456,10 +472,27 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "project_created_subject": (
                 "Neues Projekt erstellt - Hackathon Dashboard"
             ),
+            "hackathon_registered_subject": (
+                "Du bist für {hackathon_name} registriert! - "
+                "Hackathon Dashboard"
+            ),
+            "hackathon_started_subject": (
+                "{hackathon_name} hat begonnen! - Hackathon Dashboard"
+            ),
+            "project_commented_subject": (
+                "Neuer Kommentar zu deinem Projekt - Hackathon Dashboard"
+            ),
+            "team_created_subject": (
+                "Dein Team wurde erstellt! - Hackathon Dashboard"
+            ),
             "team_invitation_title": "Teameinladung",
             "team_invitation_accepted_title": "Einladung angenommen",
             "team_member_added_title": "Teammitglied hinzugefügt",
-            "project_created_title": "Neues Projekt"
+            "project_created_title": "Neues Projekt",
+            "hackathon_registered_title": "Hackathon-Registrierung",
+            "hackathon_started_title": "Hackathon gestartet",
+            "project_commented_title": "Neuer Projekt-Kommentar",
+            "team_created_title": "Team erstellt"
         }
     }
 }

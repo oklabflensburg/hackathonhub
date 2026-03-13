@@ -1,20 +1,24 @@
 <template>
   <div class="container mx-auto px-4 py-8">
-    <!-- Use TeamsPageTemplate for consistent layout -->
     <TeamsPageTemplate
-      :teams="teams"
+      :teams="paginatedTeams"
       :loading="loading"
       :error="error"
       :current-user-id="currentUserId"
-      :total-count="teams.length"
-      :page="currentPage"
-      :page-size="pageSize"
+      :team-members-map="teamMembersMap"
+      :total-count="filteredTeams.length"
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      :has-next-page="hasNextPage"
+      :has-previous-page="hasPreviousPage"
       :search-query="searchQuery"
       :selected-filters="selectedFilters"
+      :stats="stats"
       @search="handleSearch"
       @filter-change="handleFilterChange"
       @sort-change="handleSortChange"
-      @page-change="handlePageChange"
+      @previous-page="handlePreviousPage"
+      @next-page="handleNextPage"
       @create-team="handleCreateTeam"
       @team-click="handleTeamClick"
       @team-join="handleTeamJoin"
@@ -24,42 +28,182 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from '#app'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from '#app'
 import { useAuthStore } from '~/stores/auth'
 import { useTeamStore } from '~/stores/team'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
-import { TeamVisibility, TeamStatus, type Team, type TeamFilterState, type TeamSortOption } from '~/types/team-types'
+import {
+  TeamSortOption,
+  TeamStatus,
+  TeamVisibility,
+  type Team,
+  type TeamFilterState,
+  type TeamMember
+} from '~/types/team-types'
 import TeamsPageTemplate from '~/components/templates/TeamsPageTemplate.vue'
 
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const teamStore = useTeamStore()
 const uiStore = useUIStore()
 const { t } = useI18n()
 
-// State
-const teams = ref<Team[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+const allTeams = ref<Team[]>([])
 const searchQuery = ref('')
 const selectedFilters = ref<Partial<TeamFilterState>>({})
 const currentPage = ref(1)
 const pageSize = ref(12)
+const sortOption = ref<TeamSortOption>(TeamSortOption.CREATED_AT_DESC)
 
-// Computed
 const currentUserId = computed(() => authStore.user?.id?.toString() || null)
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 
-// Methods
+function mapTeam(raw: any): Team {
+  return {
+    id: String(raw.id),
+    name: raw.name,
+    description: raw.description || null,
+    slug: raw.slug || raw.name?.toLowerCase().replace(/\s+/g, '-') || '',
+    avatarUrl: raw.avatar_url || null,
+    bannerUrl: raw.banner_url || null,
+    visibility: raw.is_open ? TeamVisibility.PUBLIC : TeamVisibility.PRIVATE,
+    status: TeamStatus.ACTIVE,
+    maxMembers: raw.max_members ?? null,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at || raw.created_at,
+    createdBy: String(raw.created_by),
+    hackathonId: raw.hackathon_id ? String(raw.hackathon_id) : null,
+    tags: raw.tags || [],
+    stats: {
+      memberCount: raw.member_count ?? raw._member_count ?? 0,
+      projectCount: raw.project_count ?? 0,
+      activeProjectCount: raw.active_project_count ?? 0,
+      completedProjectCount: raw.completed_project_count ?? 0,
+      totalVotes: raw.total_votes ?? 0,
+      totalComments: raw.total_comments ?? 0,
+      averageRating: raw.average_rating ?? null,
+      lastActivityAt: raw.last_activity_at ?? null,
+      viewCount: raw.view_count ?? 0,
+      engagementScore: raw.engagement_score ?? 0,
+      engagementLevel: raw.engagement_level ?? 'low'
+    }
+  }
+}
+
+function mapMember(raw: any): TeamMember {
+  return {
+    id: String(raw.id),
+    userId: String(raw.user_id),
+    teamId: String(raw.team_id),
+    role: raw.role,
+    joinedAt: raw.joined_at,
+    user: raw.user ? {
+      id: String(raw.user.id),
+      username: raw.user.username || '',
+      displayName: raw.user.name || raw.user.display_name || null,
+      avatarUrl: raw.user.avatar_url || null,
+      email: raw.user.email || null,
+      bio: raw.user.bio || null,
+      skills: raw.user.skills || []
+    } : undefined
+  }
+}
+
+const teamMembersMap = computed<Record<string, TeamMember[]>>(() => {
+  return Object.fromEntries(
+    Array.from(teamStore.teamMembers.entries()).map(([teamId, members]) => [
+      String(teamId),
+      members.map(mapMember)
+    ])
+  )
+})
+
+const filteredTeams = computed(() => {
+  let teams = [...allTeams.value]
+
+  if (searchQuery.value.trim()) {
+    const search = searchQuery.value.trim().toLowerCase()
+    teams = teams.filter(team =>
+      team.name.toLowerCase().includes(search) ||
+      (team.description || '').toLowerCase().includes(search)
+    )
+  }
+
+  if (selectedFilters.value.visibility && selectedFilters.value.visibility !== 'all') {
+    teams = teams.filter(team => team.visibility === selectedFilters.value.visibility)
+  }
+
+  if (selectedFilters.value.status && selectedFilters.value.status !== 'all') {
+    teams = teams.filter(team => team.status === selectedFilters.value.status)
+  }
+
+  teams.sort((a, b) => {
+    switch (sortOption.value) {
+      case TeamSortOption.NAME_ASC:
+        return a.name.localeCompare(b.name)
+      case TeamSortOption.NAME_DESC:
+        return b.name.localeCompare(a.name)
+      case TeamSortOption.CREATED_AT_ASC:
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      case TeamSortOption.MEMBER_COUNT_ASC:
+        return (a.stats?.memberCount || 0) - (b.stats?.memberCount || 0)
+      case TeamSortOption.MEMBER_COUNT_DESC:
+        return (b.stats?.memberCount || 0) - (a.stats?.memberCount || 0)
+      case TeamSortOption.CREATED_AT_DESC:
+      default:
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    }
+  })
+
+  return teams
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredTeams.value.length / pageSize.value)))
+const hasNextPage = computed(() => currentPage.value < totalPages.value)
+const hasPreviousPage = computed(() => currentPage.value > 1)
+
+const paginatedTeams = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredTeams.value.slice(start, start + pageSize.value)
+})
+
+const stats = computed(() => ({
+  totalTeams: filteredTeams.value.length,
+  totalMembers: filteredTeams.value.reduce((sum, team) => sum + (team.stats?.memberCount || 0), 0),
+  activeTeams: filteredTeams.value.length,
+  publicTeams: filteredTeams.value.filter(team => team.visibility === TeamVisibility.PUBLIC).length
+}))
+
+const refreshTeams = async () => {
+  try {
+    loading.value = true
+    error.value = null
+
+    await teamStore.fetchTeams({
+      hackathon_id: route.query.hackathon_id ? Number(route.query.hackathon_id) : undefined,
+      limit: 100
+    })
+
+    allTeams.value = teamStore.teams.map(mapTeam)
+    currentPage.value = Math.min(currentPage.value, totalPages.value)
+  } catch (err: any) {
+    error.value = err?.message || t('teams.loadTeamsError')
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleSearch = (query: string) => {
   searchQuery.value = query
-  loadTeams()
+  currentPage.value = 1
 }
 
 const handleFilterChange = (filter: string) => {
-  // Map filter string to TeamFilterState
   if (filter === 'public') {
     selectedFilters.value = { visibility: TeamVisibility.PUBLIC }
   } else if (filter === 'private') {
@@ -69,18 +213,20 @@ const handleFilterChange = (filter: string) => {
   } else {
     selectedFilters.value = {}
   }
-  loadTeams()
+  currentPage.value = 1
 }
 
 const handleSortChange = (sort: string) => {
-  // Map sort string to sorting logic
-  console.log('Sort changed:', sort)
-  loadTeams()
+  sortOption.value = sort as TeamSortOption
+  currentPage.value = 1
 }
 
-const handlePageChange = (page: number) => {
-  currentPage.value = page
-  loadTeams()
+const handlePreviousPage = () => {
+  if (hasPreviousPage.value) currentPage.value -= 1
+}
+
+const handleNextPage = () => {
+  if (hasNextPage.value) currentPage.value += 1
 }
 
 const handleCreateTeam = () => {
@@ -105,12 +251,11 @@ const handleTeamJoin = async (team: Team) => {
 
   try {
     loading.value = true
-    // Call API to join team
     await teamStore.joinTeam(Number(team.id))
     uiStore.showSuccess(t('teams.joinedTeamSuccess'))
-    await loadTeams()
+    await refreshTeams()
   } catch (err: any) {
-    uiStore.showError(err.message || t('teams.joinTeamError'))
+    uiStore.showError(err?.message || t('teams.joinTeamError'))
   } finally {
     loading.value = false
   }
@@ -120,85 +265,20 @@ const handleTeamLeave = async (team: Team) => {
   if (!isAuthenticated.value) return
 
   try {
-    const confirmed = confirm(t('teams.confirmLeaveTeam'))
-    if (!confirmed) return
-
+    if (!confirm(t('teams.confirmLeaveTeam'))) return
     loading.value = true
-    // Call API to leave team
     await teamStore.leaveTeam(Number(team.id))
     uiStore.showSuccess(t('teams.leftTeamSuccess'))
-    await loadTeams()
+    await refreshTeams()
   } catch (err: any) {
-    uiStore.showError(err.message || t('teams.leaveTeamError'))
+    uiStore.showError(err?.message || t('teams.leaveTeamError'))
   } finally {
     loading.value = false
   }
 }
 
-const loadTeams = async () => {
-  try {
-    loading.value = true
-    error.value = null
-
-    // Build query parameters
-    const params: any = {
-      page: currentPage.value,
-      pageSize: pageSize.value
-    }
-
-    if (searchQuery.value) {
-      params.query = searchQuery.value
-    }
-
-    if (selectedFilters.value.visibility && selectedFilters.value.visibility !== 'all') {
-      params.visibility = selectedFilters.value.visibility
-    }
-
-    if (selectedFilters.value.status && selectedFilters.value.status !== 'all') {
-      params.status = selectedFilters.value.status
-    }
-
-    // Fetch teams from API
-    const response = await teamStore.fetchTeams(params)
-    const rawTeams = response.teams || response
-    // Transform store Team objects to match Team interface from team-types.ts
-    const transformedTeams = rawTeams.map((team: any) => ({
-      ...team,
-      visibility: team.is_open ? TeamVisibility.PUBLIC : TeamVisibility.PRIVATE,
-      status: team.status || TeamStatus.ACTIVE,
-      id: team.id.toString(), // Convert id to string to match Team interface
-      createdBy: team.created_by?.toString() || team.created_by,
-      hackathonId: team.hackathon_id?.toString() || team.hackathon_id,
-      maxMembers: team.max_members,
-      avatarUrl: team.avatar_url,
-      bannerUrl: team.banner_url,
-      createdAt: team.created_at,
-      updatedAt: team.updated_at,
-      tags: team.tags || [],
-      stats: team.stats
-    }))
-    teams.value = transformedTeams
-  } catch (err: any) {
-    error.value = err.message || t('teams.loadTeamsError')
-    console.error('Failed to load teams:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
-const loadHackathons = async () => {
-  try {
-    // Load hackathons for filters if needed
-    // This would be implemented based on your API
-  } catch (err) {
-    console.error('Failed to load hackathons:', err)
-  }
-}
-
-// Lifecycle
 onMounted(() => {
-  loadTeams()
-  loadHackathons()
+  refreshTeams()
 })
 </script>
 

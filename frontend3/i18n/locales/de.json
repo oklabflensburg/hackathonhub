@@ -29,7 +29,8 @@
     "searchInstructions": "Tippen und Enter drücken, um in Projekten zu suchen",
     "searchProjects": "Projekte durchsuchen",
     "searchHackathons": "Hackathons durchsuchen",
-    "searchPlaceholder": "Hackathons, Projekte, Benutzer suchen..."
+    "searchPlaceholder": "Hackathons, Projekte, Benutzer suchen...",
+    "adminUsers": "Admin Benutzer"
   },
   "common": {
     "loading": "Lädt...",
@@ -886,7 +887,20 @@
     "viewDetails": "Details anzeigen",
     "previous": "Zurück",
     "next": "Weiter",
-    "page": "Seite {page}",
+    "page": {
+      "title": "Teams",
+      "searchPlaceholder": "Teams suchen...",
+      "createTeam": "Team erstellen",
+      "gridView": "Rasteransicht",
+      "listView": "Listenansicht",
+      "emptyTitle": "Keine Teams gefunden",
+      "emptyMessage": "Es wurden keine Teams gefunden, die deinen Suchkriterien entsprechen.",
+      "stats": "Statistiken",
+      "totalTeams": "Gesamte Teams",
+      "totalMembers": "Gesamte Mitglieder",
+      "activeTeams": "Aktive Teams",
+      "publicTeams": "Öffentliche Teams"
+    },
     "discover": "Entdecken",
     "myTeams": "Meine Teams",
     "teamManagement": "Team-Verwaltung",
@@ -941,21 +955,7 @@
       "active": "Aktiv",
       "votes": "Stimmen"
     },
-    "hackathonTeam": "Hackathon-Team",
-    "page": {
-      "title": "Teams",
-      "searchPlaceholder": "Teams suchen...",
-      "createTeam": "Team erstellen",
-      "gridView": "Rasteransicht",
-      "listView": "Listenansicht",
-      "emptyTitle": "Keine Teams gefunden",
-      "emptyMessage": "Es wurden keine Teams gefunden, die deinen Suchkriterien entsprechen.",
-      "stats": "Statistiken",
-      "totalTeams": "Gesamte Teams",
-      "totalMembers": "Gesamte Mitglieder",
-      "activeTeams": "Aktive Teams",
-      "publicTeams": "Öffentliche Teams"
-    }
+    "hackathonTeam": "Hackathon-Team"
   },
   "myVotes": {
     "title": "Meine Bewertungen",

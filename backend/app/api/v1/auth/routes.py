@@ -2,7 +2,9 @@
 Authentication API routes.
 """
 
-from fastapi import APIRouter, Depends, status, Query, Response
+from typing import Optional
+
+from fastapi import APIRouter, Depends, status, Query, Response, Request
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -18,6 +20,7 @@ from app.domain.schemas.settings import (
     TwoFactorLoginResponse
 )
 from app.core.auth import refresh_tokens, verify_refresh_token
+from app.core.permissions import apply_access_context
 from app.services.auth_service import auth_service
 from app.services.google_oauth_service import google_oauth
 from app.services.github_oauth_service import github_oauth
@@ -28,10 +31,22 @@ from app.i18n.helpers import (
     raise_bad_request,
     raise_i18n_http_exception
 )
-from app.utils.cookies import set_auth_cookies, clear_auth_cookies
+from app.utils.cookies import (
+    set_auth_cookies,
+    clear_auth_cookies,
+    get_refresh_token_from_cookies,
+)
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/auth/login", auto_error=False
+)
+
+
+def _serialize_auth_user(db: Session, user):
+    if not user:
+        return None
+    return apply_access_context(db, user)
 
 
 @router.post("/login")
@@ -56,8 +71,8 @@ async def login(
     try:
         # Use the consolidated auth service for email/password authentication
         auth_result = auth_service.login_with_email(
-            db, 
-            email=login_data.email, 
+            db,
+            email=login_data.email,
             password=login_data.password,
             remember_me=login_data.remember_me
         )
@@ -108,7 +123,7 @@ async def login(
         "refresh_token": refresh_token,
         "token_type": auth_result.get("token_type", "bearer"),
         "requires_2fa": False,
-        "user": auth_result.get("user")
+        "user": _serialize_auth_user(db, auth_result.get("user"))
     }
 
 
@@ -137,13 +152,30 @@ async def login_json(
 
 @router.post("/refresh", response_model=TokenWithRefresh)
 async def refresh_token(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    request: Request,
+    response: Response,
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale)
 ):
     """
     Refresh access token using a valid refresh token.
     """
-    token_data = refresh_tokens(token, db)
+    refresh_token_value = token or get_refresh_token_from_cookies(request)
+    if not refresh_token_value:
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.invalid_refresh_token"
+        )
+
+    token_data = refresh_tokens(refresh_token_value, db)
+    set_auth_cookies(
+        response=response,
+        auth_token=token_data["access_token"],
+        refresh_token=token_data["refresh_token"],
+        persistent=token_data.get("is_persistent", False)
+    )
     return TokenWithRefresh(
         access_token=token_data["access_token"],
         refresh_token=token_data["refresh_token"],
@@ -153,7 +185,8 @@ async def refresh_token(
 
 @router.post("/logout")
 async def logout(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
     response: Response = None,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
@@ -161,7 +194,15 @@ async def logout(
     """
     Logout by revoking a refresh token and clearing auth cookies.
     """
-    token_info = verify_refresh_token(token, db)
+    refresh_token_value = token or get_refresh_token_from_cookies(request)
+    if not refresh_token_value:
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.invalid_refresh_token"
+        )
+
+    token_info = verify_refresh_token(refresh_token_value, db)
     success = auth_service.revoke_refresh_token(db, token_info["token_id"])
     if not success:
         raise_i18n_http_exception(
@@ -231,7 +272,15 @@ async def google_callback(
                 f"&refresh_token={refresh_token}&source=google"
             )
 
-        return RedirectResponse(url=redirect_url)
+        response = RedirectResponse(url=redirect_url)
+        set_auth_cookies(
+            response=response,
+            auth_token=result["access_token"],
+            refresh_token=result.get("refresh_token", ""),
+            persistent=True,
+            secure=False
+        )
+        return response
     except Exception as e:
         # On error, redirect to frontend with error
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")
@@ -383,9 +432,9 @@ async def github_auth(
     # Get current user from Authorization header
     if authorization and authorization.startswith("Bearer "):
         try:
-            from app.core.auth import get_current_user
-            token = authorization.replace("Bearer ", "")
-            current_user = await get_current_user(token, db)
+            current_user = auth_service.get_current_user(
+                db, authorization.replace("Bearer ", "")
+            )
             if current_user:
                 state_data["user_id"] = current_user.id
         except Exception:
@@ -462,7 +511,15 @@ async def github_callback(
                 f"&refresh_token={refresh_token}&source=github"
             )
 
-        return RedirectResponse(url=redirect_url)
+        response = RedirectResponse(url=redirect_url)
+        set_auth_cookies(
+            response=response,
+            auth_token=result["access_token"],
+            refresh_token=result.get("refresh_token", ""),
+            persistent=True,
+            secure=False
+        )
+        return response
     except Exception as e:
         # On error, redirect to frontend with error
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3001")

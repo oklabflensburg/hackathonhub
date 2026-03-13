@@ -9,13 +9,13 @@ from .base import Base
 from .user import (
     User, RefreshToken, PasswordResetToken, EmailVerificationToken
 )
+from .rbac import Role, Permission, RolePermission, UserRole
+from .report import Report
 from .project import Project, Vote, Comment, CommentVote
-
-# Import other models as we create them
 from .hackathon import Hackathon, HackathonRegistration
-from .team import Team, TeamMember, TeamInvitation
+from .team import Team, TeamMember, TeamInvitation, TeamReport
 from .notification import (
-    NotificationType, UserNotification,
+    NotificationType, UserNotification, NotificationDelivery,
     UserNotificationPreference, PushSubscription
 )
 from .shared import (
@@ -79,6 +79,7 @@ Team.hackathon = relationship("Hackathon", back_populates="teams")
 Team.creator = relationship("User", foreign_keys=[Team.created_by])
 Team.members = relationship("TeamMember", back_populates="team")
 Team.invitations = relationship("TeamInvitation", back_populates="team")
+Team.reports = relationship("TeamReport", back_populates="team")
 Team.projects = relationship("Project", back_populates="team")
 Team.chat_rooms = relationship("ChatRoom", back_populates="team")
 
@@ -98,6 +99,17 @@ TeamInvitation.inviter = relationship(
     foreign_keys=[TeamInvitation.invited_by],
     back_populates="team_invitations_sent"
 )
+TeamReport.team = relationship("Team", back_populates="reports")
+TeamReport.reporter = relationship(
+    "User",
+    foreign_keys=[TeamReport.reporter_id],
+    back_populates="team_reports"
+    )
+TeamReport.reviewer = relationship(
+    "User",
+    foreign_keys=[TeamReport.reviewed_by],
+    back_populates="reviewed_team_reports"
+)
 
 # Set up Notification relationships
 UserNotificationPreference.user = relationship(
@@ -105,6 +117,15 @@ UserNotificationPreference.user = relationship(
     back_populates="notification_preferences"
 )
 UserNotification.user = relationship("User", back_populates="notifications")
+UserNotification.deliveries = relationship(
+    "NotificationDelivery",
+    back_populates="notification",
+    cascade="all, delete-orphan"
+)
+NotificationDelivery.notification = relationship(
+    "UserNotification",
+    back_populates="deliveries"
+)
 PushSubscription.user = relationship(
     "User",
     back_populates="push_subscriptions"
@@ -134,6 +155,31 @@ User.team_invitations_sent = relationship(
     foreign_keys=[TeamInvitation.invited_by],
     back_populates="inviter"
 )
+User.team_reports = relationship(
+    "TeamReport",
+    foreign_keys=[TeamReport.reporter_id],
+    back_populates="reporter"
+)
+User.reviewed_team_reports = relationship(
+    "TeamReport",
+    foreign_keys=[TeamReport.reviewed_by],
+    back_populates="reviewer"
+)
+User.reports = relationship(
+    "Report",
+    foreign_keys=[Report.reporter_id],
+    back_populates="reporter"
+)
+User.reviewed_reports = relationship(
+    "Report",
+    foreign_keys=[Report.reviewed_by],
+    back_populates="reviewer"
+)
+User.user_roles = relationship(
+    "UserRole",
+    back_populates="user",
+    cascade="all, delete-orphan"
+)
 User.notification_preferences = relationship(
     "UserNotificationPreference",
     back_populates="user"
@@ -146,6 +192,66 @@ User.push_subscriptions = relationship(
 User.uploaded_files = relationship("File", back_populates="uploader")
 User.chat_messages = relationship("ChatMessage", back_populates="user")
 User.chat_participants = relationship("ChatParticipant", back_populates="user")
+
+Report.reporter = relationship(
+    "User",
+    foreign_keys=[Report.reporter_id],
+    back_populates="reports"
+)
+Report.reviewer = relationship(
+    "User",
+    foreign_keys=[Report.reviewed_by],
+    back_populates="reviewed_reports"
+)
+
+# Set up RBAC relationships
+Role.role_permissions = relationship(
+    "RolePermission",
+    back_populates="role",
+    cascade="all, delete-orphan",
+    overlaps="permissions,roles"
+)
+Role.permissions = relationship(
+    "Permission",
+    secondary="role_permissions",
+    back_populates="roles",
+    overlaps="role_permissions,permission"
+)
+Role.user_roles = relationship(
+    "UserRole",
+    back_populates="role",
+    cascade="all, delete-orphan"
+)
+Permission.role_permissions = relationship(
+    "RolePermission",
+    back_populates="permission",
+    cascade="all, delete-orphan",
+    overlaps="permissions,roles"
+)
+Permission.roles = relationship(
+    "Role",
+    secondary="role_permissions",
+    back_populates="permissions",
+    overlaps="role_permissions,role"
+)
+RolePermission.role = relationship(
+    "Role",
+    back_populates="role_permissions",
+    overlaps="permissions,roles"
+)
+RolePermission.permission = relationship(
+    "Permission",
+    back_populates="role_permissions",
+    overlaps="permissions,roles"
+)
+UserRole.user = relationship(
+    "User",
+    back_populates="user_roles"
+)
+UserRole.role = relationship(
+    "Role",
+    back_populates="user_roles"
+)
 
 # Export all models
 __all__ = [
@@ -163,8 +269,15 @@ __all__ = [
     "Team",
     "TeamMember",
     "TeamInvitation",
+    "TeamReport",
+    "Report",
+    "Role",
+    "Permission",
+    "RolePermission",
+    "UserRole",
     "NotificationType",
     "UserNotification",
+    "NotificationDelivery",
     "UserNotificationPreference",
     "PushSubscription",
     "File",

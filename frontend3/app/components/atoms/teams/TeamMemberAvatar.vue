@@ -49,17 +49,17 @@ const memberInfo = computed(() => {
     return {
       id: props.member.userId,
       username: props.member.user?.username || 'user',
-      displayName: props.member.user?.displayName || props.member.user?.username || 'User',
-      avatarUrl: props.member.user?.avatarUrl || null,
+      displayName: props.member.user?.displayName || props.member.user?.display_name || props.member.user?.username || 'User',
+      avatarUrl: props.member.user?.avatarUrl || props.member.user?.avatar_url || null,
       role: props.member.role
     }
   } else {
     // TeamMemberUser type
     return {
-      id: props.member.id,
+      id: String(props.member.id),
       username: props.member.username || 'user',
-      displayName: props.member.displayName || props.member.username || 'User',
-      avatarUrl: props.member.avatarUrl || null,
+      displayName: props.member.displayName || props.member.display_name || props.member.username || 'User',
+      avatarUrl: props.member.avatarUrl || props.member.avatar_url || null,
       role: TeamRole.MEMBER
     }
   }

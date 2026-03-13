@@ -6,7 +6,7 @@ from typing import Optional, List, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
-    from .user import User
+    from .user import PublicUser
     from .hackathon import Hackathon
     from .project import Project
 
@@ -34,9 +34,18 @@ class Team(TeamBase):
     id: int
     created_by: int
     created_at: datetime
-    creator: Optional["User"] = None
+    creator: Optional["PublicUser"] = None
     hackathon: Optional["Hackathon"] = None
     member_count: Optional[int] = None
+    project_count: int = 0
+    active_project_count: int = 0
+    completed_project_count: int = 0
+    total_votes: int = 0
+    total_comments: int = 0
+    last_activity_at: Optional[datetime] = None
+    view_count: int = 0
+    engagement_score: int = 0
+    engagement_level: str = "low"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,7 +73,7 @@ class TeamMemberUpdate(BaseModel):
 class TeamMember(TeamMemberBase):
     id: int
     joined_at: datetime
-    user: Optional["User"] = None
+    user: Optional["PublicUser"] = None
     team: Optional["Team"] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -90,9 +99,38 @@ class TeamInvitation(TeamInvitationBase):
     status: str = "pending"
     created_at: datetime
     expires_at: Optional[datetime] = None
-    invited_user: Optional["User"] = None
-    inviter: Optional["User"] = None
+    invited_user: Optional["PublicUser"] = None
+    inviter: Optional["PublicUser"] = None
     team: Optional["Team"] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TeamReportBase(BaseModel):
+    reason: str
+
+
+class TeamReportCreateRequest(TeamReportBase):
+    pass
+
+
+class TeamReportUpdateRequest(BaseModel):
+    status: str
+    resolution_note: Optional[str] = None
+
+
+class TeamReport(TeamReportBase):
+    id: int
+    team_id: int
+    reporter_id: int
+    status: str = "pending"
+    reviewed_by: Optional[int] = None
+    reviewed_at: Optional[datetime] = None
+    resolution_note: Optional[str] = None
+    created_at: datetime
+    team: Optional["Team"] = None
+    reporter: Optional["PublicUser"] = None
+    reviewer: Optional["PublicUser"] = None
 
     model_config = ConfigDict(from_attributes=True)
 

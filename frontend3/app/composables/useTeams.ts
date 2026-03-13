@@ -9,6 +9,7 @@
 import { ref, computed, type Ref } from 'vue'
 import { useApiClient } from '~/utils/api-client'
 import { useUIStore } from '~/stores/ui'
+import { useAuthStore } from '~/stores/auth'
 import type {
   Team,
   TeamMember,
@@ -43,6 +44,15 @@ interface ApiTeam {
   hackathon?: any
   member_count?: number
   _member_count?: number
+  project_count?: number
+  active_project_count?: number
+  completed_project_count?: number
+  total_votes?: number
+  total_comments?: number
+  last_activity_at?: string | null
+  view_count?: number
+  engagement_score?: number
+  engagement_level?: 'low' | 'medium' | 'high'
 }
 
 interface ApiTeamMember {
@@ -150,14 +160,16 @@ export function useTeams(options: UseTeamsOptions = {}): UseTeamsReturn {
       tags: [],
       stats: {
         memberCount: apiTeam.member_count || apiTeam._member_count || 0,
-        projectCount: 0,
-        activeProjectCount: 0,
-        completedProjectCount: 0,
-        totalVotes: 0,
-        totalComments: 0,
+        projectCount: apiTeam.project_count || 0,
+        activeProjectCount: apiTeam.active_project_count || 0,
+        completedProjectCount: apiTeam.completed_project_count || 0,
+        totalVotes: apiTeam.total_votes || 0,
+        totalComments: apiTeam.total_comments || 0,
         averageRating: null,
-        lastActivityAt: null,
-        viewCount: 0
+        lastActivityAt: apiTeam.last_activity_at || null,
+        viewCount: apiTeam.view_count || 0,
+        engagementScore: apiTeam.engagement_score || 0,
+        engagementLevel: apiTeam.engagement_level || 'low'
       }
     }
   }
@@ -255,22 +267,30 @@ export function useTeams(options: UseTeamsOptions = {}): UseTeamsReturn {
       }
 
       const queryParams = new URLSearchParams()
-      if (options.query) queryParams.append('search', options.query)
-      if (options.page) queryParams.append('page', options.page.toString())
-      if (options.pageSize) queryParams.append('limit', options.pageSize.toString())
+      const limit = options.pageSize || pageSizeRef.value
+      const currentPage = options.page || page.value
+      const skip = Math.max(0, (currentPage - 1) * limit)
+
+      queryParams.append('skip', skip.toString())
+      queryParams.append('limit', limit.toString())
       if (options.hackathonId) queryParams.append('hackathon_id', options.hackathonId)
-      
-      // Filter hinzufügen
+
       if (options.filters?.visibility && options.filters.visibility !== 'all') {
         queryParams.append('is_open', options.filters.visibility === TeamVisibility.PUBLIC ? 'true' : 'false')
       }
 
       const url = `/api/teams${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
       const response = await apiClient.get<ApiTeam[]>(url)
+      const normalizedQuery = options.query?.trim().toLowerCase()
+      const filteredResponse = normalizedQuery
+        ? response.filter(team =>
+            team.name?.toLowerCase().includes(normalizedQuery) ||
+            team.description?.toLowerCase().includes(normalizedQuery)
+          )
+        : response
 
-      // Mappen und speichern
-      teams.value = response.map(mapApiTeamToTeam)
-      totalCount.value = response.length
+      teams.value = filteredResponse.map(mapApiTeamToTeam)
+      totalCount.value = filteredResponse.length
       
       // Update state
       if (options.page) page.value = options.page
@@ -550,39 +570,14 @@ export function useTeams(options: UseTeamsOptions = {}): UseTeamsReturn {
    * Team-Mitglied Rolle aktualisieren
    */
   async function updateMemberRole(teamId: string, memberId: string, role: TeamRole): Promise<boolean> {
-    try {
-      loading.value = true
-      error.value = null
+    loading.value = false
+    error.value = 'Team role updates are not supported by the current API'
 
-      const apiPayload = { role }
-      const response = await apiClient.put<ApiTeamMember>(`/api/teams/${teamId}/members/${memberId}`, apiPayload, {
-        skipErrorNotification: true
-      })
-
-      // Lokalen State aktualisieren
-      const member = mapApiTeamMemberToTeamMember(response)
-      const index = teamMembers.value.findIndex(m => m.id === memberId)
-      if (index !== -1) {
-        teamMembers.value[index] = member
-      }
-
-      // Success Notification
-      if (autoSuccessHandling) {
-        uiStore.showSuccess('Mitglied erfolgreich aktualisiert', 'Team')
-      }
-
-      return true
-    } catch (err: any) {
-      error.value = err.message || 'Fehler beim Aktualisieren des Mitglieds'
-      
-      if (autoErrorHandling && error.value) {
-        uiStore.showError(error.value, 'Mitglied Update Fehler')
-      }
-      
-      return false
-    } finally {
-      loading.value = false
+    if (autoErrorHandling) {
+      uiStore.showError(error.value, 'Mitglied Update Fehler')
     }
+
+    return false
   }
 
   /**
@@ -593,19 +588,37 @@ export function useTeams(options: UseTeamsOptions = {}): UseTeamsReturn {
       loading.value = true
       error.value = null
 
-      await apiClient.post(`/api/teams/${teamId}/join`, {}, {
+      const currentUserId = useAuthStore().user?.id
+      if (!currentUserId) {
+        throw new Error('Authentication required')
+      }
+
+      await apiClient.post(`/api/teams/${teamId}/members`, {
+        user_id: currentUserId,
+        role: TeamRole.MEMBER
+      }, {
         skipErrorNotification: true
       })
 
       // Team in der Liste aktualisieren
       const index = teams.value.findIndex(t => t.id === teamId)
-      if (index !== -1) {
-        const team = teams.value[index]
+      const existingTeam = index >= 0 ? teams.value[index] : undefined
+      if (existingTeam) {
         teams.value[index] = {
-          ...team,
+          ...existingTeam,
           stats: {
-            ...team.stats!,
-            memberCount: (team.stats?.memberCount || 0) + 1
+            ...(existingTeam.stats || {
+              memberCount: 0,
+              projectCount: 0,
+              activeProjectCount: 0,
+              completedProjectCount: 0,
+              totalVotes: 0,
+              totalComments: 0,
+              averageRating: null,
+              lastActivityAt: null,
+              viewCount: 0
+            }),
+            memberCount: (existingTeam.stats?.memberCount || 0) + 1
           }
         }
       }
@@ -637,19 +650,34 @@ export function useTeams(options: UseTeamsOptions = {}): UseTeamsReturn {
       loading.value = true
       error.value = null
 
-      await apiClient.post(`/api/teams/${teamId}/leave`, {}, {
+      const currentUserId = useAuthStore().user?.id
+      if (!currentUserId) {
+        throw new Error('Authentication required')
+      }
+
+      await apiClient.delete(`/api/teams/${teamId}/members/${currentUserId}`, {
         skipErrorNotification: true
       })
 
       // Team in der Liste aktualisieren
       const index = teams.value.findIndex(t => t.id === teamId)
-      if (index !== -1) {
-        const team = teams.value[index]
+      const existingTeam = index >= 0 ? teams.value[index] : undefined
+      if (existingTeam) {
         teams.value[index] = {
-          ...team,
+          ...existingTeam,
           stats: {
-            ...team.stats!,
-            memberCount: Math.max(0, (team.stats?.memberCount || 1) - 1)
+            ...(existingTeam.stats || {
+              memberCount: 1,
+              projectCount: 0,
+              activeProjectCount: 0,
+              completedProjectCount: 0,
+              totalVotes: 0,
+              totalComments: 0,
+              averageRating: null,
+              lastActivityAt: null,
+              viewCount: 0
+            }),
+            memberCount: Math.max(0, (existingTeam.stats?.memberCount || 1) - 1)
           }
         }
       }

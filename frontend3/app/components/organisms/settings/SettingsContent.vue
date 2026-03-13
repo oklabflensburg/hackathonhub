@@ -185,6 +185,86 @@
              </p>
            </div>
          </div>
+
+         <!-- Trusted Devices Section -->
+         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+             Vertrauenswürdige Geräte
+           </h3>
+           <div v-if="security.trusted_devices && security.trusted_devices.length > 0" class="space-y-4">
+             <div
+               v-for="device in security.trusted_devices"
+               :key="device.id"
+               class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+             >
+               <div class="flex items-center gap-3">
+                 <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                   <Icon
+                     :name="device.device_type === 'mobile' ? 'smartphone' : 'shield-check'"
+                     class="text-emerald-600 dark:text-emerald-400"
+                   />
+                 </div>
+                 <div>
+                   <p class="font-medium text-gray-900 dark:text-gray-100">
+                     {{ device.device_name || 'Unbekanntes Gerät' }}
+                   </p>
+                   <p class="text-sm text-gray-600 dark:text-gray-400">
+                     {{ device.location || 'Unbekannter Standort' }} • Seit {{ formatDate(device.created_at) }}
+                   </p>
+                 </div>
+               </div>
+               <div class="flex items-center gap-2">
+                 <Badge
+                   v-if="device.is_current"
+                   variant="success"
+                   size="sm"
+                 >
+                   Aktuell
+                 </Badge>
+                 <Button
+                   v-if="!device.is_current"
+                   @click="revokeTrustedDevice(device.id)"
+                   variant="ghost"
+                   size="sm"
+                   class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                 >
+                   Entfernen
+                 </Button>
+               </div>
+             </div>
+           </div>
+           <div v-else class="text-center py-8">
+             <Icon name="shield-check" class="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+             <p class="text-gray-600 dark:text-gray-400">
+               Keine vertrauenswürdigen Geräte gespeichert
+             </p>
+           </div>
+         </div>
+
+         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900/50 p-6">
+           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+             Konto verwalten
+           </h3>
+           <p class="text-sm text-gray-600 dark:text-gray-400 mb-5">
+             Deaktivieren meldet dich ab und sperrt den Login. Dauerhafte Löschung anonymisiert dein Konto und ist nur möglich, wenn du keine eigenen Hackathons, Teams oder Projekte mehr besitzt.
+           </p>
+           <div class="flex flex-col sm:flex-row gap-3">
+             <Button
+               @click="emit('open-deactivate-account')"
+               variant="outline"
+               class="flex-1"
+             >
+               Konto deaktivieren
+             </Button>
+             <Button
+               @click="emit('open-delete-account')"
+               variant="danger"
+               class="flex-1"
+             >
+               Konto löschen
+             </Button>
+           </div>
+         </div>
        </div>
 
       <!-- Notifications Tab -->
@@ -525,6 +605,9 @@ const emit = defineEmits<{
   'remove-avatar': []
   'show-backup-codes': []
   'terminate-session': [sessionId: string]
+  'revoke-trusted-device': [deviceId: string]
+  'open-deactivate-account': []
+  'open-delete-account': []
 }>()
 
 const tabTitles: Record<string, string> = {
@@ -607,6 +690,10 @@ const showBackupCodes = () => {
 
 const terminateSession = (sessionId: string) => {
   emit('terminate-session', sessionId)
+}
+
+const revokeTrustedDevice = (deviceId: string) => {
+  emit('revoke-trusted-device', deviceId)
 }
 
 const formatDate = (dateString: string) => {

@@ -7,13 +7,25 @@ from typing import List
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.permissions import (
+    PERMISSION_CODES,
+    can_delete_hackathon,
+    can_manage_hackathon,
+    can_manage_hackathon_reports,
+    can_manage_team_reports_for_hackathon,
+    user_has_permission,
+)
 from app.domain.schemas.hackathon import (
     Hackathon, HackathonCreate, HackathonUpdate, HackathonRegistrationStatus
 )
+from app.domain.schemas.report import Report, ReportCreateRequest
+from app.domain.schemas.team import TeamReport
 from app.repositories.hackathon_repository import (
     HackathonRepository,
     HackathonRegistrationRepository
 )
+from app.services.team_service import team_service
+from app.services.report_service import report_service
 
 router = APIRouter()
 hackathon_repository = HackathonRepository()
@@ -58,6 +70,8 @@ async def create_hackathon(
     current_user=Depends(get_current_user)
 ):
     """Create a new hackathon."""
+    if not user_has_permission(db, current_user, PERMISSION_CODES["hackathons_create"]):
+        raise HTTPException(status_code=403, detail="Not authorized to create hackathons")
     hackathon_data = hackathon.dict()
     hackathon_data["owner_id"] = current_user.id
     new_hackathon = hackathon_repository.create(db, obj_in=hackathon_data)
@@ -76,12 +90,8 @@ async def update_hackathon(
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
 
-    # Check ownership
-    if hackathon.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to update this hackathon"
-        )
+    if not can_manage_hackathon(db, current_user, hackathon):
+        raise HTTPException(status_code=403, detail="Not authorized to update this hackathon")
 
     updated_hackathon = hackathon_repository.update(
         db, db_obj=hackathon, obj_in=hackathon_update.dict(exclude_unset=True)
@@ -100,12 +110,8 @@ async def delete_hackathon(
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
 
-    # Check ownership
-    if hackathon.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to delete this hackathon"
-        )
+    if not can_delete_hackathon(db, current_user, hackathon):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this hackathon")
 
     success = hackathon_repository.delete(db, id=hackathon_id)
     if not success:
@@ -270,3 +276,69 @@ async def get_hackathon_teams(
         })
 
     return {"teams": team_list, "hackathon_id": hackathon_id}
+
+
+
+
+@router.post("/{hackathon_id}/reports", response_model=Report)
+async def report_hackathon(
+    hackathon_id: int,
+    payload: ReportCreateRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    hackathon = hackathon_repository.get(db, hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+    if not user_has_permission(db, current_user, PERMISSION_CODES["reports_create"]):
+        raise HTTPException(status_code=403, detail="Not authorized to create reports")
+    try:
+        return report_service.create_report(
+            db,
+            reporter_id=current_user.id,
+            resource_type="hackathon",
+            resource_id=hackathon_id,
+            reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/{hackathon_id}/reports", response_model=List[Report])
+async def get_hackathon_reports(
+    hackathon_id: int,
+    status: str | None = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    hackathon = hackathon_repository.get(db, hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+    if not can_manage_hackathon_reports(db, current_user, hackathon_id):
+        raise HTTPException(status_code=403, detail="Not authorized to view reports for this hackathon")
+    return report_service.list_reports_for_resource(
+        db, resource_type="hackathon", resource_id=hackathon_id, status=status, skip=skip, limit=limit
+    )
+
+
+@router.get("/{hackathon_id}/team-reports", response_model=List[TeamReport])
+async def get_hackathon_team_reports(
+    hackathon_id: int,
+    status: str | None = None,
+    team_id: int | None = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Get team reports for a hackathon for owners, moderators, admins, or superusers."""
+    hackathon = hackathon_repository.get(db, hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+    if not can_manage_team_reports_for_hackathon(db, current_user, hackathon_id):
+        raise HTTPException(status_code=403, detail="Not authorized to view team reports for this hackathon")
+    return team_service.list_hackathon_team_reports(
+        db, hackathon_id=hackathon_id, status=status, team_id=team_id, skip=skip, limit=limit
+    )

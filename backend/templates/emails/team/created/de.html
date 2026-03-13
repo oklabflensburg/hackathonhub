@@ -1,0 +1,47 @@
+<div class="content">
+    <h1>Dein Team wurde erstellt!</h1>
+    
+    <p>Hallo {{ user_name }},</p>
+    
+    <p>Herzlichen Glückwunsch! Dein Team <strong>{{ team_name }}</strong> wurde erfolgreich erstellt.</p>
+    
+    <div class="team-info">
+        <h2>Team-Details</h2>
+        <ul>
+            <li><strong>Teamname:</strong> {{ team_name }}</li>
+            <li><strong>Team-ID:</strong> {{ team_id }}</li>
+            <li><strong>Erstellt von:</strong> {{ creator_name }}</li>
+            <li><strong>Erstellungsdatum:</strong> {{ creation_date }}</li>
+            <li><strong>Hackathon:</strong> {{ hackathon_name }}</li>
+        </ul>
+    </div>
+    
+    <p>Als Team-Ersteller hast du Admin-Rechte. Das kannst du tun:</p>
+    <ol>
+        <li>Mitglieder einladen, deinem Team beizutreten</li>
+        <li>Team-Details und Beschreibung bearbeiten</li>
+        <li>Team-Projekte verwalten</li>
+        <li>Team-Sichtbarkeit und Berechtigungen festlegen</li>
+    </ol>
+    
+    <div class="cta-button">
+        <a href="{{ team_dashboard_url }}" class="button">Zum Team-Dashboard</a>
+    </div>
+    
+    <div class="cta-button">
+        <a href="{{ invite_members_url }}" class="button secondary">Teammitglieder einladen</a>
+    </div>
+    
+    <p>Nächste Schritte:</p>
+    <ul>
+        <li>Vervollständige dein Team-Profil mit einer Beschreibung und Logo</li>
+        <li>Lade Teammitglieder ein</li>
+        <li>Beginne mit deinem Hackathon-Projekt</li>
+        <li>Überprüfe das Team-Diskussionsboard für Updates</li>
+    </ul>
+    
+    <p>Wenn du Hilfe benötigst oder Fragen zur Team-Verwaltung hast, besuche bitte unser <a href="{{ help_center_url }}">Hilfe-Center</a>.</p>
+    
+    <p>Mit freundlichen Grüßen,<br>
+    Hackathon Dashboard Team</p>
+</div>

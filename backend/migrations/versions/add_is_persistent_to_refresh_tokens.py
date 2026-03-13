@@ -1,7 +1,7 @@
 """add_is_persistent_to_refresh_tokens
 
-Revision ID: add_is_persistent_to_refresh_tokens
-Revises: fix_refresh_tokens_auto_increment
+Revision ID: add_refresh_token_persistence
+Revises: fix_refresh_tokens_auto_inc
 Create Date: 2026-03-12 19:47:00.000000
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'add_is_persistent_to_refresh_tokens'
-down_revision = 'fix_refresh_tokens_auto_increment'
+revision = 'add_refresh_token_persistence'
+down_revision = 'fix_refresh_tokens_auto_inc'
 branch_labels = None
 depends_on = None
 

@@ -166,11 +166,11 @@
         >
           <!-- Avatar -->
           <div
-            v-if="member.user.avatarUrl"
+            v-if="member.user.avatarUrl || member.user.avatar_url"
             class="member-avatar w-6 h-6 rounded-full overflow-hidden"
           >
             <img
-              :src="member.user.avatarUrl"
+              :src="member.user.avatarUrl || member.user.avatar_url"
               :alt="`Avatar of ${member.user.username}`"
               class="w-full h-full object-cover"
             />

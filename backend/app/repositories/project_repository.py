@@ -178,18 +178,34 @@ class CommentRepository(BaseRepository[Comment]):
         self, db: Session, project_id: int, skip: int = 0, limit: int = 100
     ) -> List[Comment]:
         """Get comments for a project."""
-        return db.query(self.model).filter(
+        return db.query(self.model).options(
+            joinedload(self.model.user)
+        ).filter(
             self.model.project_id == project_id,
             self.model.parent_id.is_(None)  # Top-level comments only
         ).order_by(
             self.model.created_at.desc()
         ).offset(skip).limit(limit).all()
 
+    def get_project_comments_flat(
+        self, db: Session, project_id: int
+    ) -> List[Comment]:
+        """Get all comments for a project with user relation eager loaded."""
+        return db.query(self.model).options(
+            joinedload(self.model.user)
+        ).filter(
+            self.model.project_id == project_id
+        ).order_by(
+            self.model.created_at.asc()
+        ).all()
+
     def get_replies(
         self, db: Session, comment_id: int
     ) -> List[Comment]:
         """Get replies to a comment."""
-        return db.query(self.model).filter(
+        return db.query(self.model).options(
+            joinedload(self.model.user)
+        ).filter(
             self.model.parent_id == comment_id
         ).order_by(
             self.model.created_at.asc()

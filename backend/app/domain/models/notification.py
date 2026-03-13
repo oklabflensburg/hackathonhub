@@ -3,12 +3,15 @@ Notification domain models.
 """
 from sqlalchemy import (
     Column, Integer, String, Text, DateTime,
-    ForeignKey, Boolean, UniqueConstraint
+    ForeignKey, Boolean, UniqueConstraint, JSON, Index
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 
 from .base import Base
+
+
+notification_json_type = JSON().with_variant(JSONB, "postgresql")
 
 
 class UserNotificationPreference(Base):
@@ -56,14 +59,37 @@ class UserNotification(Base):
     notification_type = Column(String(50), nullable=False)
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
-    data = Column(Text)  # JSON string for additional data
-    # Comma-separated channels actually used
-    channels_sent = Column(String(100))
+    data = Column(notification_json_type)
     read_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships will be defined in __init__.py
     # user = relationship("User", back_populates="notifications")
+
+    __table_args__ = (
+        Index("ix_user_notifications_user_id", "user_id"),
+        Index("ix_user_notifications_created_at", "created_at"),
+        Index("ix_user_notifications_read_at", "read_at"),
+    )
+
+
+class NotificationDelivery(Base):
+    __tablename__ = "notification_deliveries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    notification_id = Column(
+        Integer,
+        ForeignKey("user_notifications.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    channel = Column(String(20), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
+    error = Column(Text)
+    provider_message_id = Column(String(255))
+    attempt_count = Column(Integer, nullable=False, default=0)
+    last_attempt_at = Column(DateTime(timezone=True))
+    delivered_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class PushSubscription(Base):

@@ -6,7 +6,7 @@ from typing import Optional, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, field_validator
 
 if TYPE_CHECKING:
-    from app.domain.schemas.user import User
+    from app.domain.schemas.user import PublicUser
 
 
 def is_base64_data_url(value: str) -> bool:
@@ -92,7 +92,7 @@ class Hackathon(HackathonBase):
     id: int
     owner_id: Optional[int] = None
     created_at: datetime
-    owner: Optional["User"] = None
+    owner: Optional["PublicUser"] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -110,7 +110,7 @@ class HackathonRegistrationCreate(HackathonRegistrationBase):
 class HackathonRegistration(HackathonRegistrationBase):
     id: int
     registered_at: datetime
-    user: Optional["User"] = None
+    user: Optional["PublicUser"] = None
     hackathon: Optional[Hackathon] = None
 
     model_config = ConfigDict(from_attributes=True)

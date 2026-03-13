@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.permissions import PERMISSION_CODES, user_has_permission
 from app.domain.schemas.user import User, UserUpdate
 from app.domain.schemas.project import Project
 from app.domain.models.team import Team, TeamMember
@@ -24,9 +25,13 @@ async def get_users(
     username: str = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    locale: str = Depends(get_locale),
 ):
     """Get users with optional username filter."""
+    if not user_has_permission(db, current_user, PERMISSION_CODES["users_view"]):
+        raise_forbidden(locale, "view", entity="users")
     user_service = UserService()
     
     if username:
@@ -264,8 +269,7 @@ async def get_user_teams(
     if not user:
         raise_not_found(locale, "user")
 
-    # Users can only view their own teams unless they're an admin
-    if current_user.id != user_id:
+    if current_user.id != user_id and not user_has_permission(db, current_user, PERMISSION_CODES["users_view"]):
         raise_forbidden(locale, "view_teams", entity="user")
 
     # Get user's team memberships
@@ -328,9 +332,12 @@ async def get_user_teams(
 async def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    locale: str = Depends(get_locale)
+    locale: str = Depends(get_locale),
+    current_user: User = Depends(get_current_user),
 ):
     """Get a specific user by ID."""
+    if current_user.id != user_id and not user_has_permission(db, current_user, PERMISSION_CODES["users_view"]):
+        raise_forbidden(locale, "view", entity="user")
     user_service = UserService()
     user = user_service.get_user(db, user_id)
     if user is None:
@@ -343,9 +350,12 @@ async def update_user(
     user_id: int,
     user_update: UserUpdate,
     db: Session = Depends(get_db),
-    locale: str = Depends(get_locale)
+    locale: str = Depends(get_locale),
+    current_user: User = Depends(get_current_user),
 ):
     """Update a user."""
+    if current_user.id != user_id and not user_has_permission(db, current_user, PERMISSION_CODES["users_update_any"]):
+        raise_forbidden(locale, "update", entity="user")
     user_service = UserService()
     user = user_service.update_user(db, user_id, user_update)
     if user is None:
@@ -357,9 +367,12 @@ async def update_user(
 async def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    locale: str = Depends(get_locale)
+    locale: str = Depends(get_locale),
+    current_user: User = Depends(get_current_user),
 ):
     """Delete a user."""
+    if current_user.id != user_id and not user_has_permission(db, current_user, PERMISSION_CODES["users_update_any"]):
+        raise_forbidden(locale, "delete", entity="user")
     user_service = UserService()
     success = user_service.delete_user(db, user_id)
     if not success:

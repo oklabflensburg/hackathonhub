@@ -23,6 +23,9 @@ export interface User {
   company?: string
   updated_at?: string
   is_admin?: boolean
+  role?: string
+  roles?: string[]
+  permissions?: string[]
   // Extended fields from /api/me (UserWithDetails)
   teams?: Array<{
     id: number

@@ -112,6 +112,8 @@
               :is-registered="isRegistered"
               :registration-loading="registrationLoading"
               :is-hackathon-owner="isHackathonOwner"
+              :can-view-team-reports="canViewTeamReports"
+              :can-view-reports="canViewReports"
               :labels="{
                 registered: $t('hackathons.details.registered'),
                 registrationClosed: $t('hackathons.details.registrationClosed'),
@@ -121,16 +123,29 @@
                 alreadyRegistered: $t('hackathons.details.alreadyRegistered'),
                 editHackathon: $t('hackathons.details.editHackathon'),
                 viewProjects: $t('hackathons.details.viewProjects'),
+                teamReports: 'Team Reports',
+                reports: 'Reports',
+                reportHackathon: 'Report Hackathon',
                 shareHackathon: $t('hackathons.details.shareHackathon')
               }"
               @register="handleRegister"
               @edit="handleEdit"
               @share="handleShare"
+              @report="openReportModal"
             />
           </div>
         </div>
       </div>
     </div>
+
+    <ReportModal
+      :visible="reportModalOpen"
+      title="Report hackathon"
+      :description="`Describe why you are reporting ${hackathon?.name || 'this hackathon'}.`"
+      :loading="reportLoading"
+      @close="closeReportModal"
+      @submit="submitHackathonReport"
+    />
 
     <!-- Edit Form Modal -->
     <HackathonEditForm 
@@ -162,6 +177,7 @@
 
 <script setup lang="ts">
 import { format } from 'date-fns'
+import { computed, ref } from 'vue'
 import { useRoute } from '#imports'
 
 // Stores
@@ -178,10 +194,12 @@ import RulesSection from '~/components/organisms/hackathons/RulesSection.vue'
 import HackathonStats from '~/components/organisms/hackathons/HackathonStats.vue'
 import HackathonActions from '~/components/organisms/hackathons/HackathonActions.vue'
 import ParticipantList from '~/components/organisms/hackathons/ParticipantList.vue'
+import ReportModal from '~/components/organisms/reports/ReportModal.vue'
 
 // Composables
 import { useHackathonLabels } from '~/composables/useHackathonLabels'
 import { useHackathonData } from '~/composables/useHackathonData'
+import { useReports } from '~/composables/useReports'
 
 const route = useRoute()
 const id = route.params.id as string
@@ -189,6 +207,9 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 const { t } = useI18n()
 const { labels: hackathonStatsLabels } = useHackathonLabels()
+const { createReport } = useReports()
+const reportModalOpen = ref(false)
+const reportLoading = ref(false)
 
 // Verwende das erweiterte Composable für alle Daten und Logik
 const {
@@ -255,6 +276,47 @@ const formatDateTime = (dateString: string) => {
     return format(new Date(dateString), 'MMM dd, yyyy HH:mm')
   } catch {
     return dateString
+  }
+}
+
+const canViewTeamReports = computed(() => {
+  if (!authStore.isAuthenticated || !authStore.user) return false
+  if (isHackathonOwner.value) return true
+  return authStore.isSuperuser || authStore.hasPermission('team_reports:view')
+})
+
+const canViewReports = computed(() => {
+  if (!authStore.isAuthenticated || !authStore.user) return false
+  if (isHackathonOwner.value) return true
+  return authStore.isSuperuser || authStore.hasPermission('reports:view')
+})
+
+function openReportModal() {
+  if (!authStore.isAuthenticated) {
+    uiStore.showWarning(t('hackathons.details.loginToRegister'), t('common.authenticationRequired'))
+    return
+  }
+  reportModalOpen.value = true
+}
+
+function closeReportModal() {
+  reportModalOpen.value = false
+}
+
+async function submitHackathonReport(reason: string) {
+  if (!reason) {
+    uiStore.showError('Please provide a reason for the report')
+    return
+  }
+  try {
+    reportLoading.value = true
+    await createReport('hackathon', id, reason)
+    uiStore.showSuccess('Hackathon report submitted')
+    closeReportModal()
+  } catch (err: any) {
+    uiStore.showError(err?.message || 'Failed to report hackathon')
+  } finally {
+    reportLoading.value = false
   }
 }
 

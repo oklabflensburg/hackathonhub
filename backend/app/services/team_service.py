@@ -1,16 +1,19 @@
 """
 Team service layer for business logic operations.
 """
+import logging
 from typing import Optional, List
 from sqlalchemy.orm import Session
 
 from app.domain.schemas.team import (
     TeamCreate, TeamUpdate, Team as TeamSchema,
     TeamMember as TeamMemberSchema, TeamInvitation as TeamInvitationSchema,
-    TeamInvitationCreate
+    TeamInvitationCreate, TeamReport as TeamReportSchema,
+    TeamReportUpdateRequest
 )
 from app.repositories.team_repository import (
-    TeamRepository, TeamMemberRepository, TeamInvitationRepository
+    TeamRepository, TeamMemberRepository, TeamInvitationRepository,
+    TeamReportRepository
 )
 from app.repositories.user_repository import UserRepository
 from app.services.notification_service import NotificationService
@@ -23,6 +26,7 @@ class TeamService:
         self.team_repo = TeamRepository()
         self.member_repo = TeamMemberRepository()
         self.invitation_repo = TeamInvitationRepository()
+        self.report_repo = TeamReportRepository()
         self.user_repo = UserRepository()
         self.notification_service = NotificationService()
 
@@ -57,6 +61,34 @@ class TeamService:
             "role": "admin",
             "status": "active"
         })
+
+        # Send notification to creator
+        try:
+            creator = self.user_repo.get(db, creator_id)
+            if creator:
+                self.notification_service.\
+                    send_multi_channel_notification(
+                        db=db,
+                        notification_type="team_created",
+                        user_id=creator_id,
+                        title=f"Team created: {team.name}",
+                        message=f"Your team {team.name} was created " +
+                                "successfully",
+                        variables={
+                            "team_name": team.name,
+                            "creator_name": creator.name or creator.email,
+                            "team_id": str(team.id)
+                        },
+                        data={
+                            "team_id": team.id,
+                            "metadata": {"team_name": team.name}
+                        },
+                    )
+        except Exception as e:
+            # Don't fail team creation if email fails
+            logging.getLogger(__name__).error(
+                f"Error sending team creation notification: {e}"
+            )
 
         return TeamSchema.model_validate(team)
 
@@ -167,23 +199,24 @@ class TeamService:
         # Create invitation
         invitation_data = invitation_create.model_dump()
         invitation_data["team_id"] = team_id
-        invitation_data["inviter_id"] = inviter_id
+        invitation_data["invited_by"] = inviter_id
         invitation_data["status"] = "pending"
 
         invitation = self.invitation_repo.create(db, obj_in=invitation_data)
 
         # Send notification to invited user
         try:
-            self.notification_service.send_team_invitation_notification(
-                db=db,
-                team_id=team_id,
-                invited_user_id=invitation_create.invitee_id,
-                inviter_id=inviter_id,
-                language="en"  # Default language
-            )
+            self.notification_service.\
+                send_team_invitation_notification(
+                    db=db,
+                    team_id=team_id,
+                    invited_user_id=invitation_create.invitee_id,
+                    inviter_id=inviter_id,
+                    language="en"  # Default language
+                )
+
         except Exception as e:
             # Log error but don't fail the invitation creation
-            import logging
             logging.error(f"Failed to send team invitation notification: {e}")
 
         return TeamInvitationSchema.model_validate(invitation)
@@ -205,15 +238,16 @@ class TeamService:
 
         # Send notification to team owner about accepted invitation
         try:
-            self.notification_service.send_team_member_added_notification(
-                db=db,
-                team_id=invitation.team_id,
-                user_id=user_id,
-                added_by_id=user_id,  # User added themselves by accepting
-                language="en"
-            )
+            self.notification_service.\
+                send_team_member_added_notification(
+                    db=db,
+                    team_id=invitation.team_id,
+                    user_id=user_id,
+                    added_by_id=user_id,  # User added themselves by accepting
+                    language="en"
+                )
+
         except Exception as e:
-            import logging
             logging.error(
                 f"Failed to send team member added notification: {e}"
             )
@@ -244,11 +278,10 @@ class TeamService:
                     db=db,
                     team_id=invitation.team_id,
                     invited_user_id=user_id,
-                    inviter_id=invitation.inviter_id,
+                    inviter_id=invitation.invited_by,
                     language="en"
                 )
         except Exception as e:
-            import logging
             logging.error(
                 f"Failed to send team invitation declined notification: {e}"
             )
@@ -271,6 +304,69 @@ class TeamService:
             if team:
                 teams.append(TeamSchema.model_validate(team))
         return teams
+
+    def create_team_report(
+        self, db: Session, team_id: int, reporter_id: int, reason: str
+    ) -> TeamReportSchema:
+        """Create a team report."""
+        report = self.report_repo.create(db, obj_in={
+            "team_id": team_id,
+            "reporter_id": reporter_id,
+            "reason": reason.strip(),
+            "status": "pending",
+        })
+        report = self.report_repo.get_with_context(db, report.id) or report
+        return TeamReportSchema.model_validate(report)
+
+    def list_hackathon_team_reports(
+        self,
+        db: Session,
+        hackathon_id: int,
+        status: Optional[str] = None,
+        team_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[TeamReportSchema]:
+        reports = self.report_repo.get_for_hackathon(
+            db,
+            hackathon_id=hackathon_id,
+            status=status,
+            team_id=team_id,
+            skip=skip,
+            limit=limit,
+        )
+        return [TeamReportSchema.model_validate(report) for report in reports]
+
+    def get_team_report(self, db: Session, report_id: int) -> Optional[TeamReportSchema]:
+        report = self.report_repo.get_with_context(db, report_id)
+        if not report:
+            return None
+        return TeamReportSchema.model_validate(report)
+
+    def review_team_report(
+        self,
+        db: Session,
+        report_id: int,
+        reviewer_id: int,
+        update: TeamReportUpdateRequest,
+    ) -> Optional[TeamReportSchema]:
+        report = self.report_repo.get_with_context(db, report_id)
+        if not report:
+            return None
+
+        allowed_statuses = {"pending", "reviewed", "resolved", "dismissed"}
+        if update.status not in allowed_statuses:
+            raise ValueError("Invalid team report status")
+
+        report.status = update.status
+        report.reviewed_by = reviewer_id
+        from datetime import datetime, timezone
+        report.reviewed_at = datetime.now(timezone.utc)
+        report.resolution_note = update.resolution_note.strip() if update.resolution_note else None
+        db.commit()
+        db.refresh(report)
+        report = self.report_repo.get_with_context(db, report_id) or report
+        return TeamReportSchema.model_validate(report)
 
 
 # Global instance for dependency injection

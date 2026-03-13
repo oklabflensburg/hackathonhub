@@ -11,11 +11,19 @@ export interface UserNotification {
   title: string
   message: string
   data?: Record<string, any>
-  channel: 'email' | 'push' | 'in_app'
+  deliveries?: Array<{
+    channel: 'email' | 'push' | 'in_app'
+    status: string
+  }>
+  channels_sent?: string | null
   read: boolean
   read_at?: string
   created_at: string
-  updated_at: string
+  type?: string
+  priority?: string | null
+  action_url?: string | null
+  metadata?: Record<string, any> | null
+  expires_at?: string | null
 }
 
 export interface NotificationPreference {
@@ -36,9 +44,34 @@ export interface PushSubscription {
   id: number
   user_id: number
   endpoint: string
-  keys: Record<string, string>
+  p256dh: string
+  auth: string
+  user_agent?: string | null
   created_at: string
   updated_at: string
+}
+
+function normalizeNotification(raw: any): UserNotification {
+  const metadata = raw.metadata ?? raw.data?.metadata ?? null
+  const deliveries = Array.isArray(raw.deliveries) ? raw.deliveries : []
+  return {
+    id: Number(raw.id),
+    user_id: Number(raw.user_id),
+    notification_type: raw.notification_type ?? raw.type ?? 'system_announcement',
+    title: raw.title ?? 'Notification',
+    message: raw.message ?? '',
+    data: raw.data ?? {},
+    deliveries,
+    channels_sent: raw.channels_sent ?? (deliveries.map((delivery: any) => delivery.channel).join(',') || null),
+    read: Boolean(raw.read_at),
+    read_at: raw.read_at ?? undefined,
+    created_at: raw.created_at ?? new Date().toISOString(),
+    type: raw.type ?? raw.notification_type,
+    priority: raw.priority ?? raw.data?.priority ?? null,
+    action_url: raw.action_url ?? raw.data?.action_url ?? null,
+    metadata,
+    expires_at: raw.expires_at ?? raw.data?.expires_at ?? null
+  }
 }
 
 export const useNotificationStore = defineStore('notification', () => {
@@ -90,7 +123,7 @@ export const useNotificationStore = defineStore('notification', () => {
       
       if (response.ok) {
         const data = await response.json()
-        notifications.value = data
+        notifications.value = Array.isArray(data) ? data.map(normalizeNotification) : []
         updateUnreadCount()
       }
     } catch (error) {
@@ -176,7 +209,16 @@ export const useNotificationStore = defineStore('notification', () => {
       
       if (response.ok) {
         const data = await response.json()
-        notificationTypes.value = data
+        notificationTypes.value = (Array.isArray(data) ? data : []).map((type: any) => ({
+          ...type,
+          default_channels: Array.isArray(type.default_channels)
+            ? type.default_channels
+            : String(type.default_channels || '')
+                .split(',')
+                .map((channel: string) => channel.trim())
+                .filter(Boolean),
+          user_preferences: type.user_preferences || { email: false, push: false, in_app: false }
+        }))
       }
     } catch (error) {
       console.error('Failed to fetch notification types:', error)
@@ -345,18 +387,22 @@ export const useNotificationStore = defineStore('notification', () => {
     if (!authStore.isAuthenticated) return false
 
     try {
-      const response = await authStore.authenticatedFetch('/api/push-subscriptions', {
+      const body = {
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys?.p256dh || '',
+        auth: subscription.keys?.auth || '',
+        user_agent: navigator.userAgent
+      }
+      const response = await authStore.authenticatedFetch('/api/notifications/push-subscriptions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          endpoint: subscription.endpoint,
-          keys: subscription.keys
-        })
+        body: JSON.stringify(body)
       })
 
       if (response.ok) {
+        await fetchPushSubscriptions()
         console.log('Push subscription saved to server')
         return true
       } else {
@@ -373,11 +419,15 @@ export const useNotificationStore = defineStore('notification', () => {
     if (!authStore.isAuthenticated) return false
 
     try {
-      const response = await authStore.authenticatedFetch(`/api/push-subscriptions/${encodeURIComponent(endpoint)}`, {
-        method: 'DELETE'
-      })
+      const existing = pushSubscriptions.value.find(sub => sub.endpoint === endpoint)
+      if (!existing) return true
+      const response = await authStore.authenticatedFetch(
+        `/api/notifications/push-subscriptions/${existing.id}`,
+        { method: 'DELETE' }
+      )
 
       if (response.ok) {
+        pushSubscriptions.value = pushSubscriptions.value.filter(sub => sub.id !== existing.id)
         console.log('Push subscription deleted from server')
         return true
       } else {
@@ -394,11 +444,11 @@ export const useNotificationStore = defineStore('notification', () => {
     if (!authStore.isAuthenticated) return
 
     try {
-      const response = await authStore.authenticatedFetch('/api/push-subscriptions')
+      const response = await authStore.authenticatedFetch('/api/notifications/push-subscriptions')
       
       if (response.ok) {
         const data = await response.json()
-        pushSubscriptions.value = data
+        pushSubscriptions.value = Array.isArray(data) ? data : []
       }
     } catch (error) {
       console.error('Failed to fetch push subscriptions:', error)

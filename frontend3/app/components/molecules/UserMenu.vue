@@ -14,12 +14,12 @@
       <div class="flex items-center">
         <!-- Avatar Image -->
         <div
-          v-if="avatarUrl || user?.avatarUrl"
+          v-if="resolvedAvatarUrl"
           class="flex-shrink-0 rounded-full overflow-hidden"
           :class="avatarSizeClasses"
         >
           <img
-            :src="avatarUrl || user?.avatarUrl"
+            :src="resolvedAvatarUrl"
             :alt="avatarAlt"
             class="w-full h-full object-cover"
             @error="handleImageError"
@@ -192,6 +192,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const dropdownOpen = ref(false)
+const resolvedAvatarUrl = computed(() => props.avatarUrl || props.user?.avatarUrl || props.user?.avatar_url)
 
 // Effektive Menu-Optionen (Standard oder benutzerdefiniert)
 const effectiveMenuOptions = computed(() => {

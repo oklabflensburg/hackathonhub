@@ -6,10 +6,10 @@
         <span class="text-gray-600 dark:text-gray-400">{{ labels.status }}</span>
         <HackathonStatusBadge :status="hackathon.status" :tooltip="getStatusTooltip(hackathon.status)" />
       </div>
-      <StatItem :label="labels.participants" :value="hackathon.participant_count || 0" />
-      <StatItem :label="labels.views" :value="hackathon.view_count || 0" />
-      <StatItem :label="labels.projects" :value="hackathon.project_count || 0" />
-      <StatItem :label="labels.registrationDeadline" :value="hackathon.registration_deadline" :format="(val) => formatDateTime(String(val))" />
+      <StatItem :label="labels.participants" :value="hackathon.participantCount || hackathon.participant_count || 0" />
+      <StatItem :label="labels.views" :value="hackathon.viewCount || hackathon.view_count || 0" />
+      <StatItem :label="labels.projects" :value="hackathon.projectCount || hackathon.project_count || 0" />
+      <StatItem :label="labels.registrationDeadline" :value="hackathon.registrationDeadline || hackathon.registration_deadline" :format="(val) => formatDateTime(String(val))" />
     </div>
   </div>
 </template>

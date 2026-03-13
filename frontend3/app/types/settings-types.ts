@@ -30,6 +30,21 @@ export interface UserSession {
   is_current?: boolean; // alias for current
 }
 
+export interface TrustedDevice {
+  id: string;
+  device: string;
+  device_name?: string;
+  device_type?: 'desktop' | 'mobile' | 'tablet' | 'unknown';
+  location?: string;
+  ip_address?: string;
+  last_active: string;
+  last_activity?: string;
+  created_at: string;
+  expires_at?: string;
+  current: boolean;
+  is_current?: boolean;
+}
+
 export interface SecuritySettings {
   two_factor_enabled: boolean;
   two_factor_last_enabled?: string; // ISO date string
@@ -37,6 +52,28 @@ export interface SecuritySettings {
   trusted_devices_count?: number;
   remaining_backup_codes?: number;
   active_sessions: UserSession[];
+  trusted_devices: TrustedDevice[];
+}
+
+export interface OwnedResourceSummary {
+  id: number;
+  name: string;
+  resource_type: 'hackathon' | 'team' | 'project';
+}
+
+export interface AccountImpactResponse {
+  can_delete: boolean;
+  can_deactivate: boolean;
+  requires_transfer: boolean;
+  hackathons: OwnedResourceSummary[];
+  teams: OwnedResourceSummary[];
+  projects: OwnedResourceSummary[];
+  message?: string;
+}
+
+export interface AccountClosureRequest {
+  password?: string;
+  confirmation: string;
 }
 
 // Privacy Settings
@@ -203,7 +240,8 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
 
 export const DEFAULT_SECURITY_SETTINGS: SecuritySettings = {
   two_factor_enabled: false,
-  active_sessions: []
+  active_sessions: [],
+  trusted_devices: []
 };
 
 export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {

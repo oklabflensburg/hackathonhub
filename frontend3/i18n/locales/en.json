@@ -28,7 +28,8 @@
     "searchInstructions": "Type and press Enter to search across projects",
     "searchProjects": "Search Projects",
     "searchHackathons": "Search Hackathons",
-    "searchPlaceholder": "Search hackathons, projects, users..."
+    "searchPlaceholder": "Search hackathons, projects, users...",
+    "adminUsers": "Admin Users"
   },
   "common": {
     "loading": "Loading...",
@@ -798,7 +799,20 @@
     "viewDetails": "View details",
     "previous": "Previous",
     "next": "Next",
-    "page": "Page {page}",
+    "page": {
+      "title": "Teams",
+      "searchPlaceholder": "Search teams...",
+      "createTeam": "Create Team",
+      "gridView": "Grid view",
+      "listView": "List view",
+      "emptyTitle": "No teams found",
+      "emptyMessage": "No teams match your search criteria.",
+      "stats": "Statistics",
+      "totalTeams": "Total Teams",
+      "totalMembers": "Total Members",
+      "activeTeams": "Active Teams",
+      "publicTeams": "Public Teams"
+    },
     "discover": "Discover",
     "myTeams": "My teams",
     "teamManagement": "Team management",
@@ -853,21 +867,7 @@
       "active": "Active",
       "votes": "Votes"
     },
-    "hackathonTeam": "Hackathon Team",
-    "page": {
-      "title": "Teams",
-      "searchPlaceholder": "Search teams...",
-      "createTeam": "Create Team",
-      "gridView": "Grid view",
-      "listView": "List view",
-      "emptyTitle": "No teams found",
-      "emptyMessage": "No teams match your search criteria.",
-      "stats": "Statistics",
-      "totalTeams": "Total Teams",
-      "totalMembers": "Total Members",
-      "activeTeams": "Active Teams",
-      "publicTeams": "Public Teams"
-    }
+    "hackathonTeam": "Hackathon Team"
   },
   "myVotes": {
     "title": "My Votes",

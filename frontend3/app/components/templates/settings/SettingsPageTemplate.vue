@@ -42,6 +42,9 @@
           @remove-avatar="handleRemoveAvatar"
           @show-backup-codes="handleShowBackupCodes"
           @terminate-session="handleTerminateSession"
+          @revoke-trusted-device="handleRevokeTrustedDevice"
+          @open-deactivate-account="openAccountModal('deactivate')"
+          @open-delete-account="openAccountModal('delete')"
         />
 
         <!-- Actions Bar -->
@@ -59,6 +62,17 @@
         />
       </div>
     </div>
+
+    <AccountClosureModal
+      v-model="accountModalOpen"
+      :mode="accountModalMode"
+      :auth-method="authStore.user?.auth_method"
+      :impact="accountImpact"
+      :loading="accountActionLoading"
+      :error="accountActionError"
+      @close="closeAccountModal"
+      @submit="submitAccountClosure"
+    />
 
     <!-- Loading Overlay -->
     <div
@@ -83,6 +97,7 @@ import { useAuthStore } from '~/stores/auth'
 import SettingsNavigation from '~/components/organisms/settings/SettingsNavigation.vue'
 import SettingsContent from '~/components/organisms/settings/SettingsContent.vue'
 import SettingsActions from '~/components/organisms/settings/SettingsActions.vue'
+import AccountClosureModal from '~/components/organisms/settings/AccountClosureModal.vue'
 import LoadingSpinner from '~/components/atoms/LoadingSpinner.vue'
 import type {
   ProfileSettings,
@@ -91,7 +106,8 @@ import type {
   PrivacySettings,
   PlatformPreferences,
   UserSettings,
-  SettingsResponse
+  SettingsResponse,
+  AccountImpactResponse
 } from '~/types/settings-types'
 
 // Auth store
@@ -106,6 +122,11 @@ const hasUnsavedChanges = ref(false)
 const lastSavedAt = ref<string>()
 const error = ref<string>()
 const successMessage = ref<string>()
+const accountModalOpen = ref(false)
+const accountModalMode = ref<'delete' | 'deactivate'>('deactivate')
+const accountImpact = ref<AccountImpactResponse | null>(null)
+const accountActionLoading = ref(false)
+const accountActionError = ref<string>()
 
 // Original settings for reset functionality
 const originalSettings = ref<UserSettings | null>(null)
@@ -123,7 +144,8 @@ const profile = ref<ProfileSettings>({
 
 const security = ref<SecuritySettings>({
   two_factor_enabled: false,
-  active_sessions: []
+  active_sessions: [],
+  trusted_devices: []
 })
 
 const notifications = ref<NotificationSettings>({
@@ -179,6 +201,26 @@ const platform = ref<PlatformPreferences>({
 
 const errors = ref<Record<string, any>>({})
 
+const normalizeSecuritySettings = (value: Partial<SecuritySettings> | undefined): SecuritySettings => ({
+  two_factor_enabled: Boolean(value?.two_factor_enabled),
+  two_factor_last_enabled: value?.two_factor_last_enabled,
+  two_factor_last_used: value?.two_factor_last_used,
+  trusted_devices_count: value?.trusted_devices_count ?? value?.trusted_devices?.length ?? 0,
+  remaining_backup_codes: value?.remaining_backup_codes ?? 0,
+  active_sessions: (value?.active_sessions ?? []).map(session => ({
+    ...session,
+    device_name: session.device_name ?? session.device ?? 'Unbekanntes Gerät',
+    last_activity: session.last_activity ?? session.last_active,
+    is_current: session.is_current ?? session.current
+  })),
+  trusted_devices: (value?.trusted_devices ?? []).map(device => ({
+    ...device,
+    device_name: device.device_name ?? device.device ?? 'Unbekanntes Gerät',
+    last_activity: device.last_activity ?? device.last_active,
+    is_current: device.is_current ?? device.current
+  }))
+})
+
 // Helper function to load settings from API
 const fetchSettings = async () => {
   isLoading.value = true
@@ -196,7 +238,7 @@ const fetchSettings = async () => {
     // Update all settings from API response
     if (data.settings) {
       profile.value = data.settings.profile
-      security.value = data.settings.security
+      security.value = normalizeSecuritySettings(data.settings.security)
       notifications.value = data.settings.notifications
       privacy.value = data.settings.privacy
       platform.value = data.settings.platform
@@ -314,15 +356,92 @@ const handleShowBackupCodes = () => {
 }
 
 const handleTerminateSession = (sessionId: string) => {
-  security.value.active_sessions = security.value.active_sessions.filter(
-    session => session.id !== sessionId
-  )
-  hasUnsavedChanges.value = true
-  successMessage.value = 'Sitzung beendet'
-  
-  setTimeout(() => {
-    successMessage.value = undefined
-  }, 3000)
+  revokeSecurityItem(`/api/settings/security/sessions/${sessionId}`, 'Sitzung beendet')
+}
+
+const handleRevokeTrustedDevice = (deviceId: string) => {
+  revokeSecurityItem(`/api/settings/security/trusted-devices/${deviceId}`, 'Vertrauenswürdiges Gerät entfernt')
+}
+
+const openAccountModal = async (mode: 'delete' | 'deactivate') => {
+  accountModalMode.value = mode
+  accountActionError.value = undefined
+  accountModalOpen.value = true
+
+  try {
+    const response = await authStore.fetchWithAuth('/api/settings/account/impact')
+    if (!response.ok) {
+      throw new Error(`Failed to load account impact: ${response.status}`)
+    }
+    accountImpact.value = await response.json()
+  } catch (err) {
+    console.error('Error loading account impact:', err)
+    accountImpact.value = null
+    accountActionError.value = 'Auswirkungen auf das Konto konnten nicht geladen werden.'
+  }
+}
+
+const closeAccountModal = () => {
+  accountModalOpen.value = false
+  accountActionError.value = undefined
+}
+
+const submitAccountClosure = async (payload: { password?: string; confirmation: string }) => {
+  accountActionLoading.value = true
+  accountActionError.value = undefined
+
+  const endpoint = accountModalMode.value === 'delete'
+    ? '/api/settings/account/delete'
+    : '/api/settings/account/deactivate'
+
+  try {
+    const response = await authStore.fetchWithAuth(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    const responseData = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(responseData?.detail || responseData?.message || `Request failed with status ${response.status}`)
+    }
+
+    await authStore.logout()
+    await navigateTo('/login')
+  } catch (err) {
+    console.error('Error closing account:', err)
+    accountActionError.value = err instanceof Error ? err.message : 'Kontoaktion fehlgeschlagen.'
+  } finally {
+    accountActionLoading.value = false
+  }
+}
+
+const revokeSecurityItem = async (path: string, message: string) => {
+  isSaving.value = true
+  error.value = undefined
+
+  try {
+    const response = await authStore.fetchWithAuth(path, {
+      method: 'DELETE'
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to revoke security item: ${response.status} ${response.statusText}`)
+    }
+
+    await fetchSettings()
+    successMessage.value = message
+    setTimeout(() => {
+      successMessage.value = undefined
+    }, 3000)
+  } catch (err) {
+    console.error('Error revoking security item:', err)
+    error.value = 'Fehler beim Aktualisieren der Sicherheitseinstellungen.'
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const handleSave = async () => {
@@ -358,7 +477,7 @@ const handleSave = async () => {
     // Update with response data
     if (data.settings) {
       profile.value = data.settings.profile
-      security.value = data.settings.security
+      security.value = normalizeSecuritySettings(data.settings.security)
       notifications.value = data.settings.notifications
       privacy.value = data.settings.privacy
       platform.value = data.settings.platform

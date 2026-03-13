@@ -108,6 +108,8 @@ export interface TeamStats {
   averageRating: number | null
   lastActivityAt: string | null
   viewCount: number
+  engagementScore: number
+  engagementLevel: 'low' | 'medium' | 'high'
 }
 
 /**
@@ -129,7 +131,9 @@ export interface TeamMemberUser {
   id: string
   username: string
   displayName: string | null
+  display_name?: string | null
   avatarUrl: string | null
+  avatar_url?: string | null
   email: string | null
   bio: string | null
   skills: string[]
@@ -406,6 +410,8 @@ export interface TeamCardFooterProps {
   userId?: string | null
   showMemberCount?: boolean
   showJoinButton?: boolean
+  showViewCount?: boolean
+  showEngagementLevel?: boolean
 }
 
 /**
@@ -473,6 +479,13 @@ export interface UseTeamsReturn {
   leaveTeam: (teamId: string) => Promise<boolean>
   resetFilters: () => void
   resetSearch: () => void
+  fetchTeamMembers: (teamId: string) => Promise<void>
+  fetchTeamInvitations: (teamId: string) => Promise<void>
+  addMember: (teamId: string, userId: string, role?: TeamRole) => Promise<boolean>
+  removeMember: (teamId: string, memberId: string) => Promise<boolean>
+  updateMemberRole: (teamId: string, memberId: string, role: TeamRole) => Promise<boolean>
+  isUserMember: (teamId: string, userId: string) => boolean
+  getUserRole: (teamId: string, userId: string) => TeamRole | null
 }
 
 /**

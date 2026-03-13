@@ -6,7 +6,7 @@ from typing import Optional, TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, field_validator
 
 if TYPE_CHECKING:
-    from .user import User
+    from .user import User, PublicUser
     from .team import Team
     from .hackathon import Hackathon
 
@@ -81,6 +81,12 @@ class Project(ProjectBase):
     vote_score: int = 0
     comment_count: int = 0
     view_count: int = 0
+    total_votes: int = 0
+    total_comments: int = 0
+    last_activity_at: Optional[datetime] = None
+    engagement_score: int = 0
+    engagement_rate: float = 0.0
+    engagement_level: str = "low"
     owner: Optional["User"] = None
     hackathon: Optional["Hackathon"] = None
     team: Optional["Team"] = None
@@ -124,5 +130,7 @@ class Comment(CommentBase):
     vote_score: int = 0
     created_at: datetime
     updated_at: Optional[datetime] = None
+    user: Optional["PublicUser"] = None
+    replies: list["Comment"] = []
 
     model_config = ConfigDict(from_attributes=True)

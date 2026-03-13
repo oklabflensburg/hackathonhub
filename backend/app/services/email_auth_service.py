@@ -2,6 +2,7 @@
 Email authentication service for user registration,
 login, and password management.
 """
+import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from email_validator import validate_email, EmailNotValidError
@@ -11,14 +12,15 @@ import base64
 import uuid
 import os
 
+logger = logging.getLogger(__name__)
+
 from app.domain.schemas.user import UserRegister, UserCreate, User
 from app.repositories.user_repository import (
     UserRepository, RefreshTokenRepository, PasswordResetTokenRepository
 )
 from app.core.auth import create_tokens
-from app.services.email_service import EmailService
+from app.services.email_orchestrator import EmailOrchestrator, EmailContext
 from app.services.email_verification_service import EmailVerificationService
-from app.utils.template_engine import template_engine
 
 
 class EmailAuthService:
@@ -28,7 +30,7 @@ class EmailAuthService:
         self.user_repository = UserRepository()
         self.refresh_token_repository = RefreshTokenRepository()
         self.password_reset_repository = PasswordResetTokenRepository()
-        self.email_service = EmailService()
+        self.email_orchestrator = EmailOrchestrator()
         self.email_verification_service = EmailVerificationService()
 
     @staticmethod
@@ -137,6 +139,8 @@ class EmailAuthService:
         user = self.user_repository.get_by_email(db, email)
         if not user:
             raise ValueError("Invalid email or password")
+        if getattr(user, "is_active", True) is False:
+            raise ValueError("Account is deactivated")
 
         # Check if user has password hash (email/password user)
         if not user.password_hash:
@@ -378,6 +382,34 @@ class EmailAuthService:
         # Revoke all refresh tokens (security measure)
         self.refresh_token_repository.revoke_all_for_user(db, user_id)
 
+        # Send password change notification email (fire and forget)
+        try:
+            if user and user.email:
+                variables = {
+                    "user_name": user.name or user.username,
+                    "change_date": datetime.utcnow().isoformat()
+                }
+                context = EmailContext(
+                    user_id=user_id,
+                    user_email=user.email,
+                    language="en",  # TODO: Get user's preferred language
+                    category="security"
+                )
+                result = self.email_orchestrator.send_template(
+                    db=db,
+                    template_name="password_changed",
+                    context=context,
+                    variables=variables
+                )
+                if not result.success:
+                    logger.warning(
+                        f"Failed to send password change notification: "
+                        f"{result.error}"
+                    )
+        except Exception as e:
+            # Log but don't fail password change
+            logger.warning(f"Failed to send password change notification: {e}")
+
         return True
 
     def forgot_password(
@@ -420,20 +452,27 @@ class EmailAuthService:
             "expiration_hours": 1
         }
 
-        # Render email using template engine
-        email_content = template_engine.render_email(
-            template_name="password_reset",
+        # Create email context
+        context = EmailContext(
+            user_id=user.id,
+            user_email=user.email,
             language=language,
+            category="password_reset"
+        )
+
+        # Send email using orchestrator
+        result = self.email_orchestrator.send_template(
+            db=db,
+            template_name="password_reset",
+            context=context,
             variables=variables
         )
 
-        # Send email
-        self.email_service.send_email(
-            to_email=user.email,
-            subject=email_content["subject"],
-            body=email_content["text"],
-            html_body=email_content["html"]
-        )
+        # Log result
+        if not result.success:
+            logger.error(
+                f"Failed to send password reset email: {result.error}"
+            )
 
         return True
 
@@ -473,6 +512,35 @@ class EmailAuthService:
         # Revoke all refresh tokens (security measure)
         self.refresh_token_repository.revoke_all_for_user(
             db, reset_token.user_id)
+
+        # Send password reset confirmation email (fire and forget)
+        try:
+            user = self.user_repository.get(db, reset_token.user_id)
+            if user and user.email:
+                variables = {
+                    "user_name": user.name or user.username,
+                    "reset_date": datetime.utcnow().isoformat()
+                }
+                context = EmailContext(
+                    user_id=reset_token.user_id,
+                    user_email=user.email,
+                    language="en",  # TODO: Get user's preferred language
+                    category="security"
+                )
+                result = self.email_orchestrator.send_template(
+                    db=db,
+                    template_name="password_reset_confirmed",
+                    context=context,
+                    variables=variables
+                )
+                if not result.success:
+                    logger.warning(
+                        f"Failed to send password reset confirmation: "
+                        f"{result.error}"
+                    )
+        except Exception as e:
+            # Log but don't fail password reset
+            logger.warning(f"Failed to send password reset confirmation: {e}")
 
         return True
 

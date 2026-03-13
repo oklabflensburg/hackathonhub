@@ -1,34 +1,52 @@
 """
-Enhanced notification service for sending multi-channel notifications.
+Canonical notification orchestration service.
 """
-import json
 import logging
-from typing import Dict, Any, Optional, List
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from app.utils.template_engine import template_engine
-from app.services.email_service import EmailService
+from app.domain.models.notification import UserNotification
+from app.repositories.notification_repository import (
+    NotificationDeliveryRepository,
+    NotificationRepository,
+)
+from app.repositories.project_repository import ProjectRepository
+from app.repositories.team_repository import TeamRepository
+from app.repositories.user_repository import UserRepository
+from app.services.email_orchestrator import EmailContext, EmailOrchestrator
+from app.services.in_app_notification_service import (
+    DeliveryResult,
+    InAppNotificationService,
+)
 from app.services.notification_preference_service import (
     notification_preference_service
 )
+from app.services.notification_registry import get_definition, is_known_type
 from app.services.push_notification_service import push_notification_service
-from app.repositories.notification_repository import (
-    NotificationRepository
-)
-from app.domain.models.notification import UserNotification
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class NotificationDispatchResult:
+    notification: UserNotification
+    deliveries: Dict[str, DeliveryResult]
 
 
 class NotificationService:
     """Service for sending notifications for important user actions."""
 
     def __init__(self):
-        self.email_service = EmailService()
-        self.template_engine = template_engine
+        self.email_orchestrator = EmailOrchestrator()
         self.notification_repo = NotificationRepository()
+        self.delivery_repo = NotificationDeliveryRepository()
+        self.user_repo = UserRepository()
+        self.team_repo = TeamRepository()
+        self.project_repo = ProjectRepository()
+        self.in_app_service = InAppNotificationService()
 
     def send_multi_channel_notification(
         self,
@@ -39,86 +57,115 @@ class NotificationService:
         message: str,
         language: str = "en",
         variables: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None
+        data: Optional[Dict[str, Any]] = None,
+        channels: Optional[List[str]] = None,
     ) -> Dict[str, bool]:
-        """
-        Send a notification through multiple channels
-        based on user preferences.
-
-        Args:
-            db: Database session
-            notification_type: Type of notification
-            user_id: User ID to send notification to
-            title: Notification title
-            message: Notification message
-            language: Language code (default: "en")
-            variables: Template variables for email
-            data: Additional data for push/in-app notifications
-
-        Returns:
-            Dictionary with channel success status
-        """
-        results = {
-            "email": False,
-            "push": False,
-            "in_app": False
+        dispatch = self.dispatch_notification(
+            db=db,
+            notification_type=notification_type,
+            user_id=user_id,
+            title=title,
+            message=message,
+            language=language,
+            variables=variables,
+            data=data,
+            requested_channels=channels,
+        )
+        return {
+            channel: result.success
+            for channel, result in dispatch.deliveries.items()
         }
 
-        # Store in-app notification
-        try:
-            notification_data = {
-                "user_id": user_id,
-                "notification_type": notification_type,
-                "title": title,
-                "message": message,
-                "data": json.dumps(data or {}) if data else None,
-                "channels_sent": "in_app",
-                "read_at": None,  # Not read yet
-                "created_at": datetime.utcnow()
-            }
-            self.notification_repo.create(db, obj_in=notification_data)
-            results["in_app"] = True
-        except Exception as e:
-            logger.error(f"Failed to store in-app notification: {e}")
+    def dispatch_notification(
+        self,
+        db: Session,
+        notification_type: str,
+        user_id: int,
+        title: str,
+        message: str,
+        language: str = "en",
+        variables: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        requested_channels: Optional[List[str]] = None,
+    ) -> NotificationDispatchResult:
+        if not is_known_type(notification_type):
+            raise ValueError(f"Unknown notification type: {notification_type}")
 
-        # Send email notification if enabled
-        if notification_preference_service.should_send_notification(
-            db, user_id, notification_type, "email"
-        ):
+        allowed_channels = (
+            notification_preference_service.get_allowed_channels(
+                db, user_id, notification_type
+            )
+        )
+        if requested_channels is not None:
+            requested_set = set(requested_channels)
+            allowed_channels = [
+                channel for channel in allowed_channels
+                if channel in requested_set
+            ]
+        if not allowed_channels:
+            notification = self.notification_repo.create_notification(
+                db,
+                user_id=user_id,
+                notification_type=notification_type,
+                title=title,
+                message=message,
+                data=data or {},
+            )
+            return NotificationDispatchResult(
+                notification=notification, deliveries={}
+            )
+
+        notification = self.notification_repo.create_notification(
+            db,
+            user_id=user_id,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            data=data or {},
+        )
+        deliveries = self.delivery_repo.create_deliveries(
+            db, notification.id, allowed_channels
+        )
+
+        results: Dict[str, DeliveryResult] = {}
+        delivery_map = {delivery.channel: delivery for delivery in deliveries}
+        for channel in allowed_channels:
+            delivery = delivery_map[channel]
             try:
-                if variables is None:
-                    variables = {}
-
-                # Add common variables
-                variables.update({
-                    "notification_title": title,
-                    "notification_message": message,
-                    "user_id": user_id
-                })
-
-                # Get user email (would need user repository)
-                # For now, this is a placeholder
-                results["email"] = True
-                logger.info(
-                    f"Email notification would be sent to user {user_id} "
-                    f"for {notification_type}"
+                result = self._send_via_channel(
+                    db=db,
+                    channel=channel,
+                    notification=notification,
+                    delivery=delivery,
+                    language=language,
+                    variables=variables or {},
                 )
-            except Exception as e:
-                logger.error(f"Failed to send email notification: {e}")
-
-        # Send push notification if enabled
-        if notification_preference_service.should_send_notification(
-            db, user_id, notification_type, "push"
-        ):
-            try:
-                push_result = push_notification_service.send_push_notification(
-                    db, user_id, notification_type, title, message, data
+            except Exception as exc:
+                logger.error(
+                    "Failed to send notification %s via %s: %s",
+                    notification.id,
+                    channel,
+                    exc,
                 )
-                results["push"] = push_result
-            except Exception as e:
-                logger.error(f"Failed to send push notification: {e}")
+                result = DeliveryResult(
+                    success=False,
+                    status="failed",
+                    error=str(exc),
+                )
+            self.delivery_repo.update_status(
+                db,
+                delivery,
+                status=result.status,
+                error=result.error,
+                provider_message_id=result.provider_message_id,
+                delivered_at=datetime.utcnow() if result.success else None,
+            )
+            results[channel] = result
 
-        return results
+        hydrated = self.notification_repo.get(db, notification.id)
+        return NotificationDispatchResult(
+            notification=hydrated, deliveries=results
+        )
 
     def send_notification(
         self,
@@ -126,26 +173,10 @@ class NotificationService:
         notification_type: str,
         user_id: int,
         language: str = "en",
-        variables: Optional[Dict[str, Any]] = None
+        variables: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        """
-        Send a notification based on type with automatic title/message.
-
-        Args:
-            db: Database session
-            notification_type: Type of notification
-            user_id: User ID to send notification to
-            language: Language code
-            variables: Template variables
-
-        Returns:
-            True if at least one channel succeeded
-        """
-        # This would use template engine to get title/message
-        # For now, placeholder implementation
         title = f"Notification: {notification_type}"
         message = f"You have a new {notification_type} notification"
-
         results = self.send_multi_channel_notification(
             db=db,
             notification_type=notification_type,
@@ -153,9 +184,8 @@ class NotificationService:
             title=title,
             message=message,
             language=language,
-            variables=variables
+            variables=variables,
         )
-
         return any(results.values())
 
     def send_team_invitation_notification(
@@ -164,15 +194,41 @@ class NotificationService:
         team_id: int,
         invited_user_id: int,
         inviter_id: int,
-        language: str = "en"
+        language: str = "en",
     ) -> bool:
-        """Send notification for team invitation."""
-        # Placeholder implementation
-        logger.info(
-            f"Team invitation notification: team={team_id}, "
-            f"invited_user={invited_user_id}, inviter={inviter_id}"
+        team = self.team_repo.get(db, team_id)
+        inviter = self.user_repo.get(db, inviter_id)
+        invited_user = self.user_repo.get(db, invited_user_id)
+        if not team or not inviter or not invited_user:
+            return False
+
+        variables = {
+            "team_name": team.name,
+            "inviter_name": inviter.name or inviter.username or inviter.email,
+            "accept_url": f"/teams/invitations/{team_id}/accept",
+        }
+        results = self.send_multi_channel_notification(
+            db=db,
+            notification_type="team_invitation",
+            user_id=invited_user_id,
+            title=f"Invitation to join {team.name}",
+            message=(
+                f"{inviter.name or inviter.username or inviter.email} invited "
+                f"you to join {team.name}"
+            ),
+            language=language,
+            variables=variables,
+            data={
+                "team_id": team.id,
+                "inviter_id": inviter.id,
+                "metadata": {
+                    "team_name": team.name,
+                    "inviter_name": inviter.name or inviter.username
+                    or inviter.email,
+                },
+            },
         )
-        return True
+        return any(results.values())
 
     def send_team_member_added_notification(
         self,
@@ -180,15 +236,38 @@ class NotificationService:
         team_id: int,
         user_id: int,
         added_by_id: int,
-        language: str = "en"
+        language: str = "en",
     ) -> bool:
-        """Send notification for team member addition."""
-        # Placeholder implementation
-        logger.info(
-            f"Team member added notification: team={team_id}, "
-            f"user={user_id}, added_by={added_by_id}"
+        team = self.team_repo.get(db, team_id)
+        added_by = self.user_repo.get(db, added_by_id)
+        recipient = self.user_repo.get(db, user_id)
+        if not team or not added_by or not recipient:
+            return False
+
+        added_by_display_name = (
+            added_by.name or added_by.username or added_by.email
         )
-        return True
+        variables = {
+            "team_name": team.name,
+            "added_by_name": added_by_display_name,
+        }
+        results = self.send_multi_channel_notification(
+            db=db,
+            notification_type="team_member_added",
+            user_id=user_id,
+            title=f"You joined {team.name}",
+            message=(
+                f"{added_by_display_name} added you to {team.name}"
+            ),
+            language=language,
+            variables=variables,
+            data={
+                "team_id": team.id,
+                "added_by_id": added_by.id,
+                "metadata": {"team_name": team.name},
+            },
+        )
+        return any(results.values())
 
     def send_team_invitation_declined_notification(
         self,
@@ -196,15 +275,32 @@ class NotificationService:
         team_id: int,
         invited_user_id: int,
         inviter_id: int,
-        language: str = "en"
+        language: str = "en",
     ) -> bool:
-        """Send notification for declined team invitation."""
-        # Placeholder implementation
-        logger.info(
-            f"Team invitation declined notification: team={team_id}, "
-            f"invited_user={invited_user_id}, inviter={inviter_id}"
+        team = self.team_repo.get(db, team_id)
+        invited_user = self.user_repo.get(db, invited_user_id)
+        inviter = self.user_repo.get(db, inviter_id)
+        if not team or not invited_user or not inviter:
+            return False
+        user_display = (
+            invited_user.name or invited_user.username or invited_user.email
         )
-        return True
+        results = self.send_multi_channel_notification(
+            db=db,
+            notification_type="team_invitation_declined",
+            user_id=inviter_id,
+            title=f"{team.name} invitation declined",
+            message=(
+                f"{user_display} declined the invitation to join {team.name}"
+            ),
+            language=language,
+            data={
+                "team_id": team.id,
+                "invited_user_id": invited_user.id,
+                "metadata": {"team_name": team.name},
+            },
+        )
+        return any(results.values())
 
     def send_project_created_notification(
         self,
@@ -212,15 +308,32 @@ class NotificationService:
         project_id: int,
         creator_id: int,
         hackathon_id: Optional[int] = None,
-        language: str = "en"
+        language: str = "en",
     ) -> bool:
-        """Send notification for project creation."""
-        # Placeholder implementation
-        logger.info(
-            f"Project created notification: project={project_id}, "
-            f"creator={creator_id}, hackathon={hackathon_id}"
+        project = self.project_repo.get(db, project_id)
+        creator = self.user_repo.get(db, creator_id)
+        if not project or not creator or not project.owner_id:
+            return False
+        results = self.send_multi_channel_notification(
+            db=db,
+            notification_type="project_created",
+            user_id=project.owner_id,
+            title=f"Project created: {project.title}",
+            message=f"Your project {project.title} was created successfully",
+            language=language,
+            variables={
+                "project_name": project.title,
+                "creator_name": creator.name or creator.username
+                or creator.email,
+                "project_url": f"/projects/{project.id}",
+            },
+            data={
+                "project_id": project.id,
+                "hackathon_id": hackathon_id,
+                "metadata": {"project_name": project.title},
+            },
         )
-        return True
+        return any(results.values())
 
     def get_user_notifications(
         self,
@@ -228,43 +341,101 @@ class NotificationService:
         user_id: int,
         skip: int = 0,
         limit: int = 100,
-        unread_only: bool = False
+        unread_only: bool = False,
     ) -> List[UserNotification]:
-        """Get notifications for a user."""
-        # Use the repository's get_user_notifications method which
-        # handles unread filtering correctly
         return self.notification_repo.get_user_notifications(
             db,
             user_id=user_id,
             skip=skip,
             limit=limit,
-            unread_only=unread_only
+            unread_only=unread_only,
         )
 
     def mark_notification_as_read(
         self, db: Session, notification_id: int, user_id: int
     ) -> bool:
-        """Mark a notification as read."""
-        notification = self.notification_repo.get(db, notification_id)
-        if notification and notification.user_id == user_id:
-            notification.read_at = datetime.utcnow()
-            db.commit()
-            return True
-        return False
+        return self.notification_repo.mark_as_read(
+            db, notification_id, user_id
+        )
 
     def mark_all_notifications_as_read(self, db: Session, user_id: int) -> int:
-        """Mark all notifications as read for a user."""
-        # Get all unread notifications for the user
-        all_notifications = self.notification_repo.filter(db, user_id=user_id)
-        count = 0
-        for notification in all_notifications:
-            if notification.read_at is None:
-                notification.read_at = datetime.utcnow()
-                count += 1
-        if count > 0:
-            db.commit()
-        return count
+        return self.notification_repo.mark_all_as_read(db, user_id)
+
+    def _send_via_channel(
+        self,
+        db: Session,
+        channel: str,
+        notification: UserNotification,
+        delivery,
+        language: str,
+        variables: Dict[str, Any],
+    ) -> DeliveryResult:
+        if channel == "in_app":
+            return self.in_app_service.deliver(db, notification, delivery)
+        if channel == "email":
+            return self._deliver_email(
+                db, notification, language=language, variables=variables
+            )
+        if channel == "push":
+            return push_notification_service.deliver(
+                db,
+                user_id=notification.user_id,
+                notification_type=notification.notification_type,
+                title=notification.title,
+                body=notification.message,
+                delivery=delivery,
+                data=notification.data,
+            )
+        raise ValueError(f"Unsupported channel: {channel}")
+
+    def _deliver_email(
+        self,
+        db: Session,
+        notification: UserNotification,
+        *,
+        language: str,
+        variables: Dict[str, Any],
+    ) -> DeliveryResult:
+        definition = get_definition(notification.notification_type)
+        user = self.user_repo.get(db, notification.user_id)
+        if not definition or not definition.email_template:
+            return DeliveryResult(
+                success=False,
+                status="failed",
+                error="No email template configured",
+            )
+        if not user or not user.email:
+            return DeliveryResult(
+                success=False,
+                status="failed",
+                error="User not found or has no email",
+            )
+
+        payload = dict(variables)
+        payload.setdefault("notification_title", notification.title)
+        payload.setdefault("notification_message", notification.message)
+        payload.setdefault(
+            "user_name", user.name or user.username or user.email
+        )
+
+        context = EmailContext(
+            user_id=notification.user_id,
+            user_email=user.email,
+            language=language,
+            category="notification",
+        )
+        result = self.email_orchestrator.send_template(
+            db=db,
+            template_name=definition.email_template,
+            context=context,
+            variables=payload,
+        )
+        return DeliveryResult(
+            success=result.success,
+            status="delivered" if result.success else "failed",
+            error=result.error,
+            provider_message_id=result.message_id,
+        )
 
 
-# Global notification service instance
 notification_service = NotificationService()

@@ -244,8 +244,8 @@
               class="author-avatar flex items-center"
             >
               <img
-                v-if="projectTeamOwner.user?.avatarUrl"
-                :src="projectTeamOwner.user.avatarUrl"
+                v-if="projectTeamOwner.user?.avatarUrl || projectTeamOwner.user?.avatar_url"
+                :src="projectTeamOwner.user?.avatarUrl || projectTeamOwner.user?.avatar_url"
                 :alt="projectTeamOwner.user.username"
                 class="h-10 w-10 rounded-full"
               />
@@ -279,8 +279,8 @@
                   class="team-member-avatar"
                 >
                   <img
-                    v-if="member.user?.avatarUrl"
-                    :src="member.user.avatarUrl"
+                    v-if="member.user?.avatarUrl || member.user?.avatar_url"
+                    :src="member.user?.avatarUrl || member.user?.avatar_url"
                     :alt="member.user.username"
                     class="h-8 w-8 rounded-full border-2 border-white dark:border-gray-900"
                   />

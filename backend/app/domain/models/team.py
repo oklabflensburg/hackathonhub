@@ -21,6 +21,7 @@ class Team(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     max_members = Column(Integer, default=5)
     is_open = Column(Boolean, default=True)  # Open for new members
+    view_count = Column(Integer, default=0, nullable=False)  # Team page views
 
     # Relationships will be defined in __init__.py
     # hackathon = relationship("Hackathon", back_populates="teams")
@@ -94,3 +95,17 @@ class TeamInvitation(Base):
     #     foreign_keys=[invited_by],
     #     back_populates="team_invitations_sent"
     # )
+
+
+class TeamReport(Base):
+    __tablename__ = "team_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    reporter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(20), default="pending", nullable=False)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    resolution_note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

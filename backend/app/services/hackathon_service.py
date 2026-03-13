@@ -13,6 +13,7 @@ from app.repositories.hackathon_repository import (
     HackathonRepository, HackathonRegistrationRepository
 )
 from app.repositories.user_repository import UserRepository
+from app.services.notification_service import NotificationService
 
 
 class HackathonService:
@@ -22,6 +23,7 @@ class HackathonService:
         self.hackathon_repo = HackathonRepository()
         self.registration_repo = HackathonRegistrationRepository()
         self.user_repo = UserRepository()
+        self.notification_service = NotificationService()
 
     def get_hackathons(
         self, db: Session, skip: int = 0, limit: int = 100
@@ -112,7 +114,151 @@ class HackathonService:
         }
         registration = self.registration_repo.create(
             db, obj_in=registration_data)
+
+        # Send registration confirmation email (fire and forget)
+        try:
+            user = self.user_repo.get(db, user_id)
+            if user and user.email:
+                # Get user's preferred language
+                language = getattr(user, "language", None) or "en"
+                if language == "auto":
+                    language = "en"
+
+                variables = {
+                    "hackathon_name": hackathon.name,
+                    "user_name": user.name or user.username,
+                    "hackathon_date": (
+                        hackathon.start_date.isoformat()
+                        if hackathon.start_date else "TBD"
+                    ),
+                    "hackathon_url": (
+                        f"#TODO/hackathons/{hackathon_id}"  # TODO: Actual URL
+                    )
+                }
+
+                self.notification_service.send_multi_channel_notification(
+                    db=db,
+                    notification_type="hackathon_registered",
+                    user_id=user_id,
+                    title=f"Registered for {hackathon.name}",
+                    message=(
+                        f"You have successfully registered for "
+                        f"{hackathon.name}"
+                    ),
+                    language=language,
+                    variables=variables
+                )
+        except Exception as e:
+            # Log but don't fail registration
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to send hackathon registration email: {e}")
+
         return RegistrationSchema.model_validate(registration)
+
+    def send_hackathon_start_reminders(self, db):
+        """
+        Send reminder emails for hackathons starting soon.
+        This should be called by a scheduled job (e.g., cron).
+        """
+        import logging
+        from datetime import datetime, timedelta
+        from sqlalchemy import and_
+
+        logger = logging.getLogger(__name__)
+
+        # Find hackathons starting in the next 24 hours
+        now = datetime.utcnow()
+        # 23-25 hours from now
+        reminder_window_start = now + timedelta(hours=23)
+        reminder_window_end = now + timedelta(hours=25)
+
+        # Get hackathons within the reminder window
+        hackathons = self.hackathon_repo.get_all(
+            db,
+            filters=[
+                and_(
+                    self.hackathon_repo.model.start_date
+                    >= reminder_window_start,
+                    self.hackathon_repo.model.start_date
+                    <= reminder_window_end,
+                    self.hackathon_repo.model.status == "upcoming"
+                )
+            ]
+        )
+
+        if not hackathons:
+            logger.info("No hackathons starting in the next 24 hours")
+            return {"sent": 0, "errors": 0}
+
+        sent_count = 0
+        error_count = 0
+
+        for hackathon in hackathons:
+            # Get all registered users for this hackathon
+            registrations = self.registration_repo.get_all(
+                db,
+                filters=[
+                    self.registration_repo.model.hackathon_id == hackathon.id,
+                    self.registration_repo.model.status == "registered"
+                ]
+            )
+
+            for registration in registrations:
+                try:
+                    user = self.user_repo.get(db, registration.user_id)
+                    if not user or not user.email:
+                        continue
+
+                    # Get user's preferred language
+                    language = getattr(user, "language", None) or "en"
+                    if language == "auto":
+                        language = "en"
+
+                    # Format start time
+                    start_time = hackathon.start_date
+                    if start_time:
+                        time_str = start_time.strftime(
+                            "%B %d, %Y at %H:%M UTC"
+                        )
+                    else:
+                        time_str = "soon"
+
+                    variables = {
+                        "hackathon_name": hackathon.name,
+                        "user_name": user.name or user.username,
+                        "start_time": time_str,
+                        "hackathon_url": f"#TODO/hackathons/{hackathon.id}",
+                        "description": hackathon.description or "",
+                        "location": hackathon.location or "Online"
+                    }
+
+                    self.notification_service.send_multi_channel_notification(
+                        db=db,
+                        notification_type="hackathon_start_reminder",
+                        user_id=user.id,
+                        title=f"{hackathon.name} starts soon!",
+                        message=(
+                            f"Reminder: {hackathon.name} starts {time_str}"
+                        ),
+                        language=language,
+                        variables=variables
+                    )
+
+                    sent_count += 1
+
+                except Exception as e:
+                    logger.error(
+                        f"Failed to send start reminder for hackathon "
+                        f"{hackathon.id} to user {registration.user_id}: {e}"
+                    )
+                    error_count += 1
+
+        logger.info(
+            f"Sent {sent_count} hackathon start reminders with "
+            f"{error_count} errors"
+        )
+        return {"sent": sent_count, "errors": error_count}
 
     def unregister_from_hackathon(
         self, db: Session, hackathon_id: int, user_id: int

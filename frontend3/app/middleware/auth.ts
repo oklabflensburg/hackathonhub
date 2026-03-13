@@ -1,5 +1,5 @@
 // Main middleware function
-const authMiddlewareFunction = defineNuxtRouteMiddleware((to, from) => {
+const authMiddlewareFunction = defineNuxtRouteMiddleware(async (to, from) => {
   // With cookie-based authentication, we can now check auth state on server
   // without causing hydration mismatches
   
@@ -55,7 +55,7 @@ const authMiddlewareFunction = defineNuxtRouteMiddleware((to, from) => {
   
   // Client-side: use auth store to check authentication
   const authStore = useAuthStore()
-  authStore.initializeAuth()
+  await authStore.initializeAuth()
   
   const isAuthenticated = authStore.isAuthenticated
 

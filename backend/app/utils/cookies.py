@@ -33,25 +33,25 @@ def set_auth_cookies(
 ) -> None:
     """
     Setzt HTTP-Only Cookies für Authentifizierungstokens.
-    
+
     Args:
         response: FastAPI Response-Objekt
         auth_token: JWT Access Token
         refresh_token: JWT Refresh Token
         persistent: Ob Cookies persistent sein sollen (default: True)
-        max_age: Cookie-Lebensdauer in Sekunden 
+        max_age: Cookie-Lebensdauer in Sekunden
                  (default: 30 Tage wenn persistent, sonst None)
         secure: Nur über HTTPS (default: True in Produktion)
         domain: Cookie-Domain (default: None = aktuelle Domain)
     """
     if max_age is None:
         max_age = COOKIE_MAX_AGE if persistent else None
-    
+
     if secure is None:
         # Secure=True in Produktion, Secure=False in Entwicklung
         # basierend auf DEBUG-Einstellung
         secure = not settings.DEBUG
-    
+
     # Auth-Token Cookie setzen
     response.set_cookie(
         key=AUTH_TOKEN_COOKIE_NAME,
@@ -63,7 +63,7 @@ def set_auth_cookies(
         httponly=COOKIE_HTTP_ONLY,
         samesite=COOKIE_SAME_SITE,
     )
-    
+
     # Refresh-Token Cookie setzen
     response.set_cookie(
         key=REFRESH_TOKEN_COOKIE_NAME,
@@ -80,7 +80,7 @@ def set_auth_cookies(
 def clear_auth_cookies(response: Response) -> None:
     """
     Löscht die Authentifizierungs-Cookies.
-    
+
     Args:
         response: FastAPI Response-Objekt
     """
@@ -90,7 +90,7 @@ def clear_auth_cookies(response: Response) -> None:
         path=COOKIE_PATH,
         domain=COOKIE_DOMAIN,
     )
-    
+
     response.delete_cookie(
         key=REFRESH_TOKEN_COOKIE_NAME,
         path=COOKIE_PATH,
@@ -101,10 +101,10 @@ def clear_auth_cookies(response: Response) -> None:
 def get_auth_token_from_cookies(request) -> Optional[str]:
     """
     Holt den Auth-Token aus den Cookies der Request.
-    
+
     Args:
         request: FastAPI Request-Objekt
-        
+
     Returns:
         Auth-Token oder None wenn nicht vorhanden
     """
@@ -114,10 +114,10 @@ def get_auth_token_from_cookies(request) -> Optional[str]:
 def get_refresh_token_from_cookies(request) -> Optional[str]:
     """
     Holt den Refresh-Token aus den Cookies der Request.
-    
+
     Args:
         request: FastAPI Request-Objekt
-        
+
     Returns:
         Refresh-Token oder None wenn nicht vorhanden
     """
@@ -127,10 +127,10 @@ def get_refresh_token_from_cookies(request) -> Optional[str]:
 def has_auth_cookies(request) -> bool:
     """
     Prüft ob Auth-Cookies in der Request vorhanden sind.
-    
+
     Args:
         request: FastAPI Request-Objekt
-        
+
     Returns:
         True wenn beide Cookies vorhanden sind
     """

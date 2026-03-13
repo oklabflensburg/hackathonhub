@@ -40,6 +40,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const isAuthenticated = computed(() => !!user.value && !!token.value)
+  const isSuperuser = computed(() => user.value?.roles?.includes('superuser') || user.value?.role === 'superuser')
+  const hasPermission = (code: string) => !!user.value?.permissions?.includes(code)
+
   const userInitials = computed(() => {
     if (!user.value) return ''
     return user.value.username.charAt(0).toUpperCase()
@@ -139,7 +142,8 @@ export const useAuthStore = defineStore('auth', () => {
         user?: User
       }>('/api/auth/login', {
         email: credentials.email,
-        password: credentials.password
+        password: credentials.password,
+        remember_me: credentials.rememberMe ?? false
       }, {
         skipAuth: true,
         skipErrorNotification: true
@@ -267,13 +271,8 @@ export const useAuthStore = defineStore('auth', () => {
     await fetchUserWithToken(authData.access_token)
   }
 
-  async function refreshAccessToken(): Promise<boolean> {
+  async function refreshAccessToken(options: { silent?: boolean } = {}): Promise<boolean> {
     console.log('[Auth] Attempting token refresh')
-    if (!refreshToken.value) {
-      console.log('[Auth] No refresh token available - logging out')
-      logout()
-      return false
-    }
 
     try {
       console.log('[Auth] Sending refresh request')
@@ -282,9 +281,10 @@ export const useAuthStore = defineStore('auth', () => {
         refresh_token: string
         user?: User
       }>('/api/auth/refresh', {}, {
-        headers: {
-          'Authorization': `Bearer ${refreshToken.value}`
-        },
+        headers: refreshToken.value
+          ? { 'Authorization': `Bearer ${refreshToken.value}` }
+          : undefined,
+        skipAuth: true,
         skipErrorNotification: true
       })
 
@@ -303,7 +303,9 @@ export const useAuthStore = defineStore('auth', () => {
       return true
     } catch (err) {
       console.error('[Auth] Token refresh error:', err)
-      logout()
+      if (!options.silent) {
+        await logout()
+      }
       return false
     }
   }
@@ -315,7 +317,10 @@ export const useAuthStore = defineStore('auth', () => {
       // For simplicity, we'll use regular fetch during SSR (won't have auth headers)
       const backendUrl = config.public.apiUrl
       const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
-      return fetch(fullUrl, options)
+      return fetch(fullUrl, {
+        credentials: 'include',
+        ...options
+      })
     }
 
     const backendUrl = config.public.apiUrl
@@ -328,7 +333,7 @@ export const useAuthStore = defineStore('auth', () => {
     const headers = new Headers(options.headers || {})
 
     // Add auth header if token exists AND this is an API call
-    if (token.value && isApiCall) {
+    if (token.value && isApiCall && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token.value}`)
     }
 
@@ -361,7 +366,12 @@ export const useAuthStore = defineStore('auth', () => {
       hasClonedFormData = true
     }
 
-    const requestOptions = { ...options, headers, body: requestBody }
+    const requestOptions = {
+      credentials: 'include' as RequestCredentials,
+      ...options,
+      headers,
+      body: requestBody
+    }
     let response
     try {
       response = await fetch(fullUrl, requestOptions)
@@ -411,7 +421,12 @@ export const useAuthStore = defineStore('auth', () => {
           }
         }
 
-        const retryOptions = { ...options, headers, body: retryBody }
+        const retryOptions = {
+          credentials: 'include' as RequestCredentials,
+          ...options,
+          headers,
+          body: retryBody
+        }
         response = await fetch(fullUrl, retryOptions)
 
         // Check if retry also failed
@@ -477,39 +492,42 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function initializeAuth() {
-    // Try to use cookies for SSR compatibility
-    let authToken: string | null = null
-    let refreshTokenValue: string | null = null
-    let userData: User | null = null
+  let initializePromise: Promise<void> | null = null
 
-    if (typeof window === 'undefined') {
-      // Server-side: try to read cookies using useCookie
-      // Note: useCookie is a Nuxt composable that works in middleware and plugins
-      // but not directly in stores. We'll handle server-side auth in middleware instead.
-      // For now, we'll leave token as null on server to avoid hydration mismatches.
-      // The middleware will handle server-side redirects based on cookies.
-      return
-    } else {
+  async function initializeAuth() {
+    if (initializePromise) {
+      return initializePromise
+    }
+
+    initializePromise = (async () => {
+      // Try to use cookies for SSR compatibility
+      if (typeof window === 'undefined') {
+        // Server-side: try to read cookies using useCookie
+        // Note: useCookie is a Nuxt composable that works in middleware and plugins
+        // but not directly in stores. We'll handle server-side auth in middleware instead.
+        // For now, we'll leave token as null on server to avoid hydration mismatches.
+        // The middleware will handle server-side redirects based on cookies.
+        return
+      }
+
       // Client-side: check for tokens in URL (from OAuth callback)
+      preferences.auth.cleanupLegacyCookies()
+
       const urlParams = new URLSearchParams(window.location.search)
       const accessToken = urlParams.get('access_token')
       const refreshTokenParam = urlParams.get('refresh_token')
       const source = urlParams.get('source')
 
       if (accessToken && (source === 'github' || source === 'google')) {
-        // Store tokens from URL
-        token.value = accessToken
-        refreshToken.value = refreshTokenParam || ''
-        const preferences = usePreferencesStore()
-        preferences.auth.setTokens(accessToken, refreshTokenParam || '')
+        await handleAuthResponse({
+          access_token: accessToken,
+          refresh_token: refreshTokenParam || '',
+          user: null
+        })
 
         // Clear URL parameters
         const newUrl = window.location.pathname
         window.history.replaceState({}, '', newUrl)
-
-        // Fetch user info with the token
-        fetchUserWithToken(accessToken)
 
         // Start background token refresh timer
         startBackgroundTokenRefresh()
@@ -519,55 +537,49 @@ export const useAuthStore = defineStore('auth', () => {
           window.location.href = '/'
         }
         return
-      } else {
-        // Check cookies first for SSR compatibility
-        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split('=')
-          if (key) {
-            acc[key] = value || ''
-          }
-          return acc
-        }, {} as Record<string, string>)
+      }
 
-        const cookieAuthToken = cookies.auth_token
-        const cookieRefreshToken = cookies.refresh_token
+      const storedTokens = preferences.auth.tokens
+      const storedUser = preferences.auth.user
 
-        if (cookieAuthToken) {
-          // Use tokens from cookies
-          token.value = cookieAuthToken
-          refreshToken.value = cookieRefreshToken || ''
-          
-          // Also store in preferences store for backward compatibility
-          const preferences = usePreferencesStore()
-          preferences.auth.setTokens(cookieAuthToken, cookieRefreshToken || '')
-          
-          // Fetch user info with the token
-          fetchUserWithToken(cookieAuthToken)
-          
-          // Start background token refresh timer
+      if (storedUser) {
+        user.value = storedUser
+      }
+
+      if (storedTokens.access) {
+        token.value = storedTokens.access
+      }
+
+      if (storedTokens.refresh) {
+        refreshToken.value = storedTokens.refresh
+      }
+
+      const refreshed = await refreshAccessToken({ silent: true })
+      if (refreshed) {
+        startBackgroundTokenRefresh()
+        return
+      }
+
+      if (storedTokens.access) {
+        try {
+          await fetchUserWithToken(storedTokens.access)
           startBackgroundTokenRefresh()
           return
-        }
-
-        // Fallback to preferences store for existing tokens
-        const preferences = usePreferencesStore()
-        const storedTokens = preferences.auth.tokens
-        const storedUser = preferences.auth.user
-
-        if (storedTokens.access && storedUser) {
-          try {
-            token.value = storedTokens.access
-            refreshToken.value = storedTokens.refresh
-            user.value = storedUser
-
-            // Start background token refresh timer
-            startBackgroundTokenRefresh()
-          } catch (err) {
-            console.error('Failed to load stored user:', err)
-            preferences.auth.clearAuth()
-          }
+        } catch (err) {
+          console.error('Failed to restore auth from stored access token:', err)
         }
       }
+
+      user.value = null
+      token.value = null
+      refreshToken.value = null
+      preferences.auth.clearAuth()
+    })()
+
+    try {
+      await initializePromise
+    } finally {
+      initializePromise = null
     }
   }
 
@@ -588,9 +600,11 @@ export const useAuthStore = defineStore('auth', () => {
       } catch (err) {
         console.error('Failed to initialize team store:', err)
       }
+      return userData
     } catch (err) {
       console.error('Failed to fetch user with token:', err)
       preferences.auth.clearAuth()
+      throw err
     }
   }
 
@@ -877,6 +891,8 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isAuthenticated,
     userInitials,
+    isSuperuser,
+    hasPermission,
     loginWithGitHub,
     loginWithGoogle,
     loginWithEmail,

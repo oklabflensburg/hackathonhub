@@ -137,6 +137,7 @@ export class ApiClient {
       method,
       headers,
       body: serializedBody,
+      credentials: restOptions.credentials ?? 'include',
       ...restOptions,
     }
   }

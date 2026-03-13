@@ -10,37 +10,34 @@
     :footer-link-text="footerLinkText"
     :footer-link="footerLink"
   >
-    <template #default>
-      <AuthForm
-        :loading="loading"
-        :disabled="disabled"
-        :submit-button-text="submitButtonText"
-        :submit-button-loading-text="submitButtonLoadingText"
-        @submit="$emit('submit')"
-      >
-        <template #fields>
-          <!-- Email field -->
-          <div class="space-y-2">
-            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ emailLabel }}
-            </label>
-            <input
-              id="email"
-              :value="email"
-              type="email"
-              required
-              :disabled="disabled"
-              :placeholder="emailPlaceholder"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              @input="$emit('email-change', ($event.target as HTMLInputElement).value)"
-            />
-            <p v-if="emailHint" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              {{ emailHint }}
-            </p>
-          </div>
-        </template>
-      </AuthForm>
-    </template>
+    <AuthForm
+      :error="error"
+      :success="success"
+      :loading="loading"
+      :disabled="disabled"
+      :submit-button-text="submitButtonText"
+      :submit-button-loading-text="submitButtonLoadingText"
+      @submit="$emit('submit')"
+    >
+      <div class="space-y-2">
+        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {{ emailLabel }}
+        </label>
+        <input
+          id="email"
+          :value="email"
+          type="email"
+          required
+          :disabled="disabled"
+          :placeholder="emailPlaceholder"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          @input="$emit('email-change', ($event.target as HTMLInputElement).value)"
+        />
+        <p v-if="emailHint" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          {{ emailHint }}
+        </p>
+      </div>
+    </AuthForm>
   </AuthCard>
 </template>
 

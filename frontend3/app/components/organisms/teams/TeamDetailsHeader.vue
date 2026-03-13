@@ -300,18 +300,22 @@ const handleSettings = () => {
 }
 
 const handleEdit = () => {
+  closeDropdown()
   emit('edit', props.team.id)
 }
 
 const handleDelete = () => {
+  closeDropdown()
   emit('delete', props.team.id)
 }
 
 const handleReport = () => {
+  closeDropdown()
   emit('report', props.team.id)
 }
 
 const handleShare = () => {
+  closeDropdown()
   emit('share', props.team.id)
 }
 

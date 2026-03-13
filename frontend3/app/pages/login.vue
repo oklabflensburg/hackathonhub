@@ -27,6 +27,7 @@
       @submit="handleEmailLogin"
       @email-change="email = $event"
       @password-change="password = $event"
+      @remember-me-change="rememberMe = $event"
       @oauth-click="handleOAuthClick"
     >
       <!-- Custom error handling for email verification -->
@@ -130,7 +131,8 @@ const handleEmailLogin = async () => {
   try {
     const loginSuccessful = await authStore.loginWithEmail({
       email: email.value,
-      password: password.value
+      password: password.value,
+      rememberMe: rememberMe.value
     })
     
     // Only redirect to home if login was successful and 2FA was not required

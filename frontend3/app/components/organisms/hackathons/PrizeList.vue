@@ -26,7 +26,7 @@
             <Badge
               v-if="idx === 0"
               variant="success"
-              size="xs"
+              size="sm"
               class="absolute -top-1 -right-1"
             >
               <Icon name="crown" class="w-3 h-3" />
@@ -41,21 +41,21 @@
               <Badge
                 v-if="idx === 0"
                 variant="success"
-                size="xs"
+                size="sm"
               >
                 Grand Prize
               </Badge>
               <Badge
                 v-else-if="idx === 1"
                 variant="warning"
-                size="xs"
+                size="sm"
               >
                 Runner-up
               </Badge>
               <Badge
                 v-else
-                variant="neutral"
-                size="xs"
+                variant="gray"
+                size="sm"
               >
                 Prize
               </Badge>

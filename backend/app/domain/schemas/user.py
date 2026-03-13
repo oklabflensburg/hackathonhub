@@ -49,8 +49,24 @@ class UserCreate(UserBase):
     access_token: Optional[str] = None
 
 
-class User(UserBase):
+class PublicUser(BaseModel):
     id: int
+    username: str
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    company: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class User(UserBase):
+    role: str = "user"
+    roles: List[str] = []
+    permissions: List[str] = []
+    id: int
+    is_active: bool = True
     github_id: Optional[int] = None
     google_id: Optional[str] = None
     email_verified: bool = False
@@ -58,6 +74,7 @@ class User(UserBase):
     last_login: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    deactivated_at: Optional[datetime] = None
     # Two-factor authentication fields
     two_factor_secret: Optional[str] = None
     two_factor_backup_codes: Optional[str] = None

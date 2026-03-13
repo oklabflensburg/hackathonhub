@@ -118,6 +118,7 @@ export interface UserMenuProps {
     username: string
     email?: string
     avatarUrl?: string
+    avatar_url?: string
     role?: string
   }
   /** Avatar URL (falls nicht in user enthalten) */
@@ -385,6 +386,14 @@ export const DEFAULT_NAVIGATION_ITEMS: NavigationItem[] = [
     label: 'navigation.users',
     to: '/users',
     icon: 'user',
+  },
+  {
+    id: 'admin-users',
+    label: 'navigation.adminUsers',
+    to: '/admin/users',
+    icon: 'shield-check',
+    requiresAuth: true,
+    roles: ['superuser'],
   },
   {
     id: 'my-profile',

@@ -1,6 +1,4 @@
-"""
-Settings service for managing user settings in the Hackathon Hub Platform.
-"""
+"""Settings service for managing user settings in the Hackathon Hub Platform."""
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -16,10 +14,11 @@ from app.domain.schemas.settings import (
     UserSettings, UserSettingsUpdate, SettingsValidationResult,
     ValidationError, ProfileSettings, SecuritySettings, PrivacySettings,
     PlatformPreferences, NotificationSettings, OAuthConnections,
-    DataManagement, UserSession, PasswordChangeRequest,
+    DataManagement, UserSession, TrustedDevice, PasswordChangeRequest,
     TwoFactorSetupResponse, TwoFactorVerifyRequest, TwoFactorDisableRequest,
     SessionRevokeRequest, DataExportRequest, AccountDeletionRequest,
-    SettingsResponse
+    SettingsResponse, AccountImpactResponse, OwnedResourceSummary,
+    AccountClosureRequest
 )
 from app.services.user_service import UserService
 from app.services.notification_preference_service import (
@@ -27,6 +26,10 @@ from app.services.notification_preference_service import (
 )
 from app.services.email_auth_service import EmailAuthService
 from app.i18n.helpers import raise_not_found, raise_bad_request
+from app.repositories.user_repository import RefreshTokenRepository
+from app.domain.models.hackathon import Hackathon
+from app.domain.models.team import Team
+from app.domain.models.project import Project
 
 
 class SettingsService:
@@ -35,8 +38,14 @@ class SettingsService:
     def __init__(self):
         self.user_service = UserService()
         self.notification_service = NotificationPreferenceService()
+        self.refresh_token_repository = RefreshTokenRepository()
 
-    def get_user_settings(self, db: Session, user_id: int) -> SettingsResponse:
+    def get_user_settings(
+        self,
+        db: Session,
+        user_id: int,
+        current_token_id: Optional[str] = None
+    ) -> SettingsResponse:
         """
         Get all settings for a user.
 
@@ -57,7 +66,12 @@ class SettingsService:
         )
 
         # Build settings from user data
-        settings = self._build_settings_from_user(user, notification_prefs)
+        settings = self._build_settings_from_user(
+            db,
+            user,
+            notification_prefs,
+            current_token_id=current_token_id
+        )
 
         # Return as SettingsResponse
         return SettingsResponse(
@@ -358,54 +372,165 @@ class SettingsService:
 
         return True
 
+    def get_security_settings(
+        self,
+        db: Session,
+        user_id: int,
+        current_token_id: Optional[str] = None
+    ) -> SecuritySettings:
+        user = self.user_service.get_user(db, user_id)
+        if not user:
+            raise_not_found("en", "user")
+
+        return self._build_security_settings(
+            db,
+            user,
+            current_token_id=current_token_id
+        )
+
     def get_active_sessions(
-        self, db: Session, user_id: int
+        self,
+        db: Session,
+        user_id: int,
+        current_token_id: Optional[str] = None
     ) -> List[UserSession]:
-        """
-        Get active sessions for a user.
-
-        Args:
-            db: Database session
-            user_id: User ID
-
-        Returns:
-            List of active user sessions
-        """
-        # In a real implementation, this would query a sessions table
-        # For now, return a mock session
-        return [
-            UserSession(
-                id="current_session_123",
-                device="Chrome on Windows",
-                location="Berlin, DE",
-                ip_address="192.168.1.1",
-                last_active=datetime.utcnow(),
-                created_at=datetime.utcnow() - timedelta(days=7),
-                expires_at=datetime.utcnow() + timedelta(days=30),
-                current=True
-            )
-        ]
+        return self._build_active_sessions(
+            db,
+            user_id,
+            current_token_id=current_token_id
+        )
 
     def revoke_session(
         self,
         db: Session,
         user_id: int,
-        revoke_request: SessionRevokeRequest
+        revoke_request: SessionRevokeRequest,
+        current_token_id: Optional[str] = None
     ) -> bool:
-        """
-        Revoke a user session.
+        if revoke_request.session_id is None:
+            raise_bad_request("en", "Session ID is required")
 
-        Args:
-            db: Database session
-            user_id: User ID
-            revoke_request: Session revoke request
+        return self._revoke_refresh_token(
+            db,
+            user_id,
+            revoke_request.session_id,
+            current_token_id=current_token_id
+        )
 
-        Returns:
-            True if session revoked
-        """
-        # In a real implementation, this would invalidate the session
-        # For now, just return success
-        return True
+    def revoke_trusted_device(
+        self,
+        db: Session,
+        user_id: int,
+        device_id: str,
+        current_token_id: Optional[str] = None
+    ) -> bool:
+        return self._revoke_refresh_token(
+            db,
+            user_id,
+            device_id,
+            current_token_id=current_token_id
+        )
+
+    def get_account_impact(
+        self,
+        db: Session,
+        user_id: int
+    ) -> AccountImpactResponse:
+        user = self.user_service.user_repo.get(db, user_id)
+        if not user:
+            raise_not_found("en", "user")
+
+        hackathons = db.query(Hackathon).filter(Hackathon.owner_id == user_id).all()
+        teams = db.query(Team).filter(Team.created_by == user_id).all()
+        projects = db.query(Project).filter(Project.owner_id == user_id).all()
+
+        hackathon_items = [
+            OwnedResourceSummary(id=item.id, name=item.name or f"Hackathon #{item.id}", resource_type="hackathon")
+            for item in hackathons
+        ]
+        team_items = [
+            OwnedResourceSummary(id=item.id, name=item.name or f"Team #{item.id}", resource_type="team")
+            for item in teams
+        ]
+        project_items = [
+            OwnedResourceSummary(id=item.id, name=item.title or f"Project #{item.id}", resource_type="project")
+            for item in projects
+        ]
+
+        has_owned_resources = bool(hackathon_items or team_items or project_items)
+        return AccountImpactResponse(
+            can_delete=not has_owned_resources,
+            can_deactivate=True,
+            requires_transfer=has_owned_resources,
+            hackathons=hackathon_items,
+            teams=team_items,
+            projects=project_items,
+            message=(
+                "Permanent deletion is blocked while you still own hackathons, teams, or projects."
+                if has_owned_resources else
+                "Your account can be permanently deleted."
+            )
+        )
+
+    def deactivate_account(
+        self,
+        db: Session,
+        user_id: int,
+        request: AccountClosureRequest
+    ) -> None:
+        user = self._validate_account_closure_request(
+            db,
+            user_id,
+            request,
+            expected_confirmation="DEACTIVATE ACCOUNT"
+        )
+        user.is_active = False
+        user.deactivated_at = datetime.utcnow()
+        self.refresh_token_repository.revoke_all_for_user(db, user_id)
+        db.add(user)
+        db.commit()
+
+    def delete_account(
+        self,
+        db: Session,
+        user_id: int,
+        request: AccountClosureRequest
+    ) -> AccountImpactResponse:
+        user = self._validate_account_closure_request(
+            db,
+            user_id,
+            request,
+            expected_confirmation="DELETE MY ACCOUNT"
+        )
+        impact = self.get_account_impact(db, user_id)
+        if not impact.can_delete:
+            raise_bad_request(
+                "en",
+                "Account cannot be permanently deleted while owned resources still exist."
+            )
+
+        user.is_active = False
+        user.deactivated_at = datetime.utcnow()
+        user.email = f"deleted-user-{user.id}@deleted.local"
+        user.username = f"deleted-user-{user.id}"
+        user.name = "Deleted User"
+        user.avatar_url = None
+        user.bio = None
+        user.location = None
+        user.company = None
+        user.blog = None
+        user.twitter_username = None
+        user.password_hash = None
+        user.google_id = None
+        user.github_id = None
+        user.two_factor_secret = None
+        user.two_factor_backup_codes = None
+        user.two_factor_enabled = False
+        user.email_verified = False
+        self.refresh_token_repository.revoke_all_for_user(db, user_id)
+        db.add(user)
+        db.commit()
+        return impact
 
     def request_data_export(
         self,
@@ -476,12 +601,38 @@ class SettingsService:
 
         return True
 
+    def _validate_account_closure_request(
+        self,
+        db: Session,
+        user_id: int,
+        request: AccountClosureRequest,
+        expected_confirmation: str
+    ):
+        user = self.user_service.user_repo.get(db, user_id)
+        if not user:
+            raise_not_found("en", "user")
+
+        if user.auth_method == "email":
+            if not request.password or not user.password_hash:
+                raise_bad_request("en", "Password is required")
+            if not EmailAuthService.verify_password(request.password, user.password_hash):
+                raise_bad_request("en", "Password is incorrect")
+            if request.confirmation != expected_confirmation:
+                raise_bad_request("en", "Confirmation text is invalid")
+        else:
+            if request.confirmation != expected_confirmation:
+                raise_bad_request("en", "Confirmation text is invalid")
+
+        return user
+
     # Private helper methods
 
     def _build_settings_from_user(
         self,
+        db: Session,
         user: User,
-        notification_prefs: Any
+        notification_prefs: Any,
+        current_token_id: Optional[str] = None
     ) -> UserSettings:
         """Build UserSettings from User model."""
         # Build profile settings
@@ -496,9 +647,10 @@ class SettingsService:
         )
 
         # Build security settings
-        security = SecuritySettings(
-            two_factor_enabled=user.two_factor_enabled or False,
-            active_sessions=self._get_mock_sessions()
+        security = self._build_security_settings(
+            db,
+            user,
+            current_token_id=current_token_id
         )
 
         # Build privacy settings
@@ -618,30 +770,139 @@ class SettingsService:
             }
         return None
 
-    def _get_mock_sessions(self) -> List[UserSession]:
-        """Get mock sessions for development."""
-        return [
-            UserSession(
-                id="session_1",
-                device="Chrome on Windows",
-                location="Berlin, Germany",
-                ip_address="192.168.1.100",
-                last_active=datetime.utcnow() - timedelta(hours=2),
-                created_at=datetime.utcnow() - timedelta(days=7),
-                expires_at=datetime.utcnow() + timedelta(days=23),
-                current=True
-            ),
-            UserSession(
-                id="session_2",
-                device="Safari on iPhone",
-                location="Hamburg, Germany",
-                ip_address="192.168.1.101",
-                last_active=datetime.utcnow() - timedelta(days=1),
-                created_at=datetime.utcnow() - timedelta(days=3),
-                expires_at=datetime.utcnow() + timedelta(days=27),
-                current=False
-            )
+    def _build_security_settings(
+        self,
+        db: Session,
+        user: User,
+        current_token_id: Optional[str] = None
+    ) -> SecuritySettings:
+        active_sessions = self._build_active_sessions(
+            db,
+            user.id,
+            current_token_id=current_token_id
+        )
+        trusted_devices = self._build_trusted_devices(
+            db,
+            user.id,
+            current_token_id=current_token_id
+        )
+        remaining_backup_codes = 10 if user.two_factor_backup_codes else 0
+
+        return SecuritySettings(
+            two_factor_enabled=user.two_factor_enabled or False,
+            trusted_devices_count=len(trusted_devices),
+            remaining_backup_codes=remaining_backup_codes,
+            active_sessions=active_sessions,
+            trusted_devices=trusted_devices
+        )
+
+    def _build_active_sessions(
+        self,
+        db: Session,
+        user_id: int,
+        current_token_id: Optional[str] = None
+    ) -> List[UserSession]:
+        tokens = self.refresh_token_repository.get_by_user_id(db, user_id)
+        active_tokens = [
+            token for token in tokens
+            if self._is_token_active(token)
         ]
+        active_tokens.sort(
+            key=lambda token: token.created_at or datetime.utcnow(),
+            reverse=True
+        )
+        return [
+            self._serialize_refresh_token(token, current_token_id, UserSession)
+            for token in active_tokens
+        ]
+
+    def _build_trusted_devices(
+        self,
+        db: Session,
+        user_id: int,
+        current_token_id: Optional[str] = None
+    ) -> List[TrustedDevice]:
+        tokens = self.refresh_token_repository.get_by_user_id(db, user_id)
+        persistent_tokens = [
+            token for token in tokens
+            if token.is_persistent and self._is_token_active(token)
+        ]
+        persistent_tokens.sort(
+            key=lambda token: token.created_at or datetime.utcnow(),
+            reverse=True
+        )
+        return [
+            self._serialize_refresh_token(token, current_token_id, TrustedDevice)
+            for token in persistent_tokens
+        ]
+
+    def _serialize_refresh_token(
+        self,
+        token,
+        current_token_id: Optional[str],
+        schema_cls
+    ):
+        device_name = token.device_info or "Unbekanntes Gerät"
+        device_type = self._infer_device_type(device_name)
+        is_current = bool(current_token_id and token.token_id == current_token_id)
+        last_active = token.created_at or datetime.utcnow()
+
+        return schema_cls(
+            id=str(token.id),
+            device=device_name,
+            device_name=device_name,
+            device_type=device_type,
+            location=None,
+            ip_address=token.ip_address,
+            last_active=last_active,
+            last_activity=last_active,
+            created_at=token.created_at or datetime.utcnow(),
+            expires_at=token.expires_at,
+            current=is_current,
+            is_current=is_current
+        )
+
+    def _revoke_refresh_token(
+        self,
+        db: Session,
+        user_id: int,
+        token_row_id: str,
+        current_token_id: Optional[str] = None
+    ) -> bool:
+        try:
+            row_id = int(token_row_id)
+        except (TypeError, ValueError):
+            raise_bad_request("en", "Invalid session identifier")
+
+        token = self.refresh_token_repository.get(db, row_id)
+        if not token or token.user_id != user_id:
+            raise_not_found("en", "session")
+
+        if current_token_id and token.token_id == current_token_id:
+            raise_bad_request("en", "Current session cannot be revoked here")
+
+        db.delete(token)
+        db.commit()
+        return True
+
+    def _infer_device_type(
+        self,
+        device_info: Optional[str]
+    ) -> str:
+        value = (device_info or "").lower()
+        if any(keyword in value for keyword in ("iphone", "android", "mobile", "phone")):
+            return "mobile"
+        if any(keyword in value for keyword in ("ipad", "tablet")):
+            return "tablet"
+        if any(keyword in value for keyword in ("windows", "mac", "linux", "chrome", "firefox", "safari", "desktop")):
+            return "desktop"
+        return "unknown"
+
+    def _is_token_active(self, token) -> bool:
+        if not token.expires_at:
+            return False
+        now = datetime.now(token.expires_at.tzinfo) if token.expires_at.tzinfo else datetime.utcnow()
+        return token.expires_at > now
 
     def _validate_settings_update(
         self,

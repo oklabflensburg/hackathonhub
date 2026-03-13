@@ -1,26 +1,32 @@
-"""
-Project API routes.
-"""
-from fastapi import APIRouter, Depends, Body, Request
+"""Project API routes."""
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, Body, Request, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from typing import List, Optional
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.permissions import PERMISSION_CODES, can_delete_project, can_manage_project, can_manage_project_reports, user_has_permission
 from app.domain.schemas.project import (
     Project, ProjectCreate, ProjectUpdate, CommentCreate, Comment
 )
+from app.domain.schemas.user import PublicUser
+from app.domain.schemas.report import Report, ReportCreateRequest
 from app.services.project_service import project_service
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.project_repository import VoteRepository
 from app.repositories.project_repository import CommentRepository
+from app.domain.models.project import Vote as VoteModel, Comment as CommentModel
 from app.i18n.dependencies import get_locale
 from app.i18n.helpers import (
     raise_not_found, raise_bad_request,
     raise_internal_server_error
 )
 from app.i18n.translations import get_translation
+from app.services.report_service import report_service
 
 router = APIRouter()
 
@@ -28,6 +34,137 @@ router = APIRouter()
 project_repository = ProjectRepository()
 vote_repository = VoteRepository()
 comment_repository = CommentRepository()
+
+
+def _serialize_comment(comment) -> Comment:
+    """Serialize a comment including author and nested replies."""
+    return Comment(
+        id=comment.id,
+        content=comment.content,
+        user_id=comment.user_id,
+        project_id=comment.project_id,
+        parent_id=comment.parent_id,
+        upvote_count=comment.upvote_count or 0,
+        downvote_count=comment.downvote_count or 0,
+        vote_score=comment.vote_score or 0,
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+        user=(
+            PublicUser.model_validate(comment.user)
+            if getattr(comment, "user", None) else None
+        ),
+        replies=[],
+    )
+
+
+def _build_comment_tree(db: Session, project_id: int) -> list[Comment]:
+    """Build a nested comment tree for a project."""
+    flat_comments = comment_repository.get_project_comments_flat(db, project_id)
+    comment_map: dict[int, Comment] = {}
+    root_comments: list[Comment] = []
+
+    for db_comment in flat_comments:
+        comment_map[db_comment.id] = _serialize_comment(db_comment)
+
+    for db_comment in flat_comments:
+        serialized = comment_map[db_comment.id]
+        if db_comment.parent_id and db_comment.parent_id in comment_map:
+            comment_map[db_comment.parent_id].replies.append(serialized)
+        else:
+            root_comments.append(serialized)
+
+    root_comments.sort(key=lambda item: item.created_at, reverse=True)
+    for root in root_comments:
+        root.replies.sort(key=lambda item: item.created_at)
+
+    return root_comments
+
+
+def _calculate_project_engagement(
+    total_votes: int,
+    total_comments: int,
+    view_count: int,
+    last_activity_at: datetime | None,
+) -> tuple[int, float, str]:
+    """Calculate project engagement score, rate and level."""
+    score = min(total_votes * 12, 40) + min(total_comments * 15, 35)
+    score += min(view_count * 2, 15)
+
+    if last_activity_at:
+        now = datetime.now(timezone.utc)
+        activity_time = last_activity_at
+        if activity_time.tzinfo is None:
+            activity_time = activity_time.replace(tzinfo=timezone.utc)
+        age_days = max(0, (now - activity_time).days)
+        if age_days <= 7:
+            score += 10
+        elif age_days <= 30:
+            score += 5
+
+    score = min(score, 100)
+
+    interactions = total_votes + total_comments
+    rate = round(min(100.0, (interactions / max(view_count, 1)) * 100), 1)
+
+    if score >= 70 or rate >= 15:
+        return score, rate, "high"
+    if score >= 35 or rate >= 5:
+        return score, rate, "medium"
+    return score, rate, "low"
+
+
+def _attach_project_stats(db: Session, projects: List[Project]) -> None:
+    """Populate aggregated project engagement statistics."""
+    project_ids = [project.id for project in projects]
+    if not project_ids:
+        return
+
+    vote_rows = db.query(
+        VoteModel.project_id,
+        func.max(VoteModel.created_at).label("last_vote_at"),
+    ).filter(
+        VoteModel.project_id.in_(project_ids)
+    ).group_by(VoteModel.project_id).all()
+    vote_activity_map = {
+        row.project_id: row.last_vote_at for row in vote_rows
+    }
+
+    comment_rows = db.query(
+        CommentModel.project_id,
+        func.max(CommentModel.created_at).label("last_comment_at"),
+    ).filter(
+        CommentModel.project_id.in_(project_ids)
+    ).group_by(CommentModel.project_id).all()
+    comment_activity_map = {
+        row.project_id: row.last_comment_at for row in comment_rows
+    }
+
+    for project in projects:
+        total_votes = (project.upvote_count or 0) + (project.downvote_count or 0)
+        total_comments = project.comment_count or 0
+        last_activity_candidates = [
+            project.updated_at,
+            project.created_at,
+            vote_activity_map.get(project.id),
+            comment_activity_map.get(project.id),
+        ]
+        last_activity_at = max(
+            (candidate for candidate in last_activity_candidates if candidate is not None),
+            default=project.created_at,
+        )
+        engagement_score, engagement_rate, engagement_level = _calculate_project_engagement(
+            total_votes=total_votes,
+            total_comments=total_comments,
+            view_count=project.view_count or 0,
+            last_activity_at=last_activity_at,
+        )
+
+        project.total_votes = total_votes
+        project.total_comments = total_comments
+        project.last_activity_at = last_activity_at
+        project.engagement_score = engagement_score
+        project.engagement_rate = engagement_rate
+        project.engagement_level = engagement_level
 
 
 @router.get("", response_model=List[Project])
@@ -61,7 +198,8 @@ async def get_projects(
         )
     else:
         projects = project_service.get_projects(db, skip=skip, limit=limit)
-    
+
+    _attach_project_stats(db, projects)
     return projects
 
 
@@ -76,6 +214,7 @@ async def get_project(
     project = project_service.get_project(db, project_id)
     if not project:
         raise_not_found(locale, "project")
+    _attach_project_stats(db, [project])
     return project
 
 
@@ -88,6 +227,8 @@ async def create_project(
     locale: str = Depends(get_locale)
 ):
     """Create a new project."""
+    if not user_has_permission(db, current_user, PERMISSION_CODES["projects_create"]):
+        raise_bad_request(locale, "forbidden")
     new_project = project_service.create_project(
         db, project, current_user.id
     )
@@ -104,6 +245,10 @@ async def update_project(
     locale: str = Depends(get_locale)
 ):
     """Update a project."""
+    project = project_repository.get(db, project_id)
+    if project and not can_manage_project(db, current_user, project):
+        from app.i18n.helpers import raise_forbidden
+        raise_forbidden(locale, "update", entity="project")
     updated_project = project_service.update_project(
         db, project_id, project_update, current_user.id, locale
     )
@@ -121,6 +266,10 @@ async def delete_project(
     locale: str = Depends(get_locale)
 ):
     """Delete a project."""
+    project = project_repository.get(db, project_id)
+    if project and not can_delete_project(db, current_user, project):
+        from app.i18n.helpers import raise_forbidden
+        raise_forbidden(locale, "delete", entity="project")
     success = project_service.delete_project(
         db, project_id, current_user.id, locale
     )
@@ -129,6 +278,53 @@ async def delete_project(
 
     message = get_translation("success.project_deleted", locale)
     return {"message": message}
+
+
+
+
+@router.post("/{project_id}/reports", response_model=Report)
+async def report_project(
+    project_id: int,
+    payload: ReportCreateRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale),
+):
+    project = project_repository.get(db, project_id)
+    if not project:
+        raise_not_found(locale, "project")
+    if not user_has_permission(db, current_user, PERMISSION_CODES["reports_create"]):
+        raise HTTPException(status_code=403, detail="Not authorized to create reports")
+    try:
+        return report_service.create_report(
+            db,
+            reporter_id=current_user.id,
+            resource_type="project",
+            resource_id=project_id,
+            reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/{project_id}/reports", response_model=List[Report])
+async def get_project_reports(
+    project_id: int,
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale),
+):
+    project = project_repository.get(db, project_id)
+    if not project:
+        raise_not_found(locale, "project")
+    if not can_manage_project_reports(db, current_user, project_id):
+        raise HTTPException(status_code=403, detail="Not authorized to view reports for this project")
+    return report_service.list_reports_for_resource(
+        db, resource_type="project", resource_id=project_id, status=status, skip=skip, limit=limit
+    )
 
 
 @router.post("/{project_id}/vote")
@@ -376,29 +572,11 @@ async def get_project_comments(
     if not project:
         raise_not_found(locale, "project")
 
-    # Get comments
-    comments = comment_repository.get_project_comments(
-        db, project_id, skip=skip, limit=limit
-    )
-
-    # Convert to list of dicts with user info
-    comment_list = []
-    for comment in comments:
-        # Get user info (simplified - would need user repository)
-        from app.domain.models.user import User
-        user = db.query(User).filter(User.id == comment.user_id).first()
-
-        comment_list.append({
-            "id": comment.id,
-            "content": comment.content,
-            "user_id": comment.user_id,
-            "user_name": user.username if user else "Unknown",
-            "upvote_count": comment.upvote_count,
-            "downvote_count": comment.downvote_count,
-            "vote_score": comment.vote_score,
-            "created_at": comment.created_at,
-            "replies": comment_repository.get_replies(db, comment.id)
-        })
+    comment_list = _build_comment_tree(db, project_id)
+    if skip:
+        comment_list = comment_list[skip:]
+    if limit is not None:
+        comment_list = comment_list[:limit]
 
     return {"comments": comment_list, "project_id": project_id}
 
@@ -423,7 +601,16 @@ async def create_project_comment(
     comment_data["user_id"] = current_user.id
     comment_data["project_id"] = project_id
 
+    if comment.parent_id is not None:
+        parent_comment = comment_repository.get(db, comment.parent_id)
+        if not parent_comment:
+            raise_not_found(locale, "comment")
+        if parent_comment.project_id != project_id:
+            raise_bad_request(locale, "Reply comment must belong to the same project")
+
     # Create the comment
     new_comment = comment_repository.create(db, obj_in=comment_data)
+    db.refresh(new_comment)
 
-    return Comment.model_validate(new_comment)
+    comment_with_relations = comment_repository.get(db, new_comment.id)
+    return _serialize_comment(comment_with_relations or new_comment)

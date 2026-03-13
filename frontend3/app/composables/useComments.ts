@@ -24,6 +24,8 @@ export interface Comment {
   replies?: Comment[]
 }
 
+export type ProjectComment = Comment
+
 export interface CommentCreateData {
   content: string
   parent_id?: number
@@ -79,7 +81,11 @@ export function useComments(options: UseCommentsOptions = {}) {
 
   // Computed Properties
   const hasComments = computed(() => comments.value.length > 0)
-  const commentCount = computed(() => comments.value.length)
+  const countComments = (items: Comment[]): number => items.reduce(
+    (total, item) => total + 1 + countComments(item.replies || []),
+    0
+  )
+  const commentCount = computed(() => countComments(comments.value))
   const topLevelComments = computed(() => comments.value.filter(c => !c.parent_id))
   const nestedComments = computed(() => {
     const nested: Record<number, Comment[]> = {}
@@ -158,8 +164,11 @@ export function useComments(options: UseCommentsOptions = {}) {
         skipErrorNotification: true
       })
 
-      // Zum lokalen State hinzufügen
-      comments.value = [response, ...comments.value]
+      if (response.parent_id) {
+        comments.value = insertReplyIntoTree(comments.value, response.parent_id, response)
+      } else {
+        comments.value = [response, ...comments.value]
+      }
 
       // Success Notification
       if (autoSuccessHandling) {
@@ -193,10 +202,7 @@ export function useComments(options: UseCommentsOptions = {}) {
       })
 
       // Lokalen State aktualisieren
-      const index = comments.value.findIndex(c => c.id === commentId)
-      if (index !== -1) {
-        comments.value[index] = response
-      }
+      comments.value = updateCommentInTree(comments.value, commentId, response)
 
       if (currentComment.value?.id === commentId) {
         currentComment.value = response
@@ -234,10 +240,7 @@ export function useComments(options: UseCommentsOptions = {}) {
       })
 
       // Aus lokalem State entfernen
-      comments.value = comments.value.filter(c => c.id !== commentId)
-      
-      // Auch Antworten entfernen
-      comments.value = comments.value.filter(c => c.parent_id !== commentId)
+      comments.value = removeCommentFromTree(comments.value, commentId)
 
       if (currentComment.value?.id === commentId) {
         currentComment.value = null
@@ -352,7 +355,7 @@ export function useComments(options: UseCommentsOptions = {}) {
       error.value = null
 
       // Zuerst müssen wir die Projekt-ID des Eltern-Kommentars finden
-      const parentComment = comments.value.find(c => c.id === parentCommentId)
+      const parentComment = findCommentById(comments.value, parentCommentId)
       if (!parentComment) {
         throw new Error('Eltern-Kommentar nicht gefunden')
       }
@@ -366,8 +369,7 @@ export function useComments(options: UseCommentsOptions = {}) {
         skipErrorNotification: true
       })
 
-      // Zum lokalen State hinzufügen
-      comments.value = [response, ...comments.value]
+      comments.value = insertReplyIntoTree(comments.value, parentCommentId, response)
 
       // Success Notification
       if (autoSuccessHandling) {
@@ -424,33 +426,73 @@ export function useComments(options: UseCommentsOptions = {}) {
    * Antworten auf einen Kommentar abrufen
    */
   function getReplies(commentId: number): Comment[] {
-    return comments.value.filter(c => c.parent_id === commentId)
+    return findCommentById(comments.value, commentId)?.replies || []
   }
 
   /**
    * Kommentar-Baum erstellen (für verschachtelte Darstellung)
    */
   function buildCommentTree(): Comment[] {
-    const commentMap = new Map<number, Comment>()
-    const rootComments: Comment[] = []
+    return comments.value
+  }
 
-    // Alle Kommentare in eine Map einfügen
-    comments.value.forEach(comment => {
-      commentMap.set(comment.id, { ...comment, replies: [] })
-    })
+  function findCommentById(items: Comment[], commentId: number): Comment | null {
+    for (const item of items) {
+      if (item.id === commentId) return item
+      const nested = findCommentById(item.replies || [], commentId)
+      if (nested) return nested
+    }
+    return null
+  }
 
-    // Kommentare ihren Eltern zuweisen
-    comments.value.forEach(comment => {
-      const commentWithReplies = commentMap.get(comment.id)!
-      if (comment.parent_id && commentMap.has(comment.parent_id)) {
-        const parent = commentMap.get(comment.parent_id)!
-        parent.replies!.push(commentWithReplies)
-      } else {
-        rootComments.push(commentWithReplies)
+  function insertReplyIntoTree(items: Comment[], parentId: number, reply: Comment): Comment[] {
+    return items.map(item => {
+      if (item.id === parentId) {
+        return {
+          ...item,
+          replies: [...(item.replies || []), reply]
+        }
       }
-    })
 
-    return rootComments
+      if (item.replies?.length) {
+        return {
+          ...item,
+          replies: insertReplyIntoTree(item.replies, parentId, reply)
+        }
+      }
+
+      return item
+    })
+  }
+
+  function updateCommentInTree(items: Comment[], commentId: number, updated: Comment): Comment[] {
+    return items.map(item => {
+      if (item.id === commentId) {
+        return {
+          ...item,
+          ...updated,
+          replies: updated.replies || item.replies || []
+        }
+      }
+
+      if (item.replies?.length) {
+        return {
+          ...item,
+          replies: updateCommentInTree(item.replies, commentId, updated)
+        }
+      }
+
+      return item
+    })
+  }
+
+  function removeCommentFromTree(items: Comment[], commentId: number): Comment[] {
+    return items
+      .filter(item => item.id !== commentId)
+      .map(item => ({
+        ...item,
+        replies: removeCommentFromTree(item.replies || [], commentId)
+      }))
   }
 
   /**

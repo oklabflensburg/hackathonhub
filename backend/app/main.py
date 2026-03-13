@@ -8,8 +8,6 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from app.core.config import settings
-from app.core.database import engine
-from app.domain.models.base import Base
 from app.i18n.middleware import LocaleMiddleware
 
 # Import routers
@@ -29,6 +27,9 @@ from app.api.v1.uploads.routes import router as uploads_router
 from app.api.v1.compatibility.routes import router as compatibility_router
 from app.api.v1.push.routes import router as push_router
 from app.api.v1.settings.routes import router as settings_router
+from app.api.v1.admin.routes import router as admin_router
+from app.api.v1.team_reports.routes import router as team_reports_router
+from app.api.v1.reports.routes import router as reports_router
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,21 @@ app.include_router(
     prefix="/api/settings",
     tags=["settings"]
 )
+app.include_router(
+    admin_router,
+    prefix="/api/admin",
+    tags=["admin"]
+)
+app.include_router(
+    team_reports_router,
+    prefix="/api/team-reports",
+    tags=["team-reports"]
+)
+app.include_router(
+    reports_router,
+    prefix="/api/reports",
+    tags=["reports"]
+)
 
 # Debug: verify router inclusion
 logger.debug(f"Push router included: {push_router}")
@@ -151,15 +167,6 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": settings.APP_NAME}
-
-
-# Create database tables (for development)
-# In production, use Alembic migrations instead
-if settings.DEBUG:
-    @app.on_event("startup")
-    async def startup_event():
-        """Create database tables on startup in debug mode."""
-        Base.metadata.create_all(bind=engine)
 
 
 # Initialize notification types (should run in all environments)

@@ -268,11 +268,17 @@ class SSRStorage {
 export const usePreferencesStore = defineStore('preferences', () => {
   const storage = new SSRStorage()
 
+  const clearLegacyAuthCookies = () => {
+    if (typeof document === 'undefined') return
+    document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  }
+
   // Auth module
   const auth = {
     // Keys
-    AUTH_TOKEN_KEY: 'auth_token',
-    REFRESH_TOKEN_KEY: 'refresh_token',
+    AUTH_TOKEN_KEY: 'auth_access_token',
+    REFRESH_TOKEN_KEY: 'auth_refresh_token',
     USER_KEY: 'user',
 
     // Getters
@@ -291,6 +297,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     setTokens(access: string, refresh: string) {
       storage.setItem(this.AUTH_TOKEN_KEY, access)
       storage.setItem(this.REFRESH_TOKEN_KEY, refresh)
+      clearLegacyAuthCookies()
     },
 
     setUser(user: User) {
@@ -301,6 +308,11 @@ export const usePreferencesStore = defineStore('preferences', () => {
       storage.removeItem(this.AUTH_TOKEN_KEY)
       storage.removeItem(this.REFRESH_TOKEN_KEY)
       storage.removeItem(this.USER_KEY)
+      clearLegacyAuthCookies()
+    },
+
+    cleanupLegacyCookies() {
+      clearLegacyAuthCookies()
     },
 
     // Helper methods
@@ -330,7 +342,13 @@ export const usePreferencesStore = defineStore('preferences', () => {
 
     // Initialize from storage
     initialize() {
-      const savedTheme = storage.getItem<'light' | 'dark'>(this.THEME_KEY)
+      let savedTheme = storage.getItem<'light' | 'dark'>(this.THEME_KEY)
+      if (!savedTheme) {
+        const themeCookie = useCookie<'light' | 'dark' | null>(this.THEME_KEY)
+        if (themeCookie.value === 'light' || themeCookie.value === 'dark') {
+          savedTheme = themeCookie.value
+        }
+      }
       if (savedTheme) {
         themeCurrent.value = savedTheme
       } else {
@@ -347,6 +365,12 @@ export const usePreferencesStore = defineStore('preferences', () => {
     setTheme(themeValue: 'light' | 'dark') {
       themeCurrent.value = themeValue
       storage.setItem(this.THEME_KEY, themeValue)
+      const themeCookie = useCookie<'light' | 'dark'>(this.THEME_KEY, {
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365
+      })
+      themeCookie.value = themeValue
       updateDocumentClass()
     },
 

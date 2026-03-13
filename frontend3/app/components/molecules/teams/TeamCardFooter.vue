@@ -25,6 +25,40 @@
       </span>
     </div>
 
+    <div v-if="showViewCount" class="view-count">
+      <span class="view-icon" aria-hidden="true">
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+          />
+        </svg>
+      </span>
+      <span class="member-value" :class="memberValueClasses">
+        {{ team.stats?.viewCount || 0 }}
+      </span>
+      <span class="member-label sr-only">
+        Views
+      </span>
+    </div>
+
+    <div v-if="showEngagementLevel" class="engagement-level" :class="engagementClasses">
+      {{ engagementLabel }}
+    </div>
+
     <!-- Join-Button -->
     <div v-if="showJoinButton && userId" class="join-button-container">
       <TeamJoinButton
@@ -77,6 +111,8 @@ interface ExtendedTeamCardFooterProps extends TeamCardFooterProps {
 const props = withDefaults(defineProps<ExtendedTeamCardFooterProps>(), {
   showMemberCount: true,
   showJoinButton: true,
+  showViewCount: false,
+  showEngagementLevel: false,
   userId: null,
   isMember: false,
   isInvited: false,
@@ -113,6 +149,20 @@ const memberValueClasses = computed(() => ({
   'ml-1': true,
 }))
 
+const engagementLabel = computed(() => {
+  const level = props.team.stats?.engagementLevel || 'low'
+  return `${level.charAt(0).toUpperCase()}${level.slice(1)}`
+})
+
+const engagementClasses = computed(() => {
+  const level = props.team.stats?.engagementLevel || 'low'
+  return {
+    'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200': level === 'high',
+    'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200': level === 'medium',
+    'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200': level === 'low',
+  }
+})
+
 // Event-Handler
 const handleJoin = () => {
   emit('join', props.team.id)
@@ -138,6 +188,18 @@ const handleSettings = () => {
 
 .member-count {
   @apply flex items-center gap-1 text-sm;
+}
+
+.view-count {
+  @apply flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400;
+}
+
+.view-icon {
+  @apply text-gray-500 dark:text-gray-400;
+}
+
+.engagement-level {
+  @apply rounded-full px-2 py-0.5 text-xs font-medium;
 }
 
 .member-icon {

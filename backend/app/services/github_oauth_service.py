@@ -217,6 +217,9 @@ class GitHubOAuthService:
                 # (In a real app, you might want to update some fields)
                 pass
 
+        if getattr(db_user, "is_active", True) is False:
+            raise Exception("Account is deactivated")
+
         # Create tokens using the new JWT system with refresh tokens
         tokens = create_tokens(db_user.id, db_user.username)
 

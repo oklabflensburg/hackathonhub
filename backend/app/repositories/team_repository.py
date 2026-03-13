@@ -2,10 +2,10 @@
 Team repository for database operations.
 """
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.repositories.base import BaseRepository
-from app.domain.models.team import Team, TeamMember, TeamInvitation
+from app.domain.models.team import Team, TeamMember, TeamInvitation, TeamReport
 
 
 class TeamRepository(BaseRepository[Team]):
@@ -109,3 +109,48 @@ class TeamInvitationRepository(BaseRepository[TeamInvitation]):
             self.model.team_id == team_id,
             self.model.invited_user_id == user_id
         ).first()
+
+
+class TeamReportRepository(BaseRepository[TeamReport]):
+    """Repository for team reports."""
+
+    def __init__(self):
+        super().__init__(TeamReport)
+
+    def _base_query(self, db: Session):
+        return db.query(self.model).options(
+            joinedload(self.model.team),
+            joinedload(self.model.reporter),
+            joinedload(self.model.reviewer),
+        )
+
+    def get_by_team(
+        self, db: Session, team_id: int, skip: int = 0, limit: int = 100
+    ) -> List[TeamReport]:
+        """Get reports for a team."""
+        return self._base_query(db).filter(
+            self.model.team_id == team_id
+        ).order_by(
+            self.model.created_at.desc()
+        ).offset(skip).limit(limit).all()
+
+    def get_for_hackathon(
+        self,
+        db: Session,
+        hackathon_id: int,
+        status: Optional[str] = None,
+        team_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[TeamReport]:
+        query = self._base_query(db).join(Team, Team.id == self.model.team_id).filter(
+            Team.hackathon_id == hackathon_id
+        )
+        if status:
+            query = query.filter(self.model.status == status)
+        if team_id:
+            query = query.filter(self.model.team_id == team_id)
+        return query.order_by(self.model.created_at.desc()).offset(skip).limit(limit).all()
+
+    def get_with_context(self, db: Session, report_id: int) -> Optional[TeamReport]:
+        return self._base_query(db).filter(self.model.id == report_id).first()

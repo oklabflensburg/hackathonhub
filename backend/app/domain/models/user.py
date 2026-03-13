@@ -28,10 +28,12 @@ class User(Base):
     password_hash = Column(String, nullable=True)
     google_id = Column(String, unique=True, index=True, nullable=True)
     email_verified = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     auth_method = Column(String, default="github")
     last_login = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deactivated_at = Column(DateTime(timezone=True), nullable=True)
 
     # Two-factor authentication fields
     two_factor_secret = Column(String, nullable=True)

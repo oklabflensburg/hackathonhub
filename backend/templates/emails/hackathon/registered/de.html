@@ -1,0 +1,35 @@
+<div class="content">
+    <h1>Du bist für {{ hackathon_name }} registriert!</h1>
+    
+    <p>Hallo {{ user_name }},</p>
+    
+    <p>Herzlichen Glückwunsch! Du hast dich erfolgreich für <strong>{{ hackathon_name }}</strong> registriert.</p>
+    
+    <div class="highlight-box">
+        <h2>Veranstaltungsdetails</h2>
+        <ul>
+            <li><strong>Datum:</strong> {{ hackathon_date }}</li>
+            <li><strong>Ort:</strong> {{ hackathon_location }}</li>
+            <li><strong>Registrierungs-ID:</strong> {{ registration_id }}</li>
+        </ul>
+    </div>
+    
+    <p>Was kommt als nächstes?</p>
+    <ol>
+        <li>Nimm an der Diskussion in unserem Community-Forum teil</li>
+        <li>Sieh dir die Challenge-Briefs an, sobald sie veröffentlicht werden</li>
+        <li>Beginne mit deinen Projektideen</li>
+        <li>Vernetze dich mit anderen Teilnehmern</li>
+    </ol>
+    
+    <div class="cta-button">
+        <a href="{{ hackathon_url }}" class="button">Hackathon-Details ansehen</a>
+    </div>
+    
+    <p>Wenn du Fragen hast, wende dich bitte an die Organisatoren unter {{ organizer_email }}.</p>
+    
+    <p>Wir freuen uns darauf zu sehen, was du entwickeln wirst!</p>
+    
+    <p>Mit freundlichen Grüßen,<br>
+    Das {{ hackathon_name }} Team</p>
+</div>

@@ -13,9 +13,13 @@ export interface User {
   username: string
   email?: string
   avatarUrl?: string
+  avatar_url?: string
   role?: string
   bio?: string
   createdAt?: string
+  created_at?: string
+  displayName?: string | null
+  name?: string | null
 }
 
 /**
@@ -520,6 +524,12 @@ export interface ApiProject {
   vote_score: number
   comment_count: number
   view_count: number
+  total_votes?: number
+  total_comments?: number
+  last_activity_at?: string
+  engagement_score?: number
+  engagement_rate?: number
+  engagement_level?: 'low' | 'medium' | 'high'
   owner?: any
   hackathon?: any
   team?: any

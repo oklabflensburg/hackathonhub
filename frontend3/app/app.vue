@@ -16,6 +16,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import AppHeader from '~/components/AppHeader.vue'
 import AppSidebar from '~/components/AppSidebar.vue'
@@ -25,9 +26,17 @@ import Container from '~/components/atoms/Container.vue'
 import GlobalNotifications from '~/components/GlobalNotifications.vue'
 
 const authStore = useAuthStore()
+const themeCookie = useCookie<'light' | 'dark' | null>('theme')
+const ssrTheme = computed(() => themeCookie.value === 'dark' ? 'dark' : 'light')
 
-// Initialize auth on client side
-if (typeof window !== 'undefined') {
-  authStore.initializeAuth()
-}
+useHead(() => ({
+  htmlAttrs: {
+    class: ssrTheme.value === 'dark' ? 'dark' : undefined,
+    'data-theme': ssrTheme.value
+  }
+}))
+
+onMounted(async () => {
+  await authStore.initializeAuth()
+})
 </script>

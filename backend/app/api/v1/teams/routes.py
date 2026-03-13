@@ -1,25 +1,36 @@
 """
 Team API routes.
 """
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Request
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.permissions import (
+    PERMISSION_CODES,
+    can_delete_team,
+    can_manage_team,
+    user_has_permission,
+)
 from app.domain.schemas.team import (
     Team, TeamCreate, TeamUpdate,
     TeamMember, TeamMemberCreateRequest,
-    TeamInvitation, TeamInvitationCreateRequest
+    TeamInvitation, TeamInvitationCreateRequest,
+    TeamReport, TeamReportCreateRequest
 )
 from app.domain.models.team import TeamMember as TeamMemberModel
 from app.domain.schemas.project import Project
+from app.domain.models.project import Project as ProjectModel
 from app.repositories.team_repository import (
     TeamRepository,
     TeamMemberRepository,
     TeamInvitationRepository
 )
 from app.repositories.project_repository import ProjectRepository
+from app.services.team_service import team_service
 from app.i18n.dependencies import get_locale
 from app.i18n.helpers import (
     raise_not_found, raise_forbidden, raise_bad_request,
@@ -33,6 +44,104 @@ team_invitation_repository = TeamInvitationRepository()
 project_repository = ProjectRepository()
 
 
+def _calculate_engagement_score(
+    member_count: int,
+    project_count: int,
+    view_count: int,
+    last_activity_at: datetime | None,
+) -> tuple[int, str]:
+    """Calculate a stable team engagement score and level."""
+    score = min(member_count * 12, 30) + min(project_count * 18, 30)
+    score += min(view_count * 2, 25)
+
+    if last_activity_at:
+        now = datetime.now(timezone.utc)
+        activity_time = last_activity_at
+        if activity_time.tzinfo is None:
+            activity_time = activity_time.replace(tzinfo=timezone.utc)
+        age_days = max(0, (now - activity_time).days)
+        if age_days <= 7:
+            score += 15
+        elif age_days <= 30:
+            score += 8
+
+    score = min(score, 100)
+
+    if score >= 70:
+        return score, "high"
+    if score >= 35:
+        return score, "medium"
+    return score, "low"
+
+
+def _attach_team_stats(db: Session, teams: List) -> None:
+    """Populate aggregated team statistics used across team responses."""
+    from app.domain.models.team import TeamMember
+
+    team_ids = [team.id for team in teams]
+    if not team_ids:
+        return
+
+    member_rows = db.query(
+        TeamMember.team_id,
+        func.count(TeamMember.id).label("member_count"),
+    ).filter(
+        TeamMember.team_id.in_(team_ids)
+    ).group_by(TeamMember.team_id).all()
+    member_map = {row.team_id: row.member_count for row in member_rows}
+
+    project_rows = db.query(
+        ProjectModel.team_id.label("team_id"),
+        func.count(ProjectModel.id).label("project_count"),
+        func.sum(
+            case((ProjectModel.status == "active", 1), else_=0)
+        ).label("active_project_count"),
+        func.sum(
+            case((ProjectModel.status == "completed", 1), else_=0)
+        ).label("completed_project_count"),
+        func.sum(ProjectModel.comment_count).label("total_comments"),
+        func.sum(ProjectModel.upvote_count + ProjectModel.downvote_count).label("total_votes"),
+        func.max(func.coalesce(ProjectModel.updated_at, ProjectModel.created_at)).label("last_activity_at"),
+    ).filter(
+        ProjectModel.team_id.in_(team_ids)
+    ).group_by(ProjectModel.team_id).all()
+
+    project_map = {
+        row.team_id: {
+            "project_count": row.project_count or 0,
+            "active_project_count": row.active_project_count or 0,
+            "completed_project_count": row.completed_project_count or 0,
+            "total_comments": row.total_comments or 0,
+            "total_votes": row.total_votes or 0,
+            "last_activity_at": row.last_activity_at,
+        }
+        for row in project_rows
+    }
+
+    for team in teams:
+        project_stats = project_map.get(team.id, {})
+        member_count = member_map.get(team.id, 0)
+        project_count = project_stats.get("project_count", 0)
+        last_activity_at = project_stats.get("last_activity_at") or team.created_at
+        view_count = team.view_count or 0
+        engagement_score, engagement_level = _calculate_engagement_score(
+            member_count=member_count,
+            project_count=project_count,
+            view_count=view_count,
+            last_activity_at=last_activity_at,
+        )
+
+        team._member_count = member_count
+        team.project_count = project_count
+        team.active_project_count = project_stats.get("active_project_count", 0)
+        team.completed_project_count = project_stats.get("completed_project_count", 0)
+        team.total_comments = project_stats.get("total_comments", 0)
+        team.total_votes = project_stats.get("total_votes", 0)
+        team.last_activity_at = last_activity_at
+        team.engagement_score = engagement_score
+        team.engagement_level = engagement_level
+
+
 @router.get("", response_model=List[Team])
 async def get_teams(
     skip: int = 0,
@@ -41,8 +150,6 @@ async def get_teams(
     db: Session = Depends(get_db)
 ):
     """Get all teams."""
-    from app.domain.models.team import TeamMember
-
     if hackathon_id:
         # Get teams for specific hackathon
         teams = team_repository.get_by_hackathon(
@@ -52,28 +159,7 @@ async def get_teams(
         # Get all teams
         teams = team_repository.get_multi(db, skip=skip, limit=limit)
 
-    # Compute member counts for all teams in a single query
-    team_ids = [team.id for team in teams]
-    if team_ids:
-        # Query counts
-        from sqlalchemy import func
-        count_subq = db.query(
-            TeamMember.team_id,
-            func.count(TeamMember.id).label('member_count')
-        ).filter(
-            TeamMember.team_id.in_(team_ids)
-        ).group_by(TeamMember.team_id).subquery()
-
-        # Create mapping
-        count_results = db.query(count_subq).all()
-        count_map = {row.team_id: row.member_count for row in count_results}
-    else:
-        count_map = {}
-
-    # Attach member_count as attribute
-    for team in teams:
-        team._member_count = count_map.get(team.id, 0)
-
+    _attach_team_stats(db, teams)
     return teams
 
 
@@ -85,19 +171,15 @@ async def get_team(
     locale: str = Depends(get_locale)
 ):
     """Get a specific team by ID."""
-    from app.domain.models.team import TeamMember
-    from sqlalchemy import func
-
     team = team_repository.get(db, team_id)
     if not team:
         raise_not_found(locale, "team")
 
-    # Compute member count
-    member_count = db.query(func.count(TeamMember.id)).filter(
-        TeamMember.team_id == team_id
-    ).scalar()
-    team._member_count = member_count or 0
+    team.view_count = (team.view_count or 0) + 1
+    db.commit()
+    db.refresh(team)
 
+    _attach_team_stats(db, [team])
     return team
 
 
@@ -105,9 +187,12 @@ async def get_team(
 async def create_team(
     team: TeamCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
 ):
     """Create a new team."""
+    if not user_has_permission(db, current_user, PERMISSION_CODES["teams_create"]):
+        raise_forbidden(locale, "create", entity="team")
     team_data = team.dict()
     team_data["created_by"] = current_user.id
 
@@ -137,11 +222,7 @@ async def update_team(
     if not team:
         raise_not_found(locale, "team")
 
-    # Check if user is team owner
-    is_owner = team_member_repository.is_user_member(
-        db, team_id, current_user.id
-    )
-    if not is_owner:
+    if not can_manage_team(db, current_user, team):
         raise_forbidden(locale, "update", entity="team")
 
     updated_team = team_repository.update(
@@ -162,8 +243,7 @@ async def delete_team(
     if not team:
         raise_not_found(locale, "team")
 
-    # Check if user is team owner (creator)
-    if team.created_by != current_user.id:
+    if not can_delete_team(db, current_user, team):
         raise_forbidden(locale, "delete", entity="team")
 
     success = team_repository.delete(db, id=team_id)
@@ -238,9 +318,7 @@ async def add_team_member(
             raise_bad_request(locale, "team_full", entity="team")
     else:
         # Adding another user requires owner/admin permission
-        team_member = team_member_repository.get_by_team_and_user(
-            db, team_id, current_user.id)
-        if not team_member or team_member.role not in ["owner", "admin"]:
+        if not can_manage_team(db, current_user, team) and not user_has_permission(db, current_user, PERMISSION_CODES["teams_update_any"]):
             raise_forbidden(locale, "add_member", entity="team")
 
     # Check if user is already a member
@@ -256,6 +334,34 @@ async def add_team_member(
 
     db_member = team_member_repository.create(db, obj_in=member_data)
     return db_member
+
+
+@router.post("/{team_id}/reports", response_model=TeamReport)
+async def report_team(
+    team_id: int,
+    report: TeamReportCreateRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale)
+):
+    """Report a team for moderator review."""
+    team = team_repository.get(db, team_id)
+    if not team:
+        raise_not_found(locale, "team")
+
+    if not user_has_permission(db, current_user, PERMISSION_CODES["team_reports_create"]):
+        raise_forbidden(locale, "create", entity="report")
+
+    reason = report.reason.strip()
+    if not reason:
+        raise_bad_request(locale, "invalid_request", entity="report")
+
+    return team_service.create_team_report(
+        db=db,
+        team_id=team_id,
+        reporter_id=current_user.id,
+        reason=reason,
+    )
 
 
 @router.delete("/{team_id}/members/{user_id}")
@@ -330,11 +436,8 @@ async def get_team_invitations(
     if not team:
         raise_not_found(locale, "team")
 
-    # Check if user is team member
-    is_member = team_member_repository.is_user_member(
-        db, team_id, current_user.id
-    )
-    if not is_member:
+    is_member = team_member_repository.is_user_member(db, team_id, current_user.id)
+    if not is_member and not can_manage_team(db, current_user, team):
         raise_forbidden(locale, "view_invitations", entity="team")
 
     invitations = team_invitation_repository.get_team_invitations(db, team_id)
@@ -355,13 +458,7 @@ async def create_team_invitation(
     if not team:
         raise_not_found(locale, "team")
 
-    # Verify current user has permission (owner or admin)
-    current_user_member = team_member_repository.get_by_team_and_user(
-        db, team_id, current_user.id)
-    allowed_roles = ["owner", "admin"]
-    has_permission = (current_user_member and
-                      current_user_member.role in allowed_roles)
-    if not has_permission:
+    if not can_manage_team(db, current_user, team) and not user_has_permission(db, current_user, PERMISSION_CODES["team_invitations_create"]):
         raise_forbidden(locale, "create_invitation", entity="team")
 
     # Check if target user is already a team member
@@ -479,20 +576,9 @@ async def delete_team_invitation(
     if not invitation:
         raise_not_found(locale, "invitation")
 
-    # Check if user has permission to delete the invitation
-    # User can delete if they are the inviter (sent the invitation)
-    # or team owner/admin
     is_inviter = invitation.invited_by == current_user.id
-
-    # Check if user is team owner or admin
-    current_user_member = team_member_repository.get_by_team_and_user(
-        db, invitation.team_id, current_user.id)
-    is_team_owner_or_admin = (
-        current_user_member and
-        current_user_member.role in ["owner", "admin"]
-    )
-
-    if not (is_inviter or is_team_owner_or_admin):
+    invitation_team = team_repository.get(db, invitation.team_id)
+    if not (is_inviter or can_manage_team(db, current_user, invitation_team) or user_has_permission(db, current_user, PERMISSION_CODES["team_invitations_review"])):
         raise_forbidden(locale, "delete_invitation", entity="invitation")
 
     # Delete invitation

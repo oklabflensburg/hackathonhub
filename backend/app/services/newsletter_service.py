@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.domain.models.shared import NewsletterSubscription
 from app.repositories.newsletter_repository import NewsletterRepository
-from app.services.email_service import email_service
+from app.services.email_orchestrator import EmailOrchestrator, EmailContext
 
 
 class NewsletterService:
@@ -14,40 +14,53 @@ class NewsletterService:
 
     def __init__(self):
         self.repository = NewsletterRepository()
+        self.email_orchestrator = EmailOrchestrator()
 
     def subscribe(
         self, db: Session, email: str, source: str = "website"
     ) -> Dict:
         """
         Subscribe an email to the newsletter.
-        
+
         Returns a dictionary with subscription details and status.
         """
         email_lower = email.lower()
-        
+
         # Check if already subscribed
         existing = self.repository.get_by_email(db, email_lower)
         already_subscribed = existing and existing.is_active
-        
+
         # Subscribe (handles duplicate prevention)
         subscription = self.repository.subscribe(
             db, email=email_lower, source=source
         )
-        
+
         # Send welcome email if this is a new subscription
         welcome_email_sent = False
         if not already_subscribed:
             try:
-                email_service.send_newsletter_welcome(
-                    to_email=email_lower,
-                    language="en"  # Default language, could be parameterized
+                context = EmailContext(
+                    user_email=email_lower,
+                    language="en",  # Default language, could be parameterized
+                    category="newsletter"
                 )
-                welcome_email_sent = True
+                result = self.email_orchestrator.send_template(
+                    db=db,
+                    template_name="newsletter_welcome",
+                    context=context,
+                    variables={"unsubscribe_url": "#TODO"}  # TODO: URL
+                )
+                welcome_email_sent = result.success
+                if not result.success:
+                    print(
+                        f"Failed to send welcome email to {email_lower}: "
+                        f"{result.error}"
+                    )
             except Exception as e:
                 # Log error but don't fail the subscription
                 # In production, you'd want to log this properly
                 print(f"Failed to send welcome email to {email_lower}: {e}")
-        
+
         return {
             "subscription": subscription,
             "already_subscribed": already_subscribed,
@@ -59,14 +72,41 @@ class NewsletterService:
     def unsubscribe(self, db: Session, email: str) -> Optional[Dict]:
         """
         Unsubscribe an email from the newsletter.
-        
+
         Returns subscription details if found, None otherwise.
         """
         subscription = self.repository.unsubscribe(db, email)
-        
+
         if not subscription:
             return None
-        
+
+        # Send unsubscribe confirmation email (fire and forget)
+        try:
+            from datetime import datetime
+            variables = {
+                "email": email,
+                "unsubscribe_date": datetime.utcnow().isoformat()
+            }
+            context = EmailContext(
+                user_email=email,
+                language="en",  # TODO: Get user's preferred language
+                category="newsletter"
+            )
+            result = self.email_orchestrator.send_template(
+                db=db,
+                template_name="newsletter_unsubscribed",
+                context=context,
+                variables=variables
+            )
+            if not result.success:
+                print(
+                    f"Failed to send unsubscribe confirmation to {email}: "
+                    f"{result.error}"
+                )
+        except Exception as e:
+            # Log but don't fail unsubscribe
+            print(f"Failed to send unsubscribe confirmation: {e}")
+
         return {
             "subscription": subscription,
             "unsubscribed_at": subscription.unsubscribed_at.isoformat()
@@ -78,10 +118,10 @@ class NewsletterService:
     ) -> Optional[Dict]:
         """Get subscription status for an email."""
         subscription = self.repository.get_by_email(db, email)
-        
+
         if not subscription:
             return None
-        
+
         return {
             "email": subscription.email,
             "is_active": subscription.is_active,

@@ -1,7 +1,7 @@
 <template>
   <div class="h-48 relative">
     <!-- Background image or gradient -->
-    <div v-if="hackathon.image_url" class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${hackathon.image_url})` }">
+    <div v-if="backgroundImageUrl" class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${backgroundImageUrl})` }">
       <div class="absolute inset-0 bg-black/40"></div>
     </div>
     <div v-else class="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-600">
@@ -30,7 +30,7 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span>{{ formatDateTime(hackathon.start_date) }} - {{ formatDateTime(hackathon.end_date) }}</span>
+            <span>{{ formatDateTime(hackathon.startDate || hackathon.start_date || '') }} - {{ formatDateTime(hackathon.endDate || hackathon.end_date || '') }}</span>
           </div>
           
           <div class="flex items-center space-x-2">
@@ -47,10 +47,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { HackathonHeroProps } from '~/types/hackathon-types'
 import HackathonStatusBadge from '~/components/atoms/HackathonStatusBadge.vue'
 
 const props = defineProps<HackathonHeroProps>()
+
+const backgroundImageUrl = computed(() => props.hackathon.imageUrl || props.hackathon.image_url || null)
 
 const getStatusTooltip = (status: string) => {
   switch (status) {

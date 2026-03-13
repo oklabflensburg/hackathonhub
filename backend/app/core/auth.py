@@ -43,6 +43,11 @@ if SECRET_KEY == "your-secret-key-here-change-in-production":
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 
+def _serialize_user_with_access(db: Session, user):
+    from app.core.permissions import apply_access_context
+    return apply_access_context(db, user)
+
+
 def create_access_token(data: dict, expires_delta: timedelta = None):
     """Create a JWT token with expiration"""
     to_encode = data.copy()
@@ -86,7 +91,7 @@ def create_tokens(user_id: int, username: str, remember_me: bool = False):
     refresh_token_id = str(uuid.uuid4())
     # Use persistent expiration if remember_me is True
     refresh_token_days = (
-        REFRESH_TOKEN_EXPIRE_DAYS_PERSISTENT if remember_me 
+        REFRESH_TOKEN_EXPIRE_DAYS_PERSISTENT if remember_me
         else REFRESH_TOKEN_EXPIRE_DAYS
     )
     refresh_token_expires = timedelta(days=refresh_token_days)
@@ -192,6 +197,12 @@ def refresh_tokens(refresh_token: str, db: Session, locale: str = "en"):
             status_code=status.HTTP_401_UNAUTHORIZED,
             translation_key="errors.user_not_found"
         )
+    if getattr(user, "is_active", True) is False:
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.user_not_found"
+        )
 
     # Get old refresh token to check if it was persistent
     refresh_token_repository = RefreshTokenRepository()
@@ -199,7 +210,7 @@ def refresh_tokens(refresh_token: str, db: Session, locale: str = "en"):
         db, token_info["token_id"]
     )
     is_persistent = old_token.is_persistent if old_token else False
-    
+
     # Revoke the old refresh token
     refresh_token_repository.revoke_by_token_id(db, token_info["token_id"])
 
@@ -221,30 +232,21 @@ def refresh_tokens(refresh_token: str, db: Session, locale: str = "en"):
         "access_token": new_tokens["access_token"],
         "refresh_token": new_tokens["refresh_token"],
         "token_type": "bearer",
-        "user": User.model_validate(user)
+        "user": User.model_validate(_serialize_user_with_access(db, user)),
+        "is_persistent": is_persistent
     }
 
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
+def get_current_user_from_token(
+    db: Session,
+    token: str,
     locale: str = "en"
 ):
-    """Get current user from access token"""
-    if not token:
-        raise_i18n_http_exception(
-            locale=locale,
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            translation_key="errors.not_authenticated",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-
+    """Get current user from an access token string."""
     try:
-        # Decode token to check type
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         token_type = payload.get("type")
 
-        # Only accept access tokens
         if token_type != "access":
             raise_i18n_http_exception(
                 locale=locale,
@@ -253,8 +255,6 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
-        # Use existing verify_token for backward compatibility
-        # Create a credentials exception for verify_token
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -262,14 +262,14 @@ async def get_current_user(
         )
         token_data = verify_token(token, credentials_exception)
 
-        # Try to find user by username (stored in token sub field)
         user_repository = UserRepository()
         user = user_repository.get_by_username(
-            db, username=token_data.username)
+            db, username=token_data.username
+        )
         if user is None:
-            # Fallback: try to find by email (for backward compatibility)
             user = user_repository.get_by_email(
-                db, email=token_data.username)
+                db, email=token_data.username
+            )
             if user is None:
                 raise_i18n_http_exception(
                     locale=locale,
@@ -277,7 +277,14 @@ async def get_current_user(
                     translation_key="errors.could_not_validate_credentials",
                     headers={"WWW-Authenticate": "Bearer"}
                 )
-        return user
+        if getattr(user, "is_active", True) is False:
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.could_not_validate_credentials",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        return _serialize_user_with_access(db, user)
     except JWTError:
         raise_i18n_http_exception(
             locale=locale,
@@ -285,6 +292,26 @@ async def get_current_user(
             translation_key="errors.could_not_validate_credentials",
             headers={"WWW-Authenticate": "Bearer"}
         )
+
+
+async def get_current_user(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+    locale: str = "en"
+):
+    """Get current user from access token"""
+    auth_token = token or get_auth_token_from_cookies(request)
+
+    if not auth_token:
+        raise_i18n_http_exception(
+            locale=locale,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            translation_key="errors.not_authenticated",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    return get_current_user_from_token(db, auth_token, locale)
 
 
 async def get_current_user_with_cookies(
@@ -303,7 +330,7 @@ async def get_current_user_with_cookies(
     else:
         # Fallback to cookies
         auth_token = get_auth_token_from_cookies(request)
-    
+
     if not auth_token:
         raise_i18n_http_exception(
             locale=locale,
@@ -349,7 +376,14 @@ async def get_current_user_with_cookies(
                     translation_key="errors.could_not_validate_credentials",
                     headers={"WWW-Authenticate": "Bearer"}
                 )
-        return user
+        if getattr(user, "is_active", True) is False:
+            raise_i18n_http_exception(
+                locale=locale,
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                translation_key="errors.could_not_validate_credentials",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        return _serialize_user_with_access(db, user)
     except JWTError:
         raise_i18n_http_exception(
             locale=locale,

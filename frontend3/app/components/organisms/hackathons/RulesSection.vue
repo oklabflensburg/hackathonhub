@@ -4,7 +4,7 @@
     <div class="flex items-center gap-3 mb-6">
       <Icon name="file-text" class="w-6 h-6 text-gray-700 dark:text-gray-300" />
       <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ title }}</h2>
-      <Badge variant="neutral" size="sm">
+      <Badge variant="gray" size="sm">
         Rules
       </Badge>
     </div>

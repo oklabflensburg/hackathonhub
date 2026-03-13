@@ -244,8 +244,8 @@
           <!-- Avatar -->
           <div class="avatar mr-3">
             <img
-              v-if="member.user?.avatarUrl"
-              :src="member.user.avatarUrl"
+              v-if="member.user?.avatarUrl || member.user?.avatar_url"
+              :src="member.user?.avatarUrl || member.user?.avatar_url"
               :alt="member.user.username"
               class="h-8 w-8 rounded-full"
             />

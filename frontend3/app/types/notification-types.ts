@@ -92,6 +92,10 @@ export interface Notification {
   readAt: string | null
   archivedAt: string | null
   deletedAt: string | null
+  userName?: string | null
+  avatarUrl?: string | null
+  userAvatar?: string | null
+  timestamp?: string | null
 }
 
 /**
@@ -147,6 +151,7 @@ export interface NotificationUpdateData {
  * Notification filter options
  */
 export interface NotificationFilterOptions {
+  search?: string
   userId?: string
   type?: NotificationType[]
   status?: NotificationStatus[]
@@ -159,8 +164,22 @@ export interface NotificationFilterOptions {
   unreadOnly?: boolean
   page?: number
   pageSize?: number
-  sortBy?: 'newest' | 'oldest' | 'priority'
+  sortBy?: 'newest' | 'oldest' | 'priority' | 'createdAt' | 'type'
+  sortDirection?: 'asc' | 'desc'
 }
+
+export interface NotificationUIFilter {
+  search?: string
+  type?: NotificationType | 'all'
+  status?: NotificationStatus | 'all'
+  dateRange?: {
+    from?: string
+    to?: string
+  }
+}
+
+export type NotificationSortField = 'createdAt' | 'priority' | 'type'
+export type NotificationSortDirection = 'asc' | 'desc'
 
 /**
  * Notification pagination response

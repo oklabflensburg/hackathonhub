@@ -115,16 +115,16 @@
           </div>
         </div>
         
-        <!-- Created Date -->
+        <!-- Views -->
         <div class="stat-item bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
           <div class="stat-value text-lg font-bold text-gray-900 dark:text-gray-100">
-            {{ formatDate(team.createdAt) }}
+            {{ team.stats?.viewCount || 0 }}
           </div>
           <div class="stat-label text-sm text-gray-600 dark:text-gray-400">
-            Created
+            Views
           </div>
           <div class="stat-age mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {{ teamAge }} old
+            Score {{ team.stats?.engagementScore || 0 }}/100
           </div>
         </div>
       </div>
@@ -325,42 +325,13 @@ const memberProgress = computed(() => {
 })
 
 const activityStars = computed(() => {
-  // Simulierte Aktivitätsbewertung basierend auf Mitgliederanzahl und Projekten
-  const memberCount = props.team.stats?.memberCount || 0
-  const projectCount = props.team.stats?.projectCount || 0
-  const score = memberCount * 2 + projectCount * 3
+  const score = props.team.stats?.engagementScore || 0
   return Math.min(5, Math.max(1, Math.round(score / 10)))
 })
 
 const activityLevel = computed(() => {
-  const stars = activityStars.value
-  if (stars >= 4) return 'High'
-  if (stars >= 3) return 'Medium'
-  return 'Low'
-})
-
-const teamAge = computed(() => {
-  const created = new Date(props.team.createdAt)
-  const now = new Date()
-  const diffMs = now.getTime() - created.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  
-  if (diffDays < 1) {
-    return 'Today'
-  } else if (diffDays === 1) {
-    return '1 day'
-  } else if (diffDays < 7) {
-    return `${diffDays} days`
-  } else if (diffDays < 30) {
-    const weeks = Math.floor(diffDays / 7)
-    return `${weeks} week${weeks > 1 ? 's' : ''}`
-  } else if (diffDays < 365) {
-    const months = Math.floor(diffDays / 30)
-    return `${months} month${months > 1 ? 's' : ''}`
-  } else {
-    const years = Math.floor(diffDays / 365)
-    return `${years} year${years > 1 ? 's' : ''}`
-  }
+  const level = props.team.stats?.engagementLevel || 'low'
+  return `${level.charAt(0).toUpperCase()}${level.slice(1)}`
 })
 
 // Event-Handler
@@ -393,13 +364,4 @@ const onViewProjects = () => {
   emit('view-projects', props.team.id)
 }
 
-// Hilfsfunktionen
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
 </script>

@@ -65,17 +65,60 @@ class ProfileSettings(BaseModel):
 class UserSession(BaseModel):
     id: str
     device: str
+    device_name: Optional[str] = None
+    device_type: Literal["desktop", "mobile", "tablet", "unknown"] = "unknown"
     location: Optional[str] = None
     ip_address: Optional[str] = None
     last_active: datetime
+    last_activity: Optional[datetime] = None
     created_at: datetime
     expires_at: Optional[datetime] = None
     current: bool = False
+    is_current: bool = False
+
+
+class TrustedDevice(BaseModel):
+    id: str
+    device: str
+    device_name: Optional[str] = None
+    device_type: Literal["desktop", "mobile", "tablet", "unknown"] = "unknown"
+    location: Optional[str] = None
+    ip_address: Optional[str] = None
+    last_active: datetime
+    last_activity: Optional[datetime] = None
+    created_at: datetime
+    expires_at: Optional[datetime] = None
+    current: bool = False
+    is_current: bool = False
 
 
 class SecuritySettings(BaseModel):
     two_factor_enabled: bool = False
-    active_sessions: List[UserSession] = []
+    trusted_devices_count: int = 0
+    remaining_backup_codes: int = 0
+    active_sessions: List[UserSession] = Field(default_factory=list)
+    trusted_devices: List[TrustedDevice] = Field(default_factory=list)
+
+
+class OwnedResourceSummary(BaseModel):
+    id: int
+    name: str
+    resource_type: Literal["hackathon", "team", "project"]
+
+
+class AccountImpactResponse(BaseModel):
+    can_delete: bool
+    can_deactivate: bool = True
+    requires_transfer: bool = False
+    hackathons: List[OwnedResourceSummary] = Field(default_factory=list)
+    teams: List[OwnedResourceSummary] = Field(default_factory=list)
+    projects: List[OwnedResourceSummary] = Field(default_factory=list)
+    message: Optional[str] = None
+
+
+class AccountClosureRequest(BaseModel):
+    password: Optional[str] = None
+    confirmation: str
 
 
 # Privacy Settings

@@ -185,6 +185,9 @@ class GoogleOAuthService:
                 db_user = self.user_repository.update_avatar(
                     db, db_user.id, avatar_url)
 
+        if getattr(db_user, "is_active", True) is False:
+            raise Exception("Account is deactivated")
+
         # Create JWT tokens
         tokens = create_tokens(db_user.id, db_user.username)
 

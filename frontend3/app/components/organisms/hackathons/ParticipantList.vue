@@ -102,8 +102,8 @@
               </p>
               <div class="flex items-center gap-2 mt-1">
                 <Badge
-                  :variant="team.open ? 'success' : 'neutral'"
-                  size="xs"
+                  :variant="team.open ? 'success' : 'gray'"
+                  size="sm"
                 >
                   {{ team.open ? openLabel : closedLabel }}
                 </Badge>

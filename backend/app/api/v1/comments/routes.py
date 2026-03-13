@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.permissions import can_manage_comment
 from app.domain.schemas.project import Comment, CommentCreate
 from app.domain.models import CommentVote
 from app.repositories.project_repository import CommentRepository
@@ -39,8 +40,7 @@ async def update_comment(
     if not comment:
         raise_not_found(locale, "comment")
 
-    # Check if user owns the comment
-    if comment.user_id != current_user.id:
+    if not can_manage_comment(db, current_user, comment):
         raise_forbidden(locale, "update", entity="comment")
 
     # Update the comment
@@ -65,10 +65,7 @@ async def delete_comment(
     if not comment:
         raise_not_found(locale, "comment")
 
-    # Check if user owns the comment or is admin
-    if comment.user_id != current_user.id:
-        # In a real implementation, check if user is admin
-        # For now, only owner can delete
+    if not can_manage_comment(db, current_user, comment):
         raise_forbidden(locale, "delete", entity="comment")
 
     # Delete the comment
@@ -139,6 +136,7 @@ async def vote_for_comment(
             except IntegrityError:
                 # Race condition: vote was created by another request
                 db.rollback()
+
                 # Get the current vote state
                 existing_vote = comment_vote_repository.get_by_user_and_comment(
                     db, current_user.id, comment_id

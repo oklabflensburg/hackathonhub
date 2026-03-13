@@ -131,6 +131,11 @@ export const useTeamStore = defineStore('team', () => {
     skip?: number
     limit?: number
     is_open?: boolean
+    page?: number
+    pageSize?: number
+    query?: string
+    visibility?: string
+    status?: string
   }) {
     isLoading.value = true
     error.value = null
@@ -138,9 +143,21 @@ export const useTeamStore = defineStore('team', () => {
     try {
       const queryParams = new URLSearchParams()
       if (params?.hackathon_id) queryParams.append('hackathon_id', params.hackathon_id.toString())
-      if (params?.skip) queryParams.append('skip', params.skip.toString())
-      if (params?.limit) queryParams.append('limit', params.limit.toString())
-      if (params?.is_open !== undefined) queryParams.append('is_open', params.is_open.toString())
+      const skip = params?.skip ?? (
+        params?.page && params?.pageSize
+          ? Math.max(0, (params.page - 1) * params.pageSize)
+          : undefined
+      )
+      const limit = params?.limit ?? params?.pageSize
+      const isOpen = params?.is_open ?? (
+        params?.visibility === 'public' ? true :
+        params?.visibility === 'private' ? false :
+        undefined
+      )
+
+      if (skip !== undefined) queryParams.append('skip', skip.toString())
+      if (limit !== undefined) queryParams.append('limit', limit.toString())
+      if (isOpen !== undefined) queryParams.append('is_open', isOpen.toString())
 
       const url = `/api/teams${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
       const response = await fetchWithAuth(url)
@@ -149,7 +166,14 @@ export const useTeamStore = defineStore('team', () => {
         throw new Error(`Failed to fetch teams: ${response.status}`)
       }
 
-      const data = await response.json()
+      let data = await response.json()
+      if (params?.query) {
+        const search = params.query.toLowerCase()
+        data = data.filter((team: Team) =>
+          team.name?.toLowerCase().includes(search) ||
+          team.description?.toLowerCase().includes(search)
+        )
+      }
       teams.value = data
       
       // Fetch members for each team
@@ -583,6 +607,29 @@ export const useTeamStore = defineStore('team', () => {
     }
   }
 
+  async function reportTeam(teamId: number, reason: string) {
+    try {
+      const response = await fetchWithAuth(`/api/teams/${teamId}/reports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || `Failed to report team: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to report team'
+      uiStore.showError(errorMsg, 'Team Report Error')
+      throw err
+    }
+  }
+
   async function fetchHackathonTeams(hackathonId: number) {
     try {
       const response = await fetchWithAuth(`/api/hackathons/${hackathonId}/teams`)
@@ -672,8 +719,19 @@ export const useTeamStore = defineStore('team', () => {
   // Join a team (for open teams)
   async function joinTeam(teamId: number) {
     try {
-      const response = await fetchWithAuth(`/api/teams/${teamId}/join`, {
-        method: 'POST'
+      if (!authStore.user?.id) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetchWithAuth(`/api/teams/${teamId}/members`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: authStore.user.id,
+          role: 'member'
+        })
       })
       
       if (!response.ok) {
@@ -698,7 +756,6 @@ export const useTeamStore = defineStore('team', () => {
         }
       }
       
-      uiStore.showSuccess('Successfully joined the team')
       return data
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to join team'
@@ -710,8 +767,12 @@ export const useTeamStore = defineStore('team', () => {
   // Leave a team
   async function leaveTeam(teamId: number) {
     try {
-      const response = await fetchWithAuth(`/api/teams/${teamId}/leave`, {
-        method: 'POST'
+      if (!authStore.user?.id) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetchWithAuth(`/api/teams/${teamId}/members/${authStore.user.id}`, {
+        method: 'DELETE'
       })
       
       if (!response.ok) {
@@ -740,7 +801,6 @@ export const useTeamStore = defineStore('team', () => {
         teams.value = teams.value.filter(t => t.id !== teamId)
       }
       
-      uiStore.showSuccess('Successfully left the team')
       return true
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to leave team'
@@ -805,6 +865,7 @@ export const useTeamStore = defineStore('team', () => {
     declineInvitation,
     inviteToTeam,
     cancelInvitation,
+    reportTeam,
     fetchHackathonTeams,
     fetchTeamProjects,
     fetchUserTeamsForHackathon,

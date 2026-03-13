@@ -50,20 +50,6 @@
 
     <!-- Actions -->
     <div v-if="showActions && canManageTeam" class="member-actions">
-      <!-- Role Dropdown -->
-      <div v-if="member.user?.id !== team.createdBy" class="role-dropdown">
-        <select
-          :value="member.role"
-          :disabled="!canChangeRole"
-          class="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-          @change="handleRoleChange($event)"
-        >
-          <option value="member">Member</option>
-          <option value="admin">Admin</option>
-          <option v-if="member.role === 'owner'" value="owner" disabled>Owner</option>
-        </select>
-      </div>
-      
       <!-- Remove Button -->
       <button
         v-if="canRemoveMember"
@@ -105,8 +91,7 @@ const props = withDefaults(defineProps<TeamMemberItemProps & {
 })
 
 const emit = defineEmits<{
-  'role-update': [memberId: string, role: string]
-  remove: [memberId: string]
+  remove: [userId: string]
 }>()
 
 const removing = ref(false)
@@ -121,7 +106,6 @@ const isCurrentUserAdmin = computed(() => {
 })
 
 const canManageTeam = computed(() => isCurrentUserOwner.value || isCurrentUserAdmin.value)
-const canChangeRole = computed(() => canManageTeam.value && !isTeamOwner.value)
 const canRemoveMember = computed(() => {
   if (!canManageTeam.value) return false
   if (isTeamOwner.value) return false // Owner kann nicht entfernt werden
@@ -144,16 +128,10 @@ const formatDate = (dateString: string) => {
 }
 
 // Event-Handler
-const handleRoleChange = (event: Event) => {
-  const select = event.target as HTMLSelectElement
-  const newRole = select.value
-  emit('role-update', props.member.id, newRole)
-}
-
 const handleRemove = () => {
   if (confirm(`Are you sure you want to remove ${props.member.user?.displayName || 'this member'} from the team?`)) {
     removing.value = true
-    emit('remove', props.member.id)
+    emit('remove', props.member.userId)
     // Reset removing state after a delay (should be reset by parent)
     setTimeout(() => {
       removing.value = false

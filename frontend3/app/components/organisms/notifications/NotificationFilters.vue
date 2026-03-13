@@ -161,6 +161,10 @@ import type { NotificationFilterOptions, NotificationType, NotificationStatus } 
 
 interface NotificationFiltersProps {
   filters: NotificationFilterOptions
+  sortField?: string
+  sortDirection?: 'asc' | 'desc'
+  availableTypes?: string[]
+  availableStatuses?: string[]
   showReset?: boolean
   typeCounts?: Record<string, number>
   statusCounts?: Record<string, number>
@@ -174,7 +178,10 @@ const props = withDefaults(defineProps<NotificationFiltersProps>(), {
 
 const emit = defineEmits<{
   'update:filters': [filters: NotificationFilterOptions]
+  'update-filters': [filters: NotificationFilterOptions]
+  'update-sort': [field: string, direction: 'asc' | 'desc']
   'reset': []
+  'reset-filters': []
 }>()
 
 // Local copy of filters for two-way binding
@@ -266,6 +273,8 @@ const activeFilterCount = computed(() => activeFilters.value.length)
 // Update filters and emit event
 const updateFilters = () => {
   emit('update:filters', { ...localFilters.value })
+  emit('update-filters', { ...localFilters.value })
+  emit('update-sort', localFilters.value.sortBy || 'createdAt', localFilters.value.sortDirection || 'desc')
 }
 
 // Reset all filters
@@ -278,7 +287,9 @@ const resetFilters = () => {
     sortDirection: 'desc'
   }
   emit('reset')
+  emit('reset-filters')
   emit('update:filters', { ...localFilters.value })
+  emit('update-filters', { ...localFilters.value })
 }
 
 // Remove specific filter

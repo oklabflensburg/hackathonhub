@@ -1,0 +1,47 @@
+<div class="content">
+    <h1>Your Team Has Been Created!</h1>
+    
+    <p>Hello {{ user_name }},</p>
+    
+    <p>Congratulations! Your team <strong>{{ team_name }}</strong> has been successfully created.</p>
+    
+    <div class="team-info">
+        <h2>Team Details</h2>
+        <ul>
+            <li><strong>Team Name:</strong> {{ team_name }}</li>
+            <li><strong>Team ID:</strong> {{ team_id }}</li>
+            <li><strong>Created By:</strong> {{ creator_name }}</li>
+            <li><strong>Creation Date:</strong> {{ creation_date }}</li>
+            <li><strong>Hackathon:</strong> {{ hackathon_name }}</li>
+        </ul>
+    </div>
+    
+    <p>As the team creator, you have admin privileges. Here's what you can do:</p>
+    <ol>
+        <li>Invite members to join your team</li>
+        <li>Edit team details and description</li>
+        <li>Manage team projects</li>
+        <li>Set team visibility and permissions</li>
+    </ol>
+    
+    <div class="cta-button">
+        <a href="{{ team_dashboard_url }}" class="button">Go to Team Dashboard</a>
+    </div>
+    
+    <div class="cta-button">
+        <a href="{{ invite_members_url }}" class="button secondary">Invite Team Members</a>
+    </div>
+    
+    <p>Next steps:</p>
+    <ul>
+        <li>Complete your team profile with a description and logo</li>
+        <li>Invite teammates to join</li>
+        <li>Start working on your hackathon project</li>
+        <li>Check the team discussion board for updates</li>
+    </ul>
+    
+    <p>If you need help or have questions about team management, please visit our <a href="{{ help_center_url }}">Help Center</a>.</p>
+    
+    <p>Best regards,<br>
+    Hackathon Dashboard Team</p>
+</div>

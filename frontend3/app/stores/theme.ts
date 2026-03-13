@@ -3,8 +3,8 @@ import { ref, computed } from 'vue'
 import { usePreferencesStore } from './preferences'
 
 export const useThemeStore = defineStore('theme', () => {
-  // Initialize with false for SSR, will be updated on client
-  const isDark = ref(false)
+  const themeCookie = useCookie<'light' | 'dark' | null>('theme')
+  const isDark = ref(themeCookie.value === 'dark')
 
   const theme = computed(() => isDark.value ? 'dark' : 'light')
   const icon = computed(() => isDark.value ? '🌙' : '☀️')

@@ -26,11 +26,46 @@ class BaseRepository(Generic[ModelType]):
         """Get multiple records with pagination."""
         return db.query(self.model).offset(skip).limit(limit).all()
 
+    def get_all(
+        self,
+        db: Session,
+        *,
+        skip: int = 0,
+        limit: Optional[int] = 100,
+        filters: Optional[List[Any]] = None,
+        offset: Optional[int] = None,
+        order_by: Optional[List[Any]] = None,
+    ) -> List[ModelType]:
+        """Get records with optional filters and ordering."""
+        query = db.query(self.model)
+        for condition in filters or []:
+            query = query.filter(condition)
+        for ordering in order_by or []:
+            query = query.order_by(ordering)
+        actual_offset = skip if offset is None else offset
+        query = query.offset(actual_offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
+
     def create(self, db: Session, *, obj_in: Dict[str, Any]) -> ModelType:
         """Create a new record."""
-        # Filter out fields that don't exist in the model
-        model_fields = {column.name for column in self.model.__table__.columns}
-        filtered_data = {k: v for k, v in obj_in.items() if k in model_fields}
+        # Filter out fields that don't exist in the model.
+        # Use mapper column attributes as source of truth so ORM attribute keys
+        # like Comment.parent_id are preserved even when the DB column name
+        # differs (e.g. parent_comment_id).
+        model_field_map: Dict[str, str] = {}
+        for attr in self.model.__mapper__.column_attrs:
+            model_field_map[attr.key] = attr.key
+            for column in attr.columns:
+                model_field_map[column.name] = attr.key
+                model_field_map[column.key] = attr.key
+
+        filtered_data = {
+            model_field_map[k]: v
+            for k, v in obj_in.items()
+            if k in model_field_map
+        }
         db_obj = self.model(**filtered_data)
         db.add(db_obj)
         db.commit()

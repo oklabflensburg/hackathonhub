@@ -20,7 +20,7 @@
           {{ emptyTitle }}
         </h3>
         <p class="mt-2 text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-          {{ emptyMessage }}
+          {{ emptyDescription || emptyMessage }}
         </p>
         <div v-if="showRefreshEmpty" class="mt-6">
           <button
@@ -30,7 +30,7 @@
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Aktualisieren
+            {{ emptyActionText || 'Aktualisieren' }}
           </button>
         </div>
       </slot>
@@ -112,14 +112,14 @@
                 <button
                   v-if="showMarkAsRead && notification.status === 'unread'"
                   class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                  @click.stop="$emit('notification-read', notification, true)"
+                  @click.stop="emitMarkAsRead(notification)"
                 >
                   Als gelesen markieren
                 </button>
                 <button
                   v-if="showDismiss"
                   class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                  @click.stop="$emit('notification-dismiss', notification)"
+                  @click.stop="emitDismiss(notification)"
                 >
                   Ausblenden
                 </button>
@@ -149,10 +149,17 @@ import type { Notification, NotificationFilterOptions } from '~/types/notificati
 interface NotificationListProps {
   notifications: Notification[]
   loading?: boolean
+  error?: string | null
   emptyTitle?: string
   emptyMessage?: string
+  emptyDescription?: string
+  emptyActionText?: string
   showRefreshEmpty?: boolean
   showMarkAsRead?: boolean
+  showMarkAllRead?: boolean
+  showArchive?: boolean
+  showDelete?: boolean
+  showFilters?: boolean
   showDismiss?: boolean
   hasMore?: boolean
   filterOptions?: NotificationFilterOptions
@@ -172,6 +179,10 @@ const props = withDefaults(defineProps<NotificationListProps>(), {
 const emit = defineEmits<{
   'refresh': []
   'load-more': []
+  'mark-as-read': [notificationId: string]
+  'mark-all-read': []
+  'archive': [notificationId: string]
+  'delete': [notificationId: string]
   'notification-click': [notification: Notification]
   'notification-read': [notification: Notification, read: boolean]
   'notification-dismiss': [notification: Notification]
@@ -229,6 +240,16 @@ const handleNotificationClick = (notification: Notification) => {
 
 const handleAction = (notification: Notification, action: any) => {
   emit('notification-action', notification, action)
+}
+
+const emitMarkAsRead = (notification: Notification) => {
+  emit('notification-read', notification, true)
+  emit('mark-as-read', notification.id)
+}
+
+const emitDismiss = (notification: Notification) => {
+  emit('notification-dismiss', notification)
+  emit('delete', notification.id)
 }
 
 const formatDate = (dateString: string) => {

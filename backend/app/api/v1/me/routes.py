@@ -7,6 +7,7 @@ from typing import List
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.permissions import apply_access_context
 from app.domain import schemas, models
 from app.repositories.user_repository import UserRepository
 from app.repositories.team_repository import TeamInvitationRepository
@@ -31,7 +32,7 @@ async def get_current_user(
         raise_not_found(locale, "user")
 
     # Convert to User schema first (avoids relationship errors)
-    user_schema = schemas.User.model_validate(db_user)
+    user_schema = schemas.User.model_validate(apply_access_context(db, db_user))
     # Create UserWithDetails from User schema (extra fields will be None)
     user_with_details = schemas.UserWithDetails(**user_schema.model_dump())
 

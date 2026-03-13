@@ -1,0 +1,45 @@
+<div class="content">
+    <h1>New Comment on Your Project</h1>
+    
+    <p>Hello {{ user_name }},</p>
+    
+    <p><strong>{{ commenter_name }}</strong> has commented on your project <strong>{{ project_name }}</strong>.</p>
+    
+    <div class="comment-box">
+        <div class="comment-header">
+            <strong>{{ commenter_name }}</strong> commented:
+        </div>
+        <div class="comment-body">
+            {{ comment_preview }}
+            {% if comment_is_truncated %}
+            <em>(comment truncated - view full comment online)</em>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="project-info">
+        <h2>Project Details</h2>
+        <ul>
+            <li><strong>Project:</strong> {{ project_name }}</li>
+            <li><strong>Hackathon:</strong> {{ hackathon_name }}</li>
+            <li><strong>Comment Date:</strong> {{ comment_date }}</li>
+        </ul>
+    </div>
+    
+    <div class="cta-button">
+        <a href="{{ project_url }}" class="button">View Project & Comment</a>
+    </div>
+    
+    <div class="cta-button">
+        <a href="{{ reply_url }}" class="button secondary">Reply to Comment</a>
+    </div>
+    
+    <p>You're receiving this notification because you're the project owner or a team member. 
+       {% if unsubscribe_url %}
+       <a href="{{ unsubscribe_url }}">Unsubscribe from comment notifications</a>.
+       {% endif %}
+    </p>
+    
+    <p>Best regards,<br>
+    Hackathon Dashboard Team</p>
+</div>

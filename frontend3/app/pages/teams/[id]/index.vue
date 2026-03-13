@@ -20,84 +20,38 @@
   </div>
 
   <div v-else-if="team" class="container mx-auto px-4 py-8">
-    <!-- Team Details Header -->
     <TeamDetailsHeader
       :team="team"
-      :is-owner="isTeamOwner"
       :is-member="isTeamMember"
-      :is-full="isTeamFull"
+      :user-id="currentUserId"
+      :user-role="currentUserRole"
+      :can-manage-team="isTeamOwner"
       @edit="editTeam"
       @leave="leaveTeam"
       @join="joinTeam"
+      @delete="deleteTeam"
+      @report="reportTeam"
+      @share="shareTeam"
     />
 
-    <!-- Team Info -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8">
-      <!-- Left Column: Team Details Content -->
       <div class="lg:col-span-3">
-        <!-- Team Details Content -->
         <TeamDetailsContent
           :team="team"
           :members="members"
           :invitations="invitations"
-          :projects="projects"
-          :is-owner="isTeamOwner"
-          :is-member="isTeamMember"
           :can-manage-team="isTeamOwner"
-          :projects-loading="projectsLoading"
-          @create-project="createProject"
-          @view-project="viewProject"
+          :current-user-id="currentUserId"
           @invite="inviteMember"
+          @remove-member="handleRemoveMember"
           @accept-invitation="handleAcceptInvitation"
           @reject-invitation="handleRejectInvitation"
           @resend-invitation="handleResendInvitation"
           @cancel-invitation="handleCancelInvitation"
+          @delete-team="deleteTeam"
         />
 
-        <!-- Team Members Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-8">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ t('teams.teamMembers') }}</h3>
-          <div v-if="members.length === 0" class="text-center py-8">
-            <p class="text-gray-600 dark:text-gray-400">{{ t('teams.noMembersYet') }}</p>
-          </div>
-          <div v-else class="space-y-4">
-            <div v-for="member in members" :key="member.id" class="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-700 rounded-lg">
-              <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 font-medium">
-                  {{ member.user?.username?.charAt(0).toUpperCase() || 'U' }}
-                </div>
-                <div class="ml-3">
-                  <p class="font-medium text-gray-900 dark:text-white">{{ member.user?.username || 'Unknown User' }}</p>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">{{ member.role === 'owner' ? t('teams.owner') : t('teams.member') }}</p>
-                </div>
-              </div>
-              <div v-if="isTeamOwner && member.user_id !== authStore.user?.id" class="flex space-x-2">
-                <button
-                  v-if="member.role === 'member'"
-                  @click="makeOwner(member.user_id)"
-                  class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  {{ t('teams.makeOwner') }}
-                </button>
-                <button
-                  v-if="member.role === 'owner'"
-                  @click="makeMember(member.user_id)"
-                  class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  {{ t('teams.makeMember') }}
-                </button>
-                <button
-                  @click="removeMember(member.user_id)"
-                  class="px-3 py-1 text-sm border border-red-300 dark:border-red-700 rounded text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30"
-                >
-                  {{ t('teams.remove') }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Team Projects Section -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-8">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('teams.teamProjects') }}</h3>
@@ -124,7 +78,7 @@
               {{ t('teams.createProjectForTeam') }}
             </p>
             <button
-              v-if="isTeamMember && team.hackathon"
+              v-if="isTeamMember && team.hackathonId"
               @click="createProject"
               class="inline-block mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium"
             >
@@ -142,7 +96,7 @@
                       :href="`/projects/${project.id}`"
                       class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
                     >
-                      {{ project.name }}
+                      {{ project.title || project.name }}
                     </a>
                     <span v-if="project.hackathon"
                       class="ml-2 px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-full">
@@ -174,20 +128,21 @@
         </div>
       </div>
 
-      <!-- Right Column: Team Sidebar -->
       <div class="lg:col-span-1">
         <TeamDetailsSidebar
           :team="team"
-          :members="members"
-          :is-owner="isTeamOwner"
-          @edit="editTeam"
-          @delete="deleteTeam"
+          :created-by-name="createdByName"
+          :user-id="currentUserId"
+          :is-member="isTeamMember"
+          :can-manage-team="isTeamOwner"
+          @settings="editTeam"
           @invite="inviteMember"
+          @leave="leaveTeam"
+          @join="joinTeam"
         />
       </div>
     </div>
 
-    <!-- Leave Team Confirmation Dialog -->
     <div v-if="showLeaveConfirm" class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
         <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -215,7 +170,46 @@
       </div>
     </div>
 
-    <!-- Invite Member Modal -->
+    <Modal
+      v-model="showReportModal"
+      title="Report Team"
+      description="Tell us why this team should be reviewed."
+      size="md"
+      @close="closeReportModal"
+    >
+      <div class="space-y-4">
+        <div>
+          <label for="team-report-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Reason
+          </label>
+          <textarea
+            id="team-report-reason"
+            v-model="reportReason"
+            rows="5"
+            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            placeholder="Describe the issue with this team"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <button
+          type="button"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+          @click="closeReportModal"
+        >
+          {{ t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+          @click="submitTeamReport"
+        >
+          Send Report
+        </button>
+      </template>
+    </Modal>
+
     <Modal
       v-model="showInviteModal"
       :title="t('teams.inviteMembers')"
@@ -227,10 +221,10 @@
           v-if="team && isTeamOwner"
           :team-id="Number(team.id)"
           :current-member-count="members.length"
-          :max-members="team.max_members || 5"
+          :max-members="team.maxMembers || 5"
           :is-team-owner="isTeamOwner"
           :is-team-full="isTeamFull"
-          :exclude-user-ids="members.map(m => m.user_id)"
+          :exclude-user-ids="members.map(member => Number(member.userId))"
           @invite-sent="handleInviteSent"
           @error="handleInviteError"
         />
@@ -238,7 +232,7 @@
           <p class="text-gray-600 dark:text-gray-400">{{ t('teams.onlyOwnerCanInvite') }}</p>
         </div>
       </div>
-      
+
       <template #footer>
         <button
           type="button"
@@ -253,16 +247,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from '#app'
-import { useTeamStore } from '~/stores/team'
-import { useAuthStore } from '~/stores/auth'
-import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
-import { useTeams } from '~/composables/useTeams'
+import { useAuthStore } from '~/stores/auth'
+import { useTeamStore } from '~/stores/team'
+import { useUIStore } from '~/stores/ui'
+import { TeamRole, TeamStatus, TeamVisibility, type Team, type TeamInvitation, type TeamMember } from '~/types/team-types'
+import TeamDetailsContent from '~/components/organisms/teams/TeamDetailsContent.vue'
 import TeamDetailsHeader from '~/components/organisms/teams/TeamDetailsHeader.vue'
 import TeamDetailsSidebar from '~/components/organisms/teams/TeamDetailsSidebar.vue'
-import TeamDetailsContent from '~/components/organisms/teams/TeamDetailsContent.vue'
 import Modal from '~/components/molecules/Modal.vue'
 import TeamInviteSection from '~/components/organisms/teams/TeamInviteSection.vue'
 
@@ -273,32 +267,122 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 const { t } = useI18n()
 
-// State
 const loading = ref(true)
 const error = ref<string | null>(null)
-const team = ref<any>(null)
-const members = ref<any[]>([])
-const invitations = ref<any[]>([])
+const team = ref<Team | null>(null)
+const members = ref<TeamMember[]>([])
+const invitations = ref<TeamInvitation[]>([])
 const projects = ref<any[]>([])
 const projectsLoading = ref(false)
 const showLeaveConfirm = ref(false)
 const showInviteModal = ref(false)
+const showReportModal = ref(false)
+const reportReason = ref('')
+const createdByName = ref('Unknown')
 
-// Computed
 const teamId = computed(() => Number(route.params.id))
-const isTeamMember = computed(() => {
-  return members.value.some(member => member.user_id === authStore.user?.id)
-})
-const isTeamOwner = computed(() => {
-  return members.value.some(member =>
-    member.user_id === authStore.user?.id && member.role === 'owner'
-  )
-})
+const currentUserId = computed(() => authStore.user?.id?.toString() || null)
+const currentUserRole = computed(() => members.value.find(member => member.userId === currentUserId.value)?.role || null)
+const isTeamMember = computed(() => members.value.some(member => member.userId === currentUserId.value))
+const isTeamOwner = computed(() => currentUserRole.value === TeamRole.OWNER)
 const isTeamFull = computed(() => {
-  return members.value.length >= (team.value?.max_members || 5)
+  if (!team.value?.maxMembers) {
+    return false
+  }
+  return members.value.length >= team.value.maxMembers
 })
 
-// Methods
+function mapTeam(rawTeam: any): Team {
+  return {
+    id: String(rawTeam.id),
+    name: rawTeam.name,
+    description: rawTeam.description || null,
+    slug: rawTeam.slug || rawTeam.name?.toLowerCase().replace(/\s+/g, '-') || '',
+    avatarUrl: rawTeam.avatar_url || null,
+    bannerUrl: rawTeam.banner_url || null,
+    visibility: rawTeam.is_open ? TeamVisibility.PUBLIC : TeamVisibility.PRIVATE,
+    status: TeamStatus.ACTIVE,
+    maxMembers: rawTeam.max_members ?? null,
+    createdAt: rawTeam.created_at,
+    updatedAt: rawTeam.updated_at || rawTeam.created_at,
+    createdBy: String(rawTeam.created_by),
+    hackathonId: rawTeam.hackathon_id ? String(rawTeam.hackathon_id) : null,
+    tags: Array.isArray(rawTeam.tags) ? rawTeam.tags : [],
+    stats: {
+      memberCount: rawTeam.member_count || rawTeam._member_count || 0,
+      projectCount: rawTeam.project_count || 0,
+      activeProjectCount: rawTeam.active_project_count || 0,
+      completedProjectCount: rawTeam.completed_project_count || 0,
+      totalVotes: rawTeam.total_votes || 0,
+      totalComments: rawTeam.total_comments || 0,
+      averageRating: rawTeam.average_rating ?? null,
+      lastActivityAt: rawTeam.last_activity_at || rawTeam.updated_at || rawTeam.created_at || null,
+      viewCount: rawTeam.view_count || 0,
+      engagementScore: rawTeam.engagement_score || 0,
+      engagementLevel: rawTeam.engagement_level || 'low',
+    },
+  }
+}
+
+function mapMember(rawMember: any): TeamMember {
+  return {
+    id: String(rawMember.id),
+    userId: String(rawMember.user_id),
+    teamId: String(rawMember.team_id),
+    role: (rawMember.role || TeamRole.MEMBER) as TeamRole,
+    joinedAt: rawMember.joined_at,
+    user: rawMember.user
+      ? {
+          id: String(rawMember.user.id),
+          username: rawMember.user.username || '',
+          displayName: rawMember.user.display_name || rawMember.user.name || null,
+          avatarUrl: rawMember.user.avatar_url || null,
+          email: rawMember.user.email || null,
+          bio: rawMember.user.bio || null,
+          skills: Array.isArray(rawMember.user.skills) ? rawMember.user.skills : [],
+        }
+      : undefined,
+  }
+}
+
+function mapInvitation(rawInvitation: any): TeamInvitation {
+  return {
+    id: String(rawInvitation.id),
+    teamId: String(rawInvitation.team_id),
+    invitedUserId: rawInvitation.invited_user_id ? String(rawInvitation.invited_user_id) : null,
+    invitedEmail: rawInvitation.invited_email || null,
+    invitedByUserId: String(rawInvitation.invited_by),
+    role: (rawInvitation.role || TeamRole.MEMBER) as TeamRole,
+    status: (rawInvitation.status === 'declined' ? 'rejected' : rawInvitation.status) as TeamInvitation['status'],
+    message: rawInvitation.message || null,
+    expiresAt: rawInvitation.expires_at || rawInvitation.created_at,
+    createdAt: rawInvitation.created_at,
+    updatedAt: rawInvitation.updated_at || rawInvitation.created_at,
+    invitedByUser: rawInvitation.inviter
+      ? {
+          id: String(rawInvitation.inviter.id),
+          username: rawInvitation.inviter.username || '',
+          displayName: rawInvitation.inviter.display_name || rawInvitation.inviter.name || null,
+          avatarUrl: rawInvitation.inviter.avatar_url || null,
+          email: rawInvitation.inviter.email || null,
+          bio: rawInvitation.inviter.bio || null,
+          skills: Array.isArray(rawInvitation.inviter.skills) ? rawInvitation.inviter.skills : [],
+        }
+      : undefined,
+    invitedUser: rawInvitation.invited_user
+      ? {
+          id: String(rawInvitation.invited_user.id),
+          username: rawInvitation.invited_user.username || '',
+          displayName: rawInvitation.invited_user.display_name || rawInvitation.invited_user.name || null,
+          avatarUrl: rawInvitation.invited_user.avatar_url || null,
+          email: rawInvitation.invited_user.email || null,
+          bio: rawInvitation.invited_user.bio || null,
+          skills: Array.isArray(rawInvitation.invited_user.skills) ? rawInvitation.invited_user.skills : [],
+        }
+      : undefined,
+  }
+}
+
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString()
 }
@@ -308,13 +392,11 @@ async function loadTeam() {
   error.value = null
 
   try {
-    team.value = await teamStore.fetchTeam(teamId.value)
-    members.value = teamStore.teamMembers.get(teamId.value) || []
-
-    // Load team invitations
-    invitations.value = await teamStore.fetchTeamInvitations(teamId.value)
-
-    // Load team projects
+    const rawTeam = await teamStore.fetchTeam(teamId.value)
+    team.value = mapTeam(rawTeam)
+    createdByName.value = rawTeam.creator?.name || rawTeam.creator?.username || 'Unknown'
+    members.value = (teamStore.teamMembers.get(teamId.value) || []).map(mapMember)
+    invitations.value = (await teamStore.fetchTeamInvitations(teamId.value)).map(mapInvitation)
     await loadTeamProjects()
   } catch (err) {
     error.value = err instanceof Error ? err.message : t('teams.failedToLoadTeam')
@@ -325,13 +407,13 @@ async function loadTeam() {
 }
 
 async function loadTeamProjects() {
-  if (!teamId.value) return
+  if (!teamId.value) {
+    return
+  }
 
   projectsLoading.value = true
   try {
-    // Use Teams Composable for API call
-    const { fetchTeamProjects } = useTeams()
-    projects.value = await fetchTeamProjects(teamId.value)
+    projects.value = await teamStore.fetchTeamProjects(teamId.value)
   } catch (err) {
     console.error('Failed to load team projects:', err)
     projects.value = []
@@ -347,27 +429,32 @@ async function joinTeam() {
     return
   }
 
+  if (team.value?.visibility !== TeamVisibility.PUBLIC) {
+    uiStore.showInfo(t('teams.teamClosedMessage'), t('teams.closedTeam'))
+    return
+  }
+
   try {
-    // For open teams, users can join directly
-    if (team.value.is_open) {
-      await teamStore.joinTeam(teamId.value)
-      uiStore.showSuccess(t('teams.joinedTeamSuccess'))
-      await loadTeam()
-    } else {
-      uiStore.showInfo(t('teams.teamClosedMessage'), t('teams.closedTeam'))
-    }
+    await teamStore.joinTeam(teamId.value)
+    uiStore.showSuccess(t('teams.joinedTeamSuccess'))
+    await loadTeam()
   } catch (err) {
     console.error('Failed to join team:', err)
   }
 }
 
-async function leaveTeam() {
-  if (!authStore.user?.id) return
+function leaveTeam() {
+  if (!authStore.user?.id) {
+    return
+  }
   showLeaveConfirm.value = true
 }
 
 async function confirmLeave() {
-  if (!authStore.user?.id) return
+  if (!authStore.user?.id) {
+    return
+  }
+
   try {
     await teamStore.leaveTeam(teamId.value)
     uiStore.showSuccess(t('teams.leftTeamSuccess'))
@@ -383,14 +470,18 @@ function cancelLeave() {
   showLeaveConfirm.value = false
 }
 
-async function removeMember(userId: number) {
-  if (!isTeamOwner.value) return
+async function removeMember(userId: string) {
+  if (!isTeamOwner.value) {
+    return
+  }
 
   try {
     const confirmed = confirm(t('teams.confirmRemoveMember'))
-    if (!confirmed) return
+    if (!confirmed) {
+      return
+    }
 
-    await teamStore.removeTeamMember(teamId.value, userId)
+    await teamStore.removeTeamMember(teamId.value, Number(userId))
     uiStore.showSuccess(t('teams.memberRemovedSuccess'))
     await loadTeam()
   } catch (err) {
@@ -398,39 +489,15 @@ async function removeMember(userId: number) {
   }
 }
 
-async function makeOwner(userId: number) {
-  if (!isTeamOwner.value) return
-
-  try {
-    const confirmed = confirm(t('teams.confirmMakeOwner'))
-    if (!confirmed) return
-
-    await teamStore.updateTeamMemberRole(teamId.value, userId, 'owner')
-    await loadTeam()
-  } catch (err) {
-    console.error('Failed to make member owner:', err)
-  }
-}
-
-async function makeMember(userId: number) {
-  if (!isTeamOwner.value) return
-
-  try {
-    const confirmed = confirm(t('teams.confirmDemoteOwner'))
-    if (!confirmed) return
-
-    await teamStore.updateTeamMemberRole(teamId.value, userId, 'member')
-    await loadTeam()
-  } catch (err) {
-    console.error('Failed to make owner member:', err)
-  }
+function handleRemoveMember(userId: string) {
+  return removeMember(userId)
 }
 
 function editTeam() {
   router.push(`/teams/${teamId.value}/edit`)
 }
 
-function inviteMember(teamId: string) {
+function inviteMember() {
   showInviteModal.value = true
 }
 
@@ -438,18 +505,16 @@ function closeInviteModal() {
   showInviteModal.value = false
 }
 
-function handleInviteSent(payload: { userId: number, username: string }) {
+function handleInviteSent() {
   uiStore.showSuccess(t('teams.invitationSent'))
   closeInviteModal()
-  // Reload team to update member list
   loadTeam()
 }
 
-function handleInviteError(payload: { message: string, code?: string }) {
+function handleInviteError(payload: { message: string }) {
   uiStore.showError(payload.message, t('teams.invitationFailed'))
 }
 
-// Invitation action handlers
 async function handleAcceptInvitation(invitationId: string) {
   try {
     await teamStore.acceptInvitation(Number(invitationId))
@@ -472,8 +537,7 @@ async function handleRejectInvitation(invitationId: string) {
   }
 }
 
-async function handleResendInvitation(invitationId: string) {
-  // Not implemented yet - would need a resend endpoint
+function handleResendInvitation() {
   uiStore.showInfo('Resend functionality not yet implemented')
 }
 
@@ -488,24 +552,93 @@ async function handleCancelInvitation(invitationId: string) {
   }
 }
 
-function deleteTeam() {
-  // Implement delete team logic
-  console.log('Delete team:', teamId.value)
-}
+async function deleteTeam() {
+  if (!isTeamOwner.value) {
+    return
+  }
 
-function createProject() {
-  if (team.value?.hackathon) {
-    router.push(`/create/hackathon?hackathon=${team.value.hackathon.id}&team=${teamId.value}`)
-  } else {
-    router.push('/create/hackathon')
+  const confirmed = confirm(t('teams.confirmDeleteTeam') || 'Delete this team?')
+  if (!confirmed) {
+    return
+  }
+
+  try {
+    await teamStore.deleteTeam(teamId.value)
+    router.push('/teams')
+  } catch (err) {
+    console.error('Failed to delete team:', err)
   }
 }
 
-function viewProject(projectId: number) {
+function createProject() {
+  const query = new URLSearchParams()
+  query.set('team', String(teamId.value))
+  if (team.value?.hackathonId) {
+    query.set('hackathon', team.value.hackathonId)
+  }
+  router.push(`/create/project?${query.toString()}`)
+}
+
+function viewProject(projectId: number | string) {
   router.push(`/projects/${projectId}`)
 }
 
-// Lifecycle
+async function shareTeam() {
+  if (!team.value) {
+    return
+  }
+
+  const shareUrl = window.location.href
+  const shareText = `Check out the team ${team.value.name} on Hackathon Hub.`
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: team.value.name,
+        text: shareText,
+        url: shareUrl,
+      })
+      return
+    }
+
+    await navigator.clipboard.writeText(shareUrl)
+    uiStore.showSuccess('Team link copied to clipboard')
+  } catch (err) {
+    console.error('Failed to share team:', err)
+    uiStore.showError('Failed to share team link')
+  }
+}
+
+function reportTeam() {
+  reportReason.value = ''
+  showReportModal.value = true
+}
+
+function closeReportModal() {
+  showReportModal.value = false
+  reportReason.value = ''
+}
+
+async function submitTeamReport() {
+  if (!team.value) {
+    return
+  }
+
+  const trimmedReason = reportReason.value.trim()
+  if (!trimmedReason) {
+    uiStore.showError('Please provide a reason for the report')
+    return
+  }
+
+  try {
+    await teamStore.reportTeam(teamId.value, trimmedReason)
+    uiStore.showSuccess('Team report submitted')
+    closeReportModal()
+  } catch (err) {
+    console.error('Failed to report team:', err)
+  }
+}
+
 onMounted(() => {
   loadTeam()
 })

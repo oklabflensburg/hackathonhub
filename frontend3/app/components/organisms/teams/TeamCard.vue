@@ -52,6 +52,7 @@
       <TeamCardFooter
         :team="team"
         :show-view-count="true"
+        :show-engagement-level="true"
       />
     </div>
   </div>

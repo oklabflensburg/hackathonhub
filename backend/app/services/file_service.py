@@ -10,6 +10,7 @@ from app.repositories.file_repository import FileRepository
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.hackathon_repository import HackathonRepository
 from app.repositories.user_repository import UserRepository
+from app.core.permissions import can_manage_upload
 from app.i18n.helpers import (
     raise_not_found,
     raise_forbidden
@@ -123,13 +124,7 @@ class FileService:
         if not user:
             return False
 
-        can_delete = False
-        if file_record.uploaded_by == user_id:
-            can_delete = True
-        elif user.is_admin:
-            can_delete = True
-
-        if not can_delete:
+        if not can_manage_upload(db, user, file_record):
             return False
 
         # Delete physical file

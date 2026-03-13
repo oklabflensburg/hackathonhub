@@ -12,6 +12,8 @@ from app.repositories.project_repository import (
     ProjectRepository, VoteRepository, CommentRepository
 )
 from app.repositories.user_repository import UserRepository
+from app.services.notification_service import NotificationService
+from app.services.email_orchestrator import EmailOrchestrator, EmailContext
 from app.utils.cache import cached, invalidate_cache
 
 
@@ -23,6 +25,8 @@ class ProjectService:
         self.vote_repo = VoteRepository()
         self.comment_repo = CommentRepository()
         self.user_repo = UserRepository()
+        self.notification_service = NotificationService()
+        self.email_orchestrator = EmailOrchestrator()
 
     @cached(ttl=60)  # Cache for 1 minute
     def get_projects(
@@ -96,6 +100,23 @@ class ProjectService:
         project_data["status"] = "active"
 
         project = self.project_repo.create(db, obj_in=project_data)
+
+        # Send notification to creator
+        try:
+            creator = self.user_repo.get(db, creator_id)
+            if creator:
+                self.notification_service.send_project_created_notification(
+                    db=db,
+                    project_id=project.id,
+                    creator_id=creator_id,
+                    hackathon_id=project.hackathon_id,
+                )
+        except Exception as e:
+            # Don't fail project creation if notification fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error sending project creation notification: {e}")
+
         return ProjectSchema.model_validate(project)
 
     @invalidate_cache()
@@ -108,8 +129,10 @@ class ProjectService:
         if not project:
             return None
 
-        # Check ownership
-        if project.owner_id != user_id:
+        from app.repositories.user_repository import UserRepository
+        from app.core.permissions import can_manage_project
+        acting_user = UserRepository().get(db, user_id)
+        if not can_manage_project(db, acting_user, project):
             from app.i18n.helpers import raise_forbidden
             raise_forbidden(locale, "update", entity="project")
 
@@ -127,8 +150,10 @@ class ProjectService:
         if not project:
             return False
 
-        # Check ownership
-        if project.owner_id != user_id:
+        from app.repositories.user_repository import UserRepository
+        from app.core.permissions import can_delete_project
+        acting_user = UserRepository().get(db, user_id)
+        if not can_delete_project(db, acting_user, project):
             from app.i18n.helpers import raise_forbidden
             raise_forbidden(locale, "delete", entity="project")
 
@@ -222,6 +247,61 @@ class ProjectService:
         comment_data["user_id"] = user_id
 
         comment = self.comment_repo.create(db, obj_in=comment_data)
+
+        # Send email notification to project owner
+        try:
+            # Get project and user info
+            project = self.project_repo.get(db, project_id)
+            commenter = self.user_repo.get(db, user_id)
+
+            if project and commenter and project.owner_id != user_id:
+                # Only send notification if commenter is not the owner
+                owner = self.user_repo.get(db, project.owner_id)
+                if owner and owner.email:
+                    orchestrator = EmailOrchestrator()
+                    context = EmailContext(
+                        user_id=project.owner_id,
+                        user_email=owner.email,
+                        category="notification"
+                    )
+
+                    # Create comment preview (first 100 chars)
+                    comment_preview = comment_create.content[:100]
+                    if len(comment_create.content) > 100:
+                        comment_preview += "..."
+
+                    # In a real implementation, we would have a project URL
+                    # For now, use a placeholder
+                    project_url = f"/projects/{project.id}"
+
+                    variables = {
+                        "project_name": project.name,
+                        "commenter_name": commenter.name or commenter.email,
+                        "comment_preview": comment_preview,
+                        "project_url": project_url
+                    }
+
+                    result = orchestrator.send_template(
+                        db=db,
+                        template_name="project/commented",
+                        context=context,
+                        variables=variables
+                    )
+
+                    if not result.success:
+                        # Log error but don't fail comment creation
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(
+                            f"Failed to send project comment email: "
+                            f"{result.error}"
+                        )
+        except Exception as e:
+            # Don't fail comment creation if email fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error sending project comment email: {e}")
+
         return CommentSchema.model_validate(comment)
 
     def delete_comment(
@@ -232,12 +312,10 @@ class ProjectService:
         if not comment:
             return False
 
-        # Business logic: check permissions
-        if comment.user_id != user_id:
-            # Check if user is admin (simplified)
-            user = self.user_repo.get(db, user_id)
-            if not user or not user.is_admin:
-                return False
+        from app.core.permissions import can_manage_comment
+        user = self.user_repo.get(db, user_id)
+        if not can_manage_comment(db, user, comment):
+            return False
 
         self.comment_repo.delete(db, id=comment_id)
         return True

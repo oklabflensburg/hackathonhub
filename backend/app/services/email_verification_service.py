@@ -9,8 +9,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.domain.models.user import EmailVerificationToken, User
-from app.services.email_service import EmailService
-from app.utils.template_engine import template_engine
+from app.services.email_orchestrator import EmailOrchestrator, EmailContext
 from app.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ class EmailVerificationService:
 
     def __init__(self):
         self.user_repository = UserRepository()
-        self.email_service = EmailService()
+        self.email_orchestrator = EmailOrchestrator()
 
     def generate_verification_token(self) -> str:
         """Generate a unique verification token."""
@@ -57,6 +56,7 @@ class EmailVerificationService:
 
     def send_verification_email(
         self,
+        db: Session,
         user_email: str,
         user_name: str,
         token: str,
@@ -74,20 +74,22 @@ class EmailVerificationService:
                 "expiration_hours": VERIFICATION_TOKEN_EXPIRE_HOURS
             }
 
-            # Render email using template engine
-            email_content = template_engine.render_email(
-                template_name="verification",
+            # Create email context
+            context = EmailContext(
+                user_email=user_email,
                 language=language,
+                category="verification"
+            )
+
+            # Send email using orchestrator
+            result = self.email_orchestrator.send_template(
+                db=db,
+                template_name="verification",
+                context=context,
                 variables=variables
             )
 
-            # Send email
-            return self.email_service.send_email(
-                to_email=user_email,
-                subject=email_content["subject"],
-                body=email_content["text"],
-                html_body=email_content["html"]
-            )
+            return result.success
         except Exception as e:
             logger.error(f"Failed to send verification email: {e}")
             return False
@@ -107,7 +109,7 @@ class EmailVerificationService:
 
             # Send verification email
             return self.send_verification_email(
-                user_email, user_name, token, language
+                db, user_email, user_name, token, language
             )
         except Exception as e:
             logger.error(f"Failed to create and send verification email: {e}")
@@ -148,6 +150,20 @@ class EmailVerificationService:
                 user.email_verified_at = datetime.utcnow()
                 db.commit()
                 db.refresh(user)
+
+                # Send confirmation email (fire and forget)
+                try:
+                    language = getattr(user, "language", None) or "en"
+                    if language == "auto":
+                        language = "en"
+                    self.send_verification_confirmation_email(
+                        db, user.id, language=language
+                    )
+                except Exception as e:
+                    # Log but don't fail verification
+                    logger.warning(
+                        f"Failed to send verification confirmation email: {e}"
+                    )
             else:
                 # User already verified, log but continue
                 logger.info(
@@ -161,6 +177,59 @@ class EmailVerificationService:
         except Exception as e:
             logger.error(f"Failed to verify email token: {e}")
             raise ValueError("email_verification_failed")
+
+    def send_verification_confirmation_email(
+        self,
+        db: Session,
+        user_id: int,
+        language: str = "en"
+    ) -> bool:
+        """Send confirmation email after successful email verification."""
+        try:
+            user = self.user_repository.get(db, user_id)
+            if not user or not user.email:
+                logger.warning(f"User {user_id} not found or has no email")
+                return False
+
+            # Prepare template variables
+            variables = {
+                "user_name": user.name or user.username,
+                "verification_date": datetime.utcnow().isoformat()
+            }
+
+            # Create email context
+            from app.services.email_orchestrator import EmailContext
+            context = EmailContext(
+                user_id=user_id,
+                user_email=user.email,
+                language=language,
+                category="verification"
+            )
+
+            # Send email using orchestrator
+            result = self.email_orchestrator.send_template(
+                db=db,
+                template_name="verification_confirmed",
+                context=context,
+                variables=variables
+            )
+
+            if result.success:
+                logger.info(
+                    f"Verification confirmation email sent to user {user_id}"
+                )
+            else:
+                logger.warning(
+                    f"Failed to send verification confirmation email: "
+                    f"{result.error}"
+                )
+
+            return result.success
+        except Exception as e:
+            logger.error(
+                f"Failed to send verification confirmation email: {e}"
+            )
+            return False
 
     def resend_verification_email(
         self,

@@ -58,7 +58,7 @@ export function useUserProfile(options: UseUserProfileOptions = {}) {
     const fields = [
       user.value.name,
       user.value.email,
-      user.value.avatarUrl,
+      user.value.avatar_url,
       user.value.bio,
       user.value.location,
       user.value.company
@@ -74,17 +74,17 @@ export function useUserProfile(options: UseUserProfileOptions = {}) {
     username: apiUser.username,
     email: apiUser.email,
     name: apiUser.name,
-    avatarUrl: apiUser.avatar_url,
+    avatar_url: apiUser.avatar_url,
     bio: apiUser.bio,
     location: apiUser.location,
     company: apiUser.company,
-    githubId: apiUser.github_id,
-    googleId: apiUser.google_id,
-    emailVerified: apiUser.email_verified,
-    authMethod: apiUser.auth_method,
-    lastLogin: apiUser.last_login,
-    createdAt: apiUser.created_at,
-    updatedAt: apiUser.updated_at
+    github_id: apiUser.github_id,
+    google_id: apiUser.google_id,
+    email_verified: apiUser.email_verified,
+    auth_method: apiUser.auth_method,
+    last_login: apiUser.last_login,
+    created_at: apiUser.created_at,
+    updated_at: apiUser.updated_at
   })
 
   // Helper: Transform API stats to frontend UserStats interface
@@ -246,7 +246,7 @@ export function useUserProfile(options: UseUserProfileOptions = {}) {
       }
 
       const data = await response.json()
-      user.value.avatarUrl = data.avatar_url
+      user.value.avatar_url = data.avatar_url
       return true
     } catch (err) {
       error.value = err instanceof Error ? err : new Error('Fehler beim Hochladen des Avatars')
@@ -310,17 +310,17 @@ export function useCurrentUser() {
     username: apiUser.username,
     email: apiUser.email,
     name: apiUser.name,
-    avatarUrl: apiUser.avatar_url,
+    avatar_url: apiUser.avatar_url,
     bio: apiUser.bio,
     location: apiUser.location,
     company: apiUser.company,
-    githubId: apiUser.github_id,
-    googleId: apiUser.google_id,
-    emailVerified: apiUser.email_verified,
-    authMethod: apiUser.auth_method,
-    lastLogin: apiUser.last_login,
-    createdAt: apiUser.created_at,
-    updatedAt: apiUser.updated_at
+    github_id: apiUser.github_id,
+    google_id: apiUser.google_id,
+    email_verified: apiUser.email_verified,
+    auth_method: apiUser.auth_method,
+    last_login: apiUser.last_login,
+    created_at: apiUser.created_at,
+    updated_at: apiUser.updated_at
   })
 
   const fetchCurrentUser = async () => {

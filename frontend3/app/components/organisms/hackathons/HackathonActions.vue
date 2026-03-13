@@ -36,6 +36,26 @@
       {{ labels.viewProjects }}
     </NuxtLink>
 
+    <NuxtLink
+      v-if="canViewTeamReports"
+      :to="`/hackathons/${id}/team-reports`"
+      class="w-full btn btn-outline flex items-center justify-center"
+    >
+      {{ labels.teamReports }}
+    </NuxtLink>
+
+    <NuxtLink
+      v-if="canViewReports"
+      :to="`/hackathons/${id}/reports`"
+      class="w-full btn btn-outline flex items-center justify-center"
+    >
+      {{ labels.reports }}
+    </NuxtLink>
+
+    <button class="w-full btn btn-outline flex items-center justify-center" @click="$emit('report')">
+      {{ labels.reportHackathon }}
+    </button>
+
     <button class="w-full btn btn-outline flex items-center justify-center" @click="$emit('share')">
       {{ labels.shareHackathon }}
     </button>
@@ -51,6 +71,8 @@ defineProps<{
   isRegistered: boolean
   registrationLoading: boolean
   isHackathonOwner: boolean
+  canViewTeamReports?: boolean
+  canViewReports?: boolean
   labels: Record<string, string>
 }>()
 
@@ -58,5 +80,6 @@ defineEmits<{
   (e: 'register'): void
   (e: 'edit'): void
   (e: 'share'): void
+  (e: 'report'): void
 }>()
 </script>

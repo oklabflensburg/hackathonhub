@@ -59,8 +59,18 @@
           :value="stats.engagementRate"
           :max="100"
           size="sm"
+          class="mb-4"
           :show-label="false"
         />
+        <div
+          v-if="stats.lastActivityAt"
+          class="mt-2 flex items-center justify-between text-sm"
+        >
+          <span class="text-gray-600 dark:text-gray-300">Last Activity</span>
+          <span class="font-medium text-gray-900 dark:text-white">
+            {{ formatDate(stats.lastActivityAt) }}
+          </span>
+        </div>
       </div>
 
       <!-- Created Date -->
@@ -102,6 +112,7 @@ interface ProjectStats {
   views?: number
   shares?: number
   engagementRate?: number
+  lastActivityAt?: string
   createdAt: string
   updatedAt?: string
   status?: 'draft' | 'published' | 'featured' | 'archived'
@@ -131,6 +142,7 @@ const getStatusVariant = (status: string): 'primary' | 'secondary' | 'success' |
   }
   return variantMap[status] || 'gray'
 }
+
 </script>
 
 <style scoped>

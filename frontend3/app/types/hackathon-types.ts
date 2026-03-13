@@ -99,6 +99,14 @@ export interface Hackathon {
   longitude?: number | null
   // Owner reference (optional)
   ownerId?: number | null
+  // Backend compatibility aliases still used by some views
+  start_date?: string
+  end_date?: string
+  image_url?: string | null
+  participant_count?: number
+  view_count?: number
+  project_count?: number
+  registration_deadline?: string | null
 }
 
 export interface HackathonStats {
@@ -210,6 +218,7 @@ export interface HackathonActionsProps {
   hackathon: Hackathon
   isRegistered: boolean
   isHackathonOwner: boolean
+  canViewTeamReports?: boolean
   registrationLoading: boolean
   onRegister: () => void
   onUnregister: () => void

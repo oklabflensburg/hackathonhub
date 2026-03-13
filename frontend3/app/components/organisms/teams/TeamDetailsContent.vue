@@ -135,10 +135,8 @@
             :key="member.id"
             :member="member"
             :team="team"
-            :canManageTeam="canManageTeam"
+            :current-user-id="currentUserId"
             @remove="onRemoveMember"
-            @promote="onPromoteMember"
-            @demote="onDemoteMember"
           />
         </div>
         <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -150,7 +148,7 @@
         </div>
 
         <!-- Invited Members Section -->
-        <div class="invited-members-section mt-8">
+        <div v-if="currentUserId" class="invited-members-section mt-8">
           <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
             Invited Members
           </h4>
@@ -160,8 +158,8 @@
               :key="invitation.id"
               :invitation="invitation"
               :team="team"
-              :current-user-id="team.createdBy"
-              :show-actions="canManageTeam"
+              :current-user-id="currentUserId"
+              :show-actions="canManageTeam || invitation.invitedUser?.id === currentUserId || invitation.invitedUserId === currentUserId"
               @accept="onAcceptInvitation"
               @reject="onRejectInvitation"
               @resend="onResendInvitation"
@@ -258,6 +256,7 @@ const props = withDefaults(defineProps<{
   members?: TeamMember[]
   invitations?: TeamInvitation[]
   canManageTeam?: boolean
+  currentUserId?: string | null
 }>(), {
   loading: false,
   showTabs: true,
@@ -265,14 +264,13 @@ const props = withDefaults(defineProps<{
   members: () => [],
   invitations: () => [],
   canManageTeam: false,
+  currentUserId: null,
 })
 
 const emit = defineEmits<{
   'tab-change': [tabId: string]
   invite: [teamId: string]
   'remove-member': [memberId: string]
-  'promote-member': [memberId: string]
-  'demote-member': [memberId: string]
   'delete-team': [teamId: string]
   'accept-invitation': [invitationId: string]
   'reject-invitation': [invitationId: string]
@@ -319,14 +317,6 @@ const onInvite = () => {
 
 const onRemoveMember = (memberId: string) => {
   emit('remove-member', memberId)
-}
-
-const onPromoteMember = (memberId: string) => {
-  emit('promote-member', memberId)
-}
-
-const onDemoteMember = (memberId: string) => {
-  emit('demote-member', memberId)
 }
 
 const onDeleteTeam = () => {
