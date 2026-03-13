@@ -5,6 +5,7 @@
  */
 
 import { ref, computed } from 'vue'
+import { useRouter } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { useApiClient, type ApiRequestOptions } from '~/utils/api-client'
 import type {
@@ -42,6 +43,8 @@ export function useAuth(options: UseAuthOptions = {}) {
   // Stores
   const authStore = useAuthStore()
   const apiClient = useApiClient()
+  const router = useRouter()
+  const config = useRuntimeConfig()
 
   // Local state für Composable-spezifische Daten
   const isLoading = ref(false)
@@ -77,7 +80,6 @@ export function useAuth(options: UseAuthOptions = {}) {
       if (response.requires_2fa && response.temp_token) {
         // Navigiere zur 2FA-Verifizierungsseite
         if (autoRedirect && typeof window !== 'undefined') {
-          const router = useRouter()
           await router.push('/verify-2fa')
         }
         return false // 2FA erforderlich
@@ -93,7 +95,6 @@ export function useAuth(options: UseAuthOptions = {}) {
 
         // Redirect nach erfolgreichem Login
         if (autoRedirect && typeof window !== 'undefined') {
-          const router = useRouter()
           await router.push(defaultRedirectUrl)
         }
 
@@ -252,7 +253,6 @@ export function useAuth(options: UseAuthOptions = {}) {
 
         // Redirect nach erfolgreichem Login
         if (autoRedirect && typeof window !== 'undefined') {
-          const router = useRouter()
           await router.push(defaultRedirectUrl)
         }
       }
@@ -290,7 +290,6 @@ export function useAuth(options: UseAuthOptions = {}) {
 
         // Redirect nach erfolgreichem Login
         if (autoRedirect && typeof window !== 'undefined') {
-          const router = useRouter()
           await router.push(defaultRedirectUrl)
         }
       }
@@ -324,7 +323,6 @@ export function useAuth(options: UseAuthOptions = {}) {
 
       // Redirect nach Logout
       if (autoRedirect && typeof window !== 'undefined') {
-        const router = useRouter()
         await router.push('/login')
       }
     }
@@ -339,7 +337,6 @@ export function useAuth(options: UseAuthOptions = {}) {
       error.value = null
 
       // Redirect zur Google OAuth URL
-      const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
       
       const url = new URL(`${backendUrl}/api/auth/google`)
@@ -365,7 +362,6 @@ export function useAuth(options: UseAuthOptions = {}) {
       error.value = null
 
       // Redirect zur GitHub OAuth URL
-      const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
       
       const url = new URL(`${backendUrl}/api/auth/github`)

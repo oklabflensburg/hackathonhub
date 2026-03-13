@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User } from './auth'
+import type { User } from '~/types/user-types'
 
 // SSR-safe cookie access using Nuxt's useCookie composable
 // We need to import it dynamically to avoid SSR issues
@@ -20,7 +20,7 @@ const initUseCookie = () => {
       useCookie = (key: string, options?: any) => {
         const cookies = document.cookie.split(';').reduce((acc, cookie) => {
           const [k, v] = cookie.trim().split('=')
-          acc[k] = decodeURIComponent(v)
+          if (k) acc[k] = decodeURIComponent(v || '')
           return acc
         }, {} as Record<string, string>)
         
@@ -77,12 +77,51 @@ class SSRStorage {
   private isClient = typeof window !== 'undefined'
   private cleanedKeys = new Set<string>() // Track keys we've already cleaned up
 
+  private getClientCookieValue(key: string): string | null {
+    if (!this.isClient) return null
+    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+      const [k, v] = cookie.trim().split('=')
+      if (k) acc[k] = decodeURIComponent(v || '')
+      return acc
+    }, {} as Record<string, string>)
+    return cookies[key] || null
+  }
+
+  private setClientCookieValue(
+    key: string,
+    value: string | null,
+    options?: { maxAge?: number; sameSite?: string; secure?: boolean; path?: string }
+  ) {
+    if (!this.isClient) return
+    if (value === null || value === undefined) {
+      document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+      return
+    }
+    const maxAge = options?.maxAge || 60 * 60 * 24 * 7
+    const sameSite = options?.sameSite || 'lax'
+    const secure = options?.secure ?? process.env.NODE_ENV === 'production'
+    const path = options?.path || '/'
+    let cookieStr = `${key}=${encodeURIComponent(value)}; max-age=${maxAge}; path=${path}; sameSite=${sameSite}`
+    if (secure) cookieStr += '; secure'
+    document.cookie = cookieStr
+  }
+
   getItem<T>(key: string, defaultValue: T | null = null): T | null {
     // Special handling for auth tokens: use cookies for SSR compatibility
     if (key === 'auth_token' || key === 'refresh_token') {
-      // Use useCookie for server-side reading
-      const cookie = getUseCookie()(key)
-      const value = cookie.value
+      if (this.isClient) {
+        const value = this.getClientCookieValue(key)
+        if (!value || value === 'undefined' || value === 'null') return defaultValue
+        return value as T
+      }
+      // Use useCookie for server-side reading (best effort)
+      let value: any = null
+      try {
+        const cookie = getUseCookie()(key)
+        value = cookie.value
+      } catch {
+        value = null
+      }
       if (!value || value === 'undefined' || value === 'null') return defaultValue
       
       // Tokens are stored as plain strings, not JSON
@@ -131,12 +170,24 @@ class SSRStorage {
   setItem<T>(key: string, value: T): void {
     // Special handling for auth tokens: store in cookies for SSR compatibility
     if (key === 'auth_token' || key === 'refresh_token') {
-      const cookie = getUseCookie()(key, {
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
-      })
-      cookie.value = value as string
+      if (this.isClient) {
+        this.setClientCookieValue(key, value as string, {
+          maxAge: 60 * 60 * 24 * 7,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production'
+        })
+        return
+      }
+      try {
+        const cookie = getUseCookie()(key, {
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production'
+        })
+        cookie.value = value as string
+      } catch {
+        // Server-side fallback: do nothing if composable is unavailable
+      }
       return
     }
     
@@ -166,8 +217,16 @@ class SSRStorage {
   removeItem(key: string): void {
     // Special handling for auth tokens: remove cookies
     if (key === 'auth_token' || key === 'refresh_token') {
-      const cookie = getUseCookie()(key)
-      cookie.value = null
+      if (this.isClient) {
+        this.setClientCookieValue(key, null)
+        return
+      }
+      try {
+        const cookie = getUseCookie()(key)
+        cookie.value = null
+      } catch {
+        // Server-side fallback: do nothing if composable is unavailable
+      }
       return
     }
     
@@ -182,10 +241,19 @@ class SSRStorage {
 
   clear(): void {
     // Clear auth tokens from cookies
-    const authTokenCookie = getUseCookie()('auth_token')
-    const refreshTokenCookie = getUseCookie()('refresh_token')
-    authTokenCookie.value = null
-    refreshTokenCookie.value = null
+    if (this.isClient) {
+      this.setClientCookieValue('auth_token', null)
+      this.setClientCookieValue('refresh_token', null)
+    } else {
+      try {
+        const authTokenCookie = getUseCookie()('auth_token')
+        const refreshTokenCookie = getUseCookie()('refresh_token')
+        authTokenCookie.value = null
+        refreshTokenCookie.value = null
+      } catch {
+        // Server-side fallback: do nothing if composable is unavailable
+      }
+    }
     
     // Clear localStorage on client only
     if (!this.isClient) return

@@ -95,6 +95,24 @@ export interface Notification {
 }
 
 /**
+ * UI notification interface for toast-style notifications
+ * Used by uiStore and GlobalNotifications component
+ */
+export interface UiNotification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  duration?: number  // ms, optional (default 5000)
+  action?: {
+    label: string
+    onClick: () => void
+  }
+  timestamp?: Date   // optional for future extensions
+  read?: boolean     // optional for future extensions
+}
+
+/**
  * Notification creation data
  */
 export interface NotificationCreateData {

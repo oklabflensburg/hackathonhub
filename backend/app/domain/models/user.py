@@ -70,6 +70,7 @@ class RefreshToken(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     device_info = Column(String(255))
     ip_address = Column(String(45))  # IPv6 max length
+    is_persistent = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="refresh_tokens")

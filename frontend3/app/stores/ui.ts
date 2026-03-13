@@ -1,17 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import type { UiNotification } from '~/types/notification-types'
 
-export interface Notification {
-  id: string
-  type: 'success' | 'error' | 'warning' | 'info'
-  title: string
-  message: string
-  duration?: number
-  action?: {
-    label: string
-    onClick: () => void
-  }
-}
+// Re-export for backward compatibility
+export type Notification = UiNotification
 
 export interface Modal {
   id: string
@@ -21,14 +13,14 @@ export interface Modal {
 }
 
 export const useUIStore = defineStore('ui', () => {
-  const notifications = ref<Notification[]>([])
+  const notifications = ref<UiNotification[]>([])
   const modals = ref<Modal[]>([])
   const sidebarOpen = ref(false)
   const isLoading = ref(false)
 
-  function showNotification(notification: Omit<Notification, 'id'>) {
+  function showNotification(notification: Omit<UiNotification, 'id'>) {
     const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
-    const fullNotification: Notification = {
+    const fullNotification: UiNotification = {
       id,
       duration: 5000,
       ...notification

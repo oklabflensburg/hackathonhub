@@ -173,7 +173,8 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
         token_id: str,
         expires_at: datetime,
         device_info: str = None,
-        ip_address: str = None
+        ip_address: str = None,
+        is_persistent: bool = False
     ) -> RefreshToken:
         """Create a new refresh token with all required fields."""
         token_data = {
@@ -181,7 +182,8 @@ class RefreshTokenRepository(BaseRepository[RefreshToken]):
             "token_id": token_id,
             "expires_at": expires_at,
             "device_info": device_info,
-            "ip_address": ip_address
+            "ip_address": ip_address,
+            "is_persistent": is_persistent
         }
         return self.create(db, obj_in=token_data)
 

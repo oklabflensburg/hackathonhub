@@ -15,17 +15,7 @@
     </div>
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-      <div class="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <!-- Error Message -->
-        <div v-if="error" class="mb-6">
-          <ErrorMessage
-            :message="error"
-            type="error"
-            dismissible
-            @dismiss="error = ''"
-          />
-        </div>
-
+       <div class="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
         <!-- Loading State -->
         <div v-if="isLoading" class="text-center py-8">
           <LoadingSpinner size="lg" color="primary" class="mx-auto mb-4" />
@@ -195,11 +185,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from '#imports'
+
+// Stores
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
-import Icon from '~/components/atoms/Icon.vue'
-import Button from '~/components/atoms/Button.vue'
-import ErrorMessage from '~/components/atoms/ErrorMessage.vue'
+
+// Components
+import { Icon, Button } from '~/components/atoms'
 import LoadingSpinner from '~/components/atoms/LoadingSpinner.vue'
 import Modal from '~/components/molecules/Modal.vue'
 
@@ -213,7 +205,6 @@ const code = ref('')
 const backupCode = ref('')
 const rememberDevice = ref(false)
 const isLoading = ref(false)
-const error = ref('')
 const showBackupCodeModal = ref(false)
 
 // Computed
@@ -233,12 +224,11 @@ const formatCode = (event: Event) => {
 // Verify TOTP code
 const verifyCode = async () => {
   if (!isValidCode.value) {
-    error.value = 'Bitte gib einen gültigen 6-stelligen Code ein.'
+    uiStore.showError('Bitte gib einen gültigen 6-stelligen Code ein.', 'Ungültiger Code')
     return
   }
 
   isLoading.value = true
-  error.value = ''
 
   try {
     // Get temp token from route query, sessionStorage, or localStorage
@@ -247,7 +237,8 @@ const verifyCode = async () => {
                      localStorage.getItem('2fa_temp_token') || ''
     
     if (!tempToken) {
-      throw new Error('Sitzung abgelaufen. Bitte melde dich erneut an.')
+      uiStore.showError('Keine gültige Sitzung gefunden. Bitte melde dich erneut an.', 'Sitzung abgelaufen')
+      router.push('/login')
     }
 
     // Call auth store to verify 2FA
@@ -271,10 +262,12 @@ const verifyCode = async () => {
         router.push(redirectTo)
       }, 1500)
     } else {
-      error.value = 'Ungültiger Code. Bitte versuche es erneut.'
+      uiStore.showError('Ungültiger Code. Bitte versuche es erneut.', 'Verifizierung fehlgeschlagen')
     }
   } catch (err: any) {
-    error.value = err.message || 'Verifizierung fehlgeschlagen. Bitte versuche es erneut.'
+    // Extract backend error message if available (prefer detail field as per API spec)
+    const backendMessage = err.response?.data?.detail || err.response?.data?.message || err.message
+    uiStore.showError(backendMessage || 'Verifizierung fehlgeschlagen. Bitte versuche es erneut.', 'Fehler')
     console.error('2FA verification error:', err)
   } finally {
     isLoading.value = false
@@ -284,12 +277,11 @@ const verifyCode = async () => {
 // Verify backup code
 const verifyBackupCode = async () => {
   if (!backupCode.value.trim()) {
-    error.value = 'Bitte gib einen Backup-Code ein.'
+    uiStore.showError('Bitte gib einen Backup-Code ein.', 'Eingabe erforderlich')
     return
   }
 
   isLoading.value = true
-  error.value = ''
 
   try {
     const tempToken = route.query.temp_token as string || 
@@ -320,10 +312,12 @@ const verifyBackupCode = async () => {
         router.push(redirectTo)
       }, 1500)
     } else {
-      error.value = 'Ungültiger Backup-Code. Bitte versuche es erneut.'
+      uiStore.showError('Ungültiger Backup-Code. Bitte versuche es erneut.', 'Verifizierung fehlgeschlagen')
     }
   } catch (err: any) {
-    error.value = err.message || 'Verifizierung fehlgeschlagen. Bitte versuche es erneut.'
+    // Extract backend error message if available (prefer detail field as per API spec)
+    const backendMessage = err.response?.data?.detail || err.response?.data?.message || err.message
+    uiStore.showError(backendMessage || 'Verifizierung fehlgeschlagen. Bitte versuche es erneut.', 'Fehler')
     console.error('Backup code verification error:', err)
   } finally {
     isLoading.value = false
@@ -361,7 +355,7 @@ onMounted(() => {
                    sessionStorage.getItem('2fa_temp_token') || 
                    localStorage.getItem('2fa_temp_token')
   if (!tempToken) {
-    error.value = 'Keine gültige Sitzung gefunden. Bitte melde dich erneut an.'
+    uiStore.showError('Keine gültige Sitzung gefunden. Bitte melde dich erneut an.', 'Sitzung abgelaufen')
     
     // Redirect to login after a delay
     setTimeout(() => {

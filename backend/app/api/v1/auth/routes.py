@@ -56,7 +56,10 @@ async def login(
     try:
         # Use the consolidated auth service for email/password authentication
         auth_result = auth_service.login_with_email(
-            db, email=login_data.email, password=login_data.password
+            db, 
+            email=login_data.email, 
+            password=login_data.password,
+            remember_me=login_data.remember_me
         )
     except ValueError as e:
         # Convert ValueError from auth service to HTTPException
@@ -95,6 +98,7 @@ async def login(
         response=response,
         auth_token=access_token,
         refresh_token=refresh_token,
+        persistent=login_data.remember_me,
         secure=False  # In development, set to False for local testing
     )
 
@@ -610,6 +614,7 @@ async def verify_2fa_login(
         response=response,
         auth_token=access_token,
         refresh_token=refresh_token,
+        persistent=True,  # Default for 2FA and OAuth
         secure=False  # In development, set to False for local testing
     )
 
@@ -671,6 +676,7 @@ async def verify_2fa_backup(
         response=response,
         auth_token=access_token,
         refresh_token=refresh_token,
+        persistent=True,  # Default for 2FA and OAuth
         secure=False  # In development, set to False for local testing
     )
 

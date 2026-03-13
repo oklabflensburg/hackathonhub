@@ -21,6 +21,7 @@ export interface ProjectVoteStats {
 export const useVotingStore = defineStore('voting', () => {
   const authStore = useAuthStore()
   const config = useRuntimeConfig()
+  const { t } = useI18n()
   const votes = ref<Map<number, Vote>>(new Map()) // project_id -> Vote
   const projectStats = ref<Map<number, ProjectVoteStats>>(new Map())
   const isLoading = ref<Map<number, boolean>>(new Map())
@@ -38,7 +39,6 @@ export const useVotingStore = defineStore('voting', () => {
 
   async function voteForProject(projectId: number, voteType: 'up' | 'down') {
     if (!authStore.isAuthenticated) {
-      const { t } = useI18n()
       throw new Error(t('errors.must_be_logged_in_to_vote'))
     }
 
@@ -57,7 +57,6 @@ export const useVotingStore = defineStore('voting', () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        const { t } = useI18n()
         throw new Error(errorData.detail || t('errors.failed_to_vote'))
       }
 
@@ -79,7 +78,6 @@ export const useVotingStore = defineStore('voting', () => {
 
       return data
     } catch (err) {
-      const { t } = useI18n()
       error.value = err instanceof Error ? err.message : t('errors.failed_to_vote')
       throw err
     } finally {
@@ -89,7 +87,6 @@ export const useVotingStore = defineStore('voting', () => {
 
   async function removeVote(projectId: number) {
     if (!authStore.isAuthenticated) {
-      const { t } = useI18n()
       throw new Error(t('errors.must_be_logged_in_to_vote'))
     }
 
@@ -104,7 +101,6 @@ export const useVotingStore = defineStore('voting', () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        const { t } = useI18n()
         throw new Error(errorData.detail || t('errors.failed_to_remove_vote'))
       }
 
@@ -124,7 +120,6 @@ export const useVotingStore = defineStore('voting', () => {
 
       return data
     } catch (err) {
-      const { t } = useI18n()
       error.value = err instanceof Error ? err.message : t('errors.failed_to_remove_vote')
       throw err
     } finally {

@@ -1,14 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+
+// Stores
 import { useUIStore } from './ui'
 import { usePreferencesStore } from './preferences'
 import { useTeamStore } from './team'
+
+// Utils
 import { useApiClient } from '~/utils/api-client'
+
+// Types
 import type { User } from '~/types/user-types'
 import type { LoginCredentials, RegisterCredentials } from '~/types/auth-types'
-
-// Keine Re-exports mehr - Types werden jetzt aus auth-types.ts importiert
-// Dies vermeidet doppelte Exporte
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -22,6 +25,19 @@ export const useAuthStore = defineStore('auth', () => {
   const preferences = usePreferencesStore()
   const teamStore = useTeamStore()
   const apiClient = useApiClient()
+  const config = useRuntimeConfig()
+  const translate = (key: string, fallback?: string) => {
+    try {
+      const nuxtApp = useNuxtApp()
+      const i18n = (nuxtApp as any).$i18n
+      const result = i18n?.t ? i18n.t(key) : null
+      if (typeof result === 'string') return result
+      if (result && typeof result.toString === 'function') return result.toString()
+    } catch {
+      // Ignore and fall back below
+    }
+    return fallback ?? key
+  }
 
   const isAuthenticated = computed(() => !!user.value && !!token.value)
   const userInitials = computed(() => {
@@ -35,8 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       // Use Nuxt runtime config
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      const backendUrl = config.public.apiUrl
 
       // Get current URL if not provided
       if (!redirectUrl && typeof window !== 'undefined') {
@@ -61,15 +76,13 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await fetch(url.toString(), { headers })
       if (!response.ok) {
-        const { t } = useI18n()
-        throw new Error(t('errors.failed_to_get_github_authorization_url'))
+        throw new Error(translate('errors.failed_to_get_github_authorization_url'))
       }
 
       const data = await response.json()
       window.location.href = data.authorization_url
     } catch (err) {
-      const { t } = useI18n()
-      error.value = t('errors.failed_to_initiate_github_login')
+      error.value = translate('errors.failed_to_initiate_github_login')
       console.error('GitHub login error:', err)
     } finally {
       isLoading.value = false
@@ -81,8 +94,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      const backendUrl = config.public.apiUrl
 
       if (!redirectUrl && typeof window !== 'undefined') {
         redirectUrl = window.location.pathname + window.location.search
@@ -99,15 +111,13 @@ export const useAuthStore = defineStore('auth', () => {
 
       const response = await fetch(url.toString())
       if (!response.ok) {
-        const { t } = useI18n()
-        throw new Error(t('errors.failed_to_get_google_authorization_url'))
+        throw new Error(translate('errors.failed_to_get_google_authorization_url'))
       }
 
       const data = await response.json()
       window.location.href = data.authorization_url
     } catch (err) {
-      const { t } = useI18n()
-      error.value = t('errors.failed_to_initiate_google_login')
+      error.value = translate('errors.failed_to_initiate_google_login')
       console.error('Google login error:', err)
     } finally {
       isLoading.value = false
@@ -152,8 +162,7 @@ export const useAuthStore = defineStore('auth', () => {
           console.log('Stored temp token in sessionStorage, navigating to /verify-2fa')
           
           // Navigate to verify-2fa page
-          const router = useRouter()
-          await router.push('/verify-2fa')
+          window.location.href = '/verify-2fa'
         }
         
         // Return false to indicate 2FA is required and navigation happened
@@ -173,12 +182,11 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
     } catch (err: any) {
-      const { t } = useI18n()
-      const errorMessage = err instanceof Error ? err.message : t('errors.login_failed')
+      const errorMessage = err instanceof Error ? err.message : translate('errors.login_failed')
       error.value = errorMessage
 
-      // Also show notification for better visibility
-      uiStore.showError(errorMessage, 'Login Error')
+      // Keine UI-Notification hier - die aufrufende Komponente ist dafür verantwortlich
+      // uiStore.showError(errorMessage, 'Login Error')
 
       console.error('Email login error:', err)
       throw err
@@ -206,12 +214,11 @@ export const useAuthStore = defineStore('auth', () => {
       // Show success message and redirect to login
       return response
     } catch (err: any) {
-      const { t } = useI18n()
-      const errorMessage = err instanceof Error ? err.message : t('errors.registration_failed')
+      const errorMessage = err instanceof Error ? err.message : translate('errors.registration_failed')
       error.value = errorMessage
 
-      // Also show notification for better visibility
-      uiStore.showError(errorMessage, 'Registration Error')
+      // Keine UI-Notification hier - die aufrufende Komponente ist dafür verantwortlich
+      // uiStore.showError(errorMessage, 'Registration Error')
 
       console.error('Registration error:', err)
       throw err
@@ -237,12 +244,11 @@ export const useAuthStore = defineStore('auth', () => {
       uiStore.showSuccess(response.message || 'Verification email sent', 'Verification Email Sent')
       return response
     } catch (err: any) {
-      const { t } = useI18n()
-      const errorMessage = err instanceof Error ? err.message : t('errors.failed_to_resend_verification_email')
+      const errorMessage = err instanceof Error ? err.message : translate('errors.failed_to_resend_verification_email')
       error.value = errorMessage
 
-      // Also show notification for better visibility
-      uiStore.showError(errorMessage, 'Resend Failed')
+      // Keine UI-Notification hier - die aufrufende Komponente ist dafür verantwortlich
+      // uiStore.showError(errorMessage, 'Resend Failed')
 
       console.error('Resend verification error:', err)
       throw err
@@ -307,14 +313,12 @@ export const useAuthStore = defineStore('auth', () => {
     if (!process.client) {
       // During SSR, return a mock response or throw error
       // For simplicity, we'll use regular fetch during SSR (won't have auth headers)
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      const backendUrl = config.public.apiUrl
       const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
       return fetch(fullUrl, options)
     }
 
-    const config = useRuntimeConfig()
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    const backendUrl = config.public.apiUrl
     const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
 
     // Check if this is an API call to our backend (similar to plugin logic)
@@ -365,8 +369,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Handle network errors (e.g., offline, CORS, etc.)
       if (error instanceof TypeError && error.message.includes('fetch')) {
         // This is a network error from fetch()
-        const { t } = useI18n()
-        throw new Error(t('errors.networkErrorFetchResource'))
+        throw new Error(translate('errors.networkErrorFetchResource'))
       }
       throw error // Re-throw other errors
     }
@@ -623,12 +626,10 @@ export const useAuthStore = defineStore('auth', () => {
   // Helper function for authenticated API calls with token expiration handling
   async function authenticatedFetch(url: string, options: RequestInit = {}) {
     if (!token.value) {
-      const { t } = useI18n()
-      throw new Error(t('errors.not_authenticated'))
+      throw new Error(translate('errors.not_authenticated'))
     }
 
-    const config = useRuntimeConfig()
-    const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+    const backendUrl = config.public.apiUrl
     const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
 
     const headers = {
@@ -647,8 +648,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Handle network errors (e.g., offline, CORS, etc.)
       if (error instanceof TypeError && error.message.includes('fetch')) {
         // This is a network error from fetch()
-        const { t } = useI18n()
-        throw new Error(t('errors.networkErrorFetchResource'))
+        throw new Error(translate('errors.networkErrorFetchResource'))
       }
       throw error // Re-throw other errors
     }
@@ -672,8 +672,7 @@ export const useAuthStore = defineStore('auth', () => {
           // Handle network errors (e.g., offline, CORS, etc.)
           if (error instanceof TypeError && error.message.includes('fetch')) {
             // This is a network error from fetch()
-            const { t } = useI18n()
-            throw new Error(t('errors.networkErrorFetchResource'))
+            throw new Error(translate('errors.networkErrorFetchResource'))
           }
           throw error // Re-throw other errors
         }
@@ -681,14 +680,12 @@ export const useAuthStore = defineStore('auth', () => {
         // If still 401 after refresh, token is invalid
         if (response.status === 401) {
           logout()
-          const { t } = useI18n()
-          throw new Error(t('errors.session_expired'))
+          throw new Error(translate('errors.session_expired'))
         }
       } else {
         // Refresh failed, logout
         logout()
-        const { t } = useI18n()
-        throw new Error(t('errors.session_expired'))
+        throw new Error(translate('errors.session_expired'))
       }
     }
 
@@ -741,8 +738,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      const backendUrl = config.public.apiUrl
 
       const response = await fetch(`${backendUrl}/api/auth/verify-2fa`, {
         method: 'POST',
@@ -754,20 +750,18 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        const { t } = useI18n()
-        throw new Error(errorData.detail || t('errors.2fa_verification_failed'))
+        throw new Error(errorData.detail || translate('errors.2fa_verification_failed'))
       }
 
       const data = await response.json()
       await handleAuthResponse(data)
       return true
     } catch (err) {
-      const { t } = useI18n()
-      const errorMessage = err instanceof Error ? err.message : t('errors.2fa_verification_failed')
+      const errorMessage = err instanceof Error ? err.message : translate('errors.2fa_verification_failed')
       error.value = errorMessage
 
-      const uiStore = useUIStore()
-      uiStore.showError(errorMessage, '2FA Verification Error')
+      // Keine UI-Notification hier - die aufrufende Komponente ist dafür verantwortlich
+      // uiStore.showError(errorMessage, '2FA Verification Error')
 
       console.error('2FA verification error:', err)
       throw err
@@ -784,8 +778,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      const backendUrl = config.public.apiUrl
 
       const response = await fetch(`${backendUrl}/api/auth/verify-2fa-backup`, {
         method: 'POST',
@@ -797,20 +790,18 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        const { t } = useI18n()
-        throw new Error(errorData.detail || t('errors.backup_code_invalid'))
+        throw new Error(errorData.detail || translate('errors.backup_code_invalid'))
       }
 
       const data = await response.json()
       await handleAuthResponse(data)
       return true
     } catch (err) {
-      const { t } = useI18n()
-      const errorMessage = err instanceof Error ? err.message : t('errors.backup_code_invalid')
+      const errorMessage = err instanceof Error ? err.message : translate('errors.backup_code_invalid')
       error.value = errorMessage
 
-      const uiStore = useUIStore()
-      uiStore.showError(errorMessage, 'Backup Code Error')
+      // Keine UI-Notification hier - die aufrufende Komponente ist dafür verantwortlich
+      // uiStore.showError(errorMessage, 'Backup Code Error')
 
       console.error('Backup code verification error:', err)
       throw err
@@ -828,8 +819,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const config = useRuntimeConfig()
-      const backendUrl = config.public.apiUrl || 'http://localhost:8000'
+      const backendUrl = config.public.apiUrl
 
       const response = await fetch(`${backendUrl}/api/auth/login`, {
         method: 'POST',
@@ -844,8 +834,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        const { t } = useI18n()
-        throw new Error(errorData.detail || t('errors.login_failed'))
+        throw new Error(errorData.detail || translate('errors.login_failed'))
       }
 
       const data = await response.json()
@@ -866,12 +855,12 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
     } catch (err) {
-      const { t } = useI18n()
-      const errorMessage = err instanceof Error ? err.message : t('errors.login_failed')
+      const errorMessage = err instanceof Error ? err.message : translate('errors.login_failed')
       error.value = errorMessage
 
-      const uiStore = useUIStore()
-      uiStore.showError(errorMessage, 'Login Error')
+      // Keine UI-Notification hier - die aufrufende Komponente ist dafür verantwortlich
+      // const uiStore = useUIStore()
+      // uiStore.showError(errorMessage, 'Login Error')
 
       console.error('Email login with 2FA error:', err)
       throw err

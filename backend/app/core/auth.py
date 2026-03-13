@@ -27,6 +27,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+REFRESH_TOKEN_EXPIRE_DAYS_PERSISTENT = int(
+    os.getenv("REFRESH_TOKEN_EXPIRE_DAYS_PERSISTENT", "30")
+)
 
 # Security warning for default secret key
 if SECRET_KEY == "your-secret-key-here-change-in-production":
@@ -66,7 +69,7 @@ def verify_token(token: str, credentials_exception):
         raise credentials_exception
 
 
-def create_tokens(user_id: int, username: str):
+def create_tokens(user_id: int, username: str, remember_me: bool = False):
     """Create access and refresh token pair"""
     # Access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -81,7 +84,12 @@ def create_tokens(user_id: int, username: str):
 
     # Refresh token with unique ID
     refresh_token_id = str(uuid.uuid4())
-    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    # Use persistent expiration if remember_me is True
+    refresh_token_days = (
+        REFRESH_TOKEN_EXPIRE_DAYS_PERSISTENT if remember_me 
+        else REFRESH_TOKEN_EXPIRE_DAYS
+    )
+    refresh_token_expires = timedelta(days=refresh_token_days)
     refresh_token = create_access_token(
         data={
             "sub": username,
@@ -97,7 +105,8 @@ def create_tokens(user_id: int, username: str):
         "refresh_token": refresh_token,
         "refresh_token_id": refresh_token_id,
         "access_token_expires": access_token_expires,
-        "refresh_token_expires": refresh_token_expires
+        "refresh_token_expires": refresh_token_expires,
+        "is_persistent": remember_me
     }
 
 
@@ -184,21 +193,28 @@ def refresh_tokens(refresh_token: str, db: Session, locale: str = "en"):
             translation_key="errors.user_not_found"
         )
 
-    # Revoke the old refresh token
+    # Get old refresh token to check if it was persistent
     refresh_token_repository = RefreshTokenRepository()
+    old_token = refresh_token_repository.get_by_token_id(
+        db, token_info["token_id"]
+    )
+    is_persistent = old_token.is_persistent if old_token else False
+    
+    # Revoke the old refresh token
     refresh_token_repository.revoke_by_token_id(db, token_info["token_id"])
 
-    # Create new tokens
-    new_tokens = create_tokens(user.id, user.username)
+    # Create new tokens with same persistence setting
+    new_tokens = create_tokens(user.id, user.username, is_persistent)
 
-    # Store new refresh token in database
+    # Store new refresh token in database with persistence flag
     now = datetime.now(timezone.utc)
     expires_at = now + new_tokens["refresh_token_expires"]
     refresh_token_repository.create_token(
         db,
         user_id=user.id,
         token_id=new_tokens["refresh_token_id"],
-        expires_at=expires_at
+        expires_at=expires_at,
+        is_persistent=is_persistent
     )
 
     return {

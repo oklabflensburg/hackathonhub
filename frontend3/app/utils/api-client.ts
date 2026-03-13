@@ -6,6 +6,7 @@
 
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
+import { useRuntimeConfig } from '#imports'
 
 export interface ApiError extends Error {
   status?: number
@@ -21,6 +22,11 @@ export interface ApiRequestOptions extends RequestInit {
 export class ApiClient {
   private authStore = useAuthStore()
   private uiStore = useUIStore()
+  private backendUrl: string
+
+  constructor(backendUrl: string) {
+    this.backendUrl = backendUrl
+  }
 
   /**
    * Führt einen GET-Request aus
@@ -139,9 +145,7 @@ export class ApiClient {
    * fetch ohne Authentication (für öffentliche Endpunkte)
    */
   private async fetchWithoutAuth(url: string, options: RequestInit): Promise<Response> {
-    const config = useRuntimeConfig()
-    const backendUrl = config.public.apiUrl
-    const fullUrl = url.startsWith('http') ? url : `${backendUrl}${url}`
+    const fullUrl = url.startsWith('http') ? url : `${this.backendUrl}${url}`
 
     return fetch(fullUrl, options)
   }
@@ -226,7 +230,9 @@ let apiClientInstance: ApiClient | null = null
 
 export function useApiClient(): ApiClient {
   if (!apiClientInstance) {
-    apiClientInstance = new ApiClient()
+    const config = useRuntimeConfig()
+    const backendUrl = config.public.apiUrl
+    apiClientInstance = new ApiClient(backendUrl)
   }
   return apiClientInstance
 }

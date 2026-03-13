@@ -58,7 +58,7 @@ class AuthService:
         }
 
     def login_with_email(
-        self, db: Session, email: str, password: str
+        self, db: Session, email: str, password: str, remember_me: bool = False
     ) -> Optional[Dict[str, Any]]:
         """
         Authenticate user with email and password.
@@ -67,12 +67,15 @@ class AuthService:
             db: Database session
             email: User email
             password: Plain text password
+            remember_me: Whether to create a persistent session
 
         Returns:
             Dictionary with user and token information,
             or None if authentication fails
         """
-        return self.email_auth_service.login_user(db, email, password)
+        return self.email_auth_service.login_user(
+            db, email, password, remember_me
+        )
 
     def verify_email_token(self, db: Session, token: str) -> Optional[User]:
         """

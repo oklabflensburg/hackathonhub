@@ -8,6 +8,7 @@ ermöglichen.
 
 from typing import Optional
 from fastapi import Response
+from app.core.config import settings
 
 
 # Cookie-Konfiguration
@@ -16,7 +17,7 @@ REFRESH_TOKEN_COOKIE_NAME = "refresh_token"
 COOKIE_MAX_AGE = 30 * 24 * 60 * 60  # 30 Tage in Sekunden
 COOKIE_PATH = "/"
 COOKIE_DOMAIN = None  # None = aktueller Domain
-COOKIE_SECURE = True  # Nur über HTTPS (in Produktion)
+COOKIE_SECURE = not settings.DEBUG  # Nur über HTTPS (in Produktion)
 COOKIE_HTTP_ONLY = True  # Nicht zugänglich via JavaScript
 COOKIE_SAME_SITE = "lax"  # Schutz vor CSRF
 
@@ -25,6 +26,7 @@ def set_auth_cookies(
     response: Response,
     auth_token: str,
     refresh_token: str,
+    persistent: bool = True,
     max_age: Optional[int] = None,
     secure: Optional[bool] = None,
     domain: Optional[str] = None,
@@ -36,18 +38,19 @@ def set_auth_cookies(
         response: FastAPI Response-Objekt
         auth_token: JWT Access Token
         refresh_token: JWT Refresh Token
-        max_age: Cookie-Lebensdauer in Sekunden (default: 30 Tage)
+        persistent: Ob Cookies persistent sein sollen (default: True)
+        max_age: Cookie-Lebensdauer in Sekunden 
+                 (default: 30 Tage wenn persistent, sonst None)
         secure: Nur über HTTPS (default: True in Produktion)
         domain: Cookie-Domain (default: None = aktuelle Domain)
     """
     if max_age is None:
-        max_age = COOKIE_MAX_AGE
+        max_age = COOKIE_MAX_AGE if persistent else None
     
     if secure is None:
-        # In Produktion Secure=True, in Entwicklung Secure=False
-        # für lokale Tests. Wir können dies basierend auf der
-        # Umgebung bestimmen. Für jetzt: Secure=False für lokale Entwicklung
-        secure = False
+        # Secure=True in Produktion, Secure=False in Entwicklung
+        # basierend auf DEBUG-Einstellung
+        secure = not settings.DEBUG
     
     # Auth-Token Cookie setzen
     response.set_cookie(

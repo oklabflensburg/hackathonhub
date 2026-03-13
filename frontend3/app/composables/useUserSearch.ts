@@ -1,7 +1,7 @@
 import { ref, computed, watch, type Ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
-import { useI18n } from '#imports'
+import { useI18n, useRuntimeConfig } from '#imports'
 import type { UserSearchResult, UseUserSearchOptions } from '~/types/team-invitations'
 
 /**
@@ -26,6 +26,7 @@ export function useUserSearch(options: UseUserSearchOptions = {}) {
   const authStore = useAuthStore()
   const uiStore = useUIStore()
   const { t } = useI18n()
+  const config = useRuntimeConfig()
 
   // State
   const query = ref('')
@@ -50,7 +51,6 @@ export function useUserSearch(options: UseUserSearchOptions = {}) {
     error.value = null
 
     try {
-      const config = useRuntimeConfig()
       const backendUrl = config.public.apiUrl || 'http://localhost:8000'
       const response = await authStore.fetchWithAuth(
         `/api/users?username=${encodeURIComponent(searchQuery)}&limit=8`

@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 
 interface Props {
   label?: string
@@ -53,5 +53,6 @@ const props = withDefaults(defineProps<Props>(), {
   currentCount: 0
 })
 
-const id = computed(() => props.id || `form-field-${Math.random().toString(36).substr(2, 9)}`)
+const generatedId = useId()
+const id = computed(() => props.id || `form-field-${generatedId}`)
 </script>

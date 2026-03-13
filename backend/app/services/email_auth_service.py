@@ -129,7 +129,8 @@ class EmailAuthService:
         self,
         db: Session,
         email: str,
-        password: str
+        password: str,
+        remember_me: bool = False
     ) -> dict:
         """Authenticate user with email/password."""
         # Find user by email
@@ -180,15 +181,16 @@ class EmailAuthService:
         # Update last login
         self.user_repository.update_last_login(db, user.id)
 
-        # Create tokens
-        tokens = create_tokens(user.id, user.username)
+        # Create tokens with remember_me parameter
+        tokens = create_tokens(user.id, user.username, remember_me)
 
-        # Store refresh token
+        # Store refresh token with is_persistent flag
         self.refresh_token_repository.create_token(
             db,
             user_id=user.id,
             token_id=tokens["refresh_token_id"],
-            expires_at=datetime.utcnow() + tokens["refresh_token_expires"]
+            expires_at=datetime.utcnow() + tokens["refresh_token_expires"],
+            is_persistent=remember_me
         )
 
         return {
