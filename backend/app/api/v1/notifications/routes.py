@@ -3,7 +3,7 @@ Notification API routes.
 """
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -13,25 +13,22 @@ from app.domain.schemas.notification import (
     PushSubscriptionCreate,
     UserNotification,
     UserNotificationCreate,
-    UserNotificationPreference,
     UserNotificationPreferenceCreate,
 )
 from app.i18n.dependencies import get_locale
 from app.i18n.helpers import raise_internal_server_error, raise_not_found
 from app.repositories.notification_repository import (
-    NotificationPreferenceRepository,
     NotificationRepository,
     PushSubscriptionRepository,
 )
 from app.services.in_app_notification_service import InAppNotificationService
-from app.services.notification_preference_service import (
-    notification_preference_service,
+from app.services.notification_settings_service import (
+    notification_settings_service,
 )
 from app.services.notification_service import notification_service
 
 router = APIRouter()
 notification_repository = NotificationRepository()
-preference_repository = NotificationPreferenceRepository()
 push_subscription_repository = PushSubscriptionRepository()
 in_app_service = InAppNotificationService()
 
@@ -68,6 +65,11 @@ async def create_notification(
         data=notification.data or {},
         requested_channels=["in_app"],
     )
+    if dispatch.notification is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Notification disabled by current preferences",
+        )
     return dispatch.notification
 
 
@@ -84,31 +86,11 @@ async def mark_all_notifications_as_read(
 async def get_notification_preferences(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-):
-    return notification_preference_service.get_user_preferences(
-        db, current_user.id
-    )
-
-
-@router.put(
-    "/preferences/{preference_id}",
-    response_model=UserNotificationPreference,
-)
-async def update_notification_preference(
-    preference_id: int,
-    preference_update: UserNotificationPreferenceCreate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
     locale: str = Depends(get_locale),
 ):
-    preference = preference_repository.get(db, preference_id)
-    if not preference or preference.user_id != current_user.id:
-        raise_not_found(locale, "preference")
-
-    updated_preference = preference_repository.update(
-        db, db_obj=preference, obj_in=preference_update.model_dump()
+    return notification_settings_service.get_settings_for_locale(
+        db, current_user.id, locale=locale
     )
-    return updated_preference
 
 
 @router.post("/preferences/{notification_type}/{channel}")
@@ -119,14 +101,13 @@ async def update_notification_preference_by_type(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    updated_preference = preference_repository.update_or_create_preference(
-        db=db,
-        user_id=current_user.id,
-        notification_type=notification_type,
-        channel=channel,
-        enabled=preference_update.enabled,
+    return notification_settings_service.update_type_channel_compatibility(
+        db,
+        current_user.id,
+        notification_type,
+        channel,
+        preference_update.enabled,
     )
-    return updated_preference
 
 
 @router.put("/preferences")
@@ -134,11 +115,17 @@ async def bulk_update_notification_preferences(
     preferences: Dict[str, Any],
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
+    locale: str = Depends(get_locale),
 ):
-    success = notification_preference_service.update_user_preferences(
+    notification_settings_service.update_settings(
         db, current_user.id, preferences
     )
-    return {"success": success}
+    return {
+        "success": True,
+        "preferences": notification_settings_service.get_settings_for_locale(
+            db, current_user.id, locale=locale
+        ),
+    }
 
 
 @router.get("/push-subscriptions", response_model=List[PushSubscription])
@@ -260,18 +247,21 @@ async def create_in_app_notification(
         payload["priority"] = notification_data["priority"]
     if notification_data.get("expires_at"):
         payload["expires_at"] = notification_data["expires_at"]
-    notification = in_app_service.store_notification(
+    dispatch = notification_service.dispatch_notification(
         db=db,
+        notification_type=notification_data.get("type", "system_announcement"),
         user_id=current_user.id,
         title=notification_data.get("title", ""),
-        body=notification_data.get("message", ""),
-        notification_type=notification_data.get("type", "system_announcement"),
-        priority=notification_data.get("priority", "normal"),
+        message=notification_data.get("message", ""),
         data={"metadata": payload} if payload else {},
-        action_url=notification_data.get("action_url"),
-        expires_in_days=30,
+        requested_channels=["in_app"],
     )
-    return notification
+    if dispatch.notification is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Notification disabled by current preferences",
+        )
+    return dispatch.notification
 
 
 @router.get("/in-app/list")

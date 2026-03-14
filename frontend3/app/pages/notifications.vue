@@ -22,9 +22,15 @@
             </svg>
             {{ t('notifications.markAllAsRead') }}
           </button>
-          <button @click="refreshNotifications" :disabled="isLoading"
+          <button @click="refreshNotifications" :disabled="isRefreshingNotifications"
             class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-            <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-if="isRefreshingNotifications" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none"
+              viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <svg v-else class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
@@ -154,6 +160,13 @@
             :enable-all-label="t('notificationSettings.enableAllNotifications')"
             :enable-all-description="t('notificationSettings.enableAllDescription')"
             :disable-all-label="t('notificationSettings.disableAllNotifications')"
+            :quiet-hours="quietHours"
+            :quiet-hours-title="t('notificationSettings.quietHours')"
+            :quiet-hours-description="t('notificationSettings.quietHoursDescription')"
+            :quiet-hours-start-label="t('notificationSettings.quietHoursStart')"
+            :quiet-hours-end-label="t('notificationSettings.quietHoursEnd')"
+            :enable-quiet-hours-label="t('notificationSettings.enableQuietHours')"
+            :disable-quiet-hours-label="t('notificationSettings.disableQuietHours')"
             :channels="notificationChannels"
             :channel-preferences-title="t('notificationSettings.channelPreferences')"
             :channel-preferences-description="t('notificationSettings.channelDescription')"
@@ -175,8 +188,11 @@
             :enable-push-button-text="t('notificationSettings.enablePushButton')"
             :categories="notificationCategories"
             @toggle-global="handleToggleGlobal"
+            @toggle-category="handleToggleCategory"
             @toggle-channel="handleToggleChannel"
             @toggle-type="handleToggleType"
+            @toggle-quiet-hours="handleToggleQuietHours"
+            @update-quiet-hours="handleUpdateQuietHours"
             @enable-push="enablePushNotifications"
           />
         </div>
@@ -323,6 +339,7 @@ const hasUnreadNotifications = computed(() => notificationStore.hasUnreadNotific
 const totalNotifications = computed(() => notifications.value.length)
 const readNotificationsCount = computed(() => notificationStore.readNotifications.length)
 const unreadNotificationsCount = computed(() => atomicUnreadCount.value)
+const isRefreshingNotifications = computed(() => isLoading.value || atomicNotificationsLoading.value)
 
 const tabs = computed(() => [
   { key: 'all' as const, label: t('notifications.tabs.all'), count: totalNotifications.value },
@@ -355,53 +372,53 @@ const notificationFilters = computed<NotificationFilter[]>(() => [
 
 // Notification Settings
 const globalNotificationsEnabled = computed(() => {
-  return notificationStore.preferences.global_enabled !== false
+  return notificationStore.preferences.global_enabled === true
 })
 
 const notificationChannels = computed<NotificationChannels>(() => ({
-  email: notificationStore.preferences.channels?.email !== false,
+  email: notificationStore.preferences.channels?.email === true,
   push: notificationStore.preferences.channels?.push === true,
-  in_app: notificationStore.preferences.channels?.in_app !== false
+  in_app: notificationStore.preferences.channels?.in_app === true
+}))
+
+const quietHours = computed(() => ({
+  enabled: notificationStore.preferences.quiet_hours?.enabled === true,
+  start: notificationStore.preferences.quiet_hours?.start || '22:00',
+  end: notificationStore.preferences.quiet_hours?.end || '08:00'
 }))
 
 const isPushSupported = computed(() => notificationStore.isPushSupported)
 const pushEnabled = computed(() => notificationStore.pushSubscriptions.length > 0)
 
 const notificationCategories = computed<NotificationCategory[]>(() => {
-  const categories: Record<string, NotificationCategory> = {}
-  
-  notificationStore.notificationTypes.forEach(type => {
-    const category = type.category || 'general'
-    if (!categories[category]) {
-      categories[category] = {
-        id: category,
-        title: t(`notificationSettings.categories.${category}`, category),
-        description: t(`notificationSettings.categories.${category}Description`, ''),
-        types: []
-      }
-    }
-    
-    // Check if this type is enabled for any channel
-    const isEnabled = Object.values(type.user_preferences).some(enabled => enabled)
-    
-    const notificationType: NotificationType = {
-      type_key: type.type_key,
-      description: type.description,
-      help_text: '', // No help_text in the store type
-      enabled: isEnabled
-    }
-    
-    categories[category].types.push(notificationType)
-  })
-  
-  return Object.values(categories)
+  return Object.entries(notificationStore.preferences.categories || {}).map(([categoryKey, categoryValue]) => ({
+    id: categoryKey,
+    title: t(`notificationSettings.categories.${categoryKey}`, categoryKey),
+    description: t(`notificationSettings.categoryDescriptions.${categoryKey}`, ''),
+    enabled: categoryValue.enabled === true,
+    channels: categoryValue.channels,
+    types: Object.entries(categoryValue.types || {}).map(([typeKey, typeValue]) => ({
+      type_key: typeKey,
+      description: typeValue.description || typeKey,
+      help_text: typeValue.help_text || '',
+      enabled: typeValue.enabled === true
+    }))
+  }))
 })
 
 // Methods
 const markAllAsRead = async () => {
   isMarkingAllAsRead.value = true
   try {
-    await notificationStore.markAllAsRead()
+    await Promise.all([
+      notificationStore.markAllAsRead(),
+      markAllAtomicAsRead()
+    ])
+    await Promise.all([
+      notificationStore.fetchNotifications(),
+      notificationStore.fetchUnreadCount(),
+      fetchAtomicNotifications(true)
+    ])
   } catch (error) {
     console.error('Failed to mark all as read:', error)
   } finally {
@@ -410,16 +427,18 @@ const markAllAsRead = async () => {
 }
 
 const refreshNotifications = async () => {
-  await notificationStore.fetchNotifications()
+  await Promise.all([
+    notificationStore.fetchNotifications(),
+    notificationStore.fetchUnreadCount(),
+    fetchAtomicNotifications(true)
+  ])
 }
 
 const loadMoreNotifications = async () => {
   isLoadingMore.value = true
   try {
     currentPage.value += 1
-    // In a real implementation, you would fetch more notifications with pagination
-    // For now, we'll just refresh the notifications
-    await notificationStore.fetchNotifications()
+    await fetchAtomicNotifications()
   } catch (error) {
     console.error('Failed to load more notifications:', error)
   } finally {
@@ -433,6 +452,12 @@ const handleToggleGlobal = () => {
   toggleGlobalNotifications(newEnabled)
 }
 
+const handleToggleCategory = (categoryId: string) => {
+  const category = notificationStore.preferences.categories?.[categoryId]
+  const newEnabled = !(category?.enabled === true)
+  toggleCategory(categoryId, newEnabled)
+}
+
 const handleToggleChannel = (channel: string) => {
   const channelKey = channel as keyof NotificationChannels
   const newEnabled = !notificationChannels.value[channelKey]
@@ -440,10 +465,8 @@ const handleToggleChannel = (channel: string) => {
 }
 
 const handleToggleType = (typeKey: string) => {
-  // Find if this type is currently enabled
-  const type = notificationStore.notificationTypes.find(t => t.type_key === typeKey)
-  const isEnabled = type ? Object.values(type.user_preferences).some(enabled => enabled) : false
-  const newEnabled = !isEnabled
+  const type = notificationStore.preferences.types?.[typeKey]
+  const newEnabled = !(type?.enabled === true)
   toggleNotificationType(typeKey, newEnabled)
 }
 
@@ -451,13 +474,27 @@ const toggleGlobalNotifications = async (enabled: boolean) => {
   isLoadingPreferences.value = true
   preferencesError.value = null
   try {
-    // For global notifications, we need to update all channels
-    // This is a simplified implementation - in a real app, you would have a proper API
-    console.log('Toggle global notifications:', enabled)
-    // We'll just update the preferences store
-    notificationStore.preferences.global_enabled = enabled
+    await notificationStore.updatePreferences({ global_enabled: enabled })
   } catch (error) {
     preferencesError.value = error instanceof Error ? error.message : 'Failed to update global notifications'
+  } finally {
+    isLoadingPreferences.value = false
+  }
+}
+
+const toggleCategory = async (categoryId: string, enabled: boolean) => {
+  isLoadingPreferences.value = true
+  preferencesError.value = null
+  try {
+    await notificationStore.updatePreferences({
+      categories: {
+        [categoryId]: {
+          enabled
+        }
+      }
+    })
+  } catch (error) {
+    preferencesError.value = error instanceof Error ? error.message : `Failed to update ${categoryId} category`
   } finally {
     isLoadingPreferences.value = false
   }
@@ -467,14 +504,11 @@ const toggleChannel = async (channel: keyof NotificationChannels, enabled: boole
   isLoadingPreferences.value = true
   preferencesError.value = null
   try {
-    // Update all notification types for this channel
-    // This is a simplified implementation
-    console.log('Toggle channel:', channel, enabled)
-    // We'll just update the preferences store
-    if (!notificationStore.preferences.channels) {
-      notificationStore.preferences.channels = {}
-    }
-    notificationStore.preferences.channels[channel] = enabled
+    await notificationStore.updatePreferences({
+      channels: {
+        [channel]: enabled
+      }
+    })
   } catch (error) {
     preferencesError.value = error instanceof Error ? error.message : `Failed to update ${channel} channel`
   } finally {
@@ -486,16 +520,41 @@ const toggleNotificationType = async (typeKey: string, enabled: boolean) => {
   isLoadingPreferences.value = true
   preferencesError.value = null
   try {
-    // Update notification type preference for all channels
-    // This is a simplified implementation
-    console.log('Toggle notification type:', typeKey, enabled)
-    // We'll just update the preferences store
-    if (!notificationStore.preferences.types) {
-      notificationStore.preferences.types = {}
-    }
-    notificationStore.preferences.types[typeKey] = enabled
+    await notificationStore.updatePreferences({
+      types: {
+        [typeKey]: {
+          enabled
+        }
+      }
+    })
   } catch (error) {
     preferencesError.value = error instanceof Error ? error.message : `Failed to update ${typeKey} preference`
+  } finally {
+    isLoadingPreferences.value = false
+  }
+}
+
+const handleToggleQuietHours = async () => {
+  isLoadingPreferences.value = true
+  preferencesError.value = null
+  try {
+    await notificationStore.updateQuietHours({
+      enabled: !quietHours.value.enabled
+    })
+  } catch (error) {
+    preferencesError.value = error instanceof Error ? error.message : 'Failed to update quiet hours'
+  } finally {
+    isLoadingPreferences.value = false
+  }
+}
+
+const handleUpdateQuietHours = async (payload: { start?: string; end?: string }) => {
+  isLoadingPreferences.value = true
+  preferencesError.value = null
+  try {
+    await notificationStore.updateQuietHours(payload)
+  } catch (error) {
+    preferencesError.value = error instanceof Error ? error.message : 'Failed to update quiet hours'
   } finally {
     isLoadingPreferences.value = false
   }

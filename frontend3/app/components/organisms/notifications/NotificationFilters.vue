@@ -1,163 +1,143 @@
 <template>
-  <div class="notification-filters">
-    <!-- Filter Header -->
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-        Filter
-      </h3>
+  <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Filter
+        </h3>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
+          <label class="block lg:col-span-6">
+            <span class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Suche</span>
+            <div class="relative">
+              <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                v-model="localFilters.search"
+                type="text"
+                class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:ring-primary-950"
+                placeholder="Benachrichtigungen durchsuchen"
+                @input="updateFilters"
+              />
+            </div>
+          </label>
+
+          <label class="block lg:col-span-3">
+            <span class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Sortieren</span>
+            <select
+              v-model="localFilters.sortBy"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:ring-primary-950"
+              @change="updateFilters"
+            >
+              <option value="createdAt">Datum</option>
+              <option value="type">Typ</option>
+            </select>
+          </label>
+
+          <label class="block lg:col-span-3">
+            <span class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Reihenfolge</span>
+            <select
+              v-model="localFilters.sortDirection"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:ring-primary-950"
+              @change="updateFilters"
+            >
+              <option value="desc">Neueste zuerst</option>
+              <option value="asc">Aelteste zuerst</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
       <button
         v-if="showReset"
-        class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+        class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
         @click="resetFilters"
       >
-        Zurücksetzen
+        Zuruecksetzen
       </button>
     </div>
 
-    <!-- Search Input -->
-    <div class="mb-6">
-      <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        Suche
-      </label>
-      <div class="relative">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/60">
+        <div class="mb-2 flex items-center justify-between">
+          <h4 class="text-sm font-medium text-gray-900 dark:text-white">Typ</h4>
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ selectedTypeCount }} aktiv</span>
         </div>
-        <input
-          id="search"
-          v-model="localFilters.search"
-          type="text"
-          class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="Nach Benachrichtigungen suchen..."
-          @input="updateFilters"
-        />
-      </div>
-    </div>
-
-    <!-- Type Filters -->
-    <div class="mb-6">
-      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-        Typ
-      </h4>
-      <div class="space-y-2">
-        <label
-          v-for="type in notificationTypes"
-          :key="type.value"
-          class="flex items-center"
-        >
-          <input
-            v-model="localFilters.type"
-            type="checkbox"
-            :value="type.value"
-            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-            @change="updateFilters"
-          />
-          <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">
-            {{ type.label }}
-          </span>
-          <span
-            v-if="type.count !== undefined"
-            class="ml-auto text-xs text-gray-500 dark:text-gray-400"
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="type in notificationTypes"
+            :key="type.value"
+            type="button"
+            :class="[
+              'inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-medium transition',
+              isTypeSelected(type.value)
+                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-500 dark:bg-primary-950/40 dark:text-primary-200'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
+            ]"
+            @click="toggleType(type.value)"
           >
-            {{ type.count }}
-          </span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Status Filters -->
-    <div class="mb-6">
-      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-        Status
-      </h4>
-      <div class="space-y-2">
-        <label
-          v-for="status in notificationStatuses"
-          :key="status.value"
-          class="flex items-center"
-        >
-          <input
-            v-model="localFilters.status"
-            type="checkbox"
-            :value="status.value"
-            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
-            @change="updateFilters"
-          />
-          <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">
-            {{ status.label }}
-          </span>
-          <span
-            v-if="status.count !== undefined"
-            class="ml-auto text-xs text-gray-500 dark:text-gray-400"
-          >
-            {{ status.count }}
-          </span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Sort Options -->
-    <div class="mb-6">
-      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-        Sortieren nach
-      </h4>
-      <div class="space-y-2">
-        <div>
-          <select
-            v-model="localFilters.sortBy"
-            class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            @change="updateFilters"
-          >
-            <option value="createdAt">Erstellungsdatum</option>
-            <option value="type">Typ</option>
-          </select>
+            <span>{{ type.label }}</span>
+            <span v-if="type.count !== undefined" class="text-[11px] opacity-70">{{ type.count }}</span>
+          </button>
         </div>
-        <div>
-          <select
-            v-model="localFilters.sortDirection"
-            class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            @change="updateFilters"
+      </div>
+
+      <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/60">
+        <div class="mb-2 flex items-center justify-between">
+          <h4 class="text-sm font-medium text-gray-900 dark:text-white">Status</h4>
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ selectedStatusCount }} aktiv</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="status in notificationStatuses"
+            :key="status.value"
+            type="button"
+            :class="[
+              'inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-medium transition',
+              isStatusSelected(status.value)
+                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-500 dark:bg-primary-950/40 dark:text-primary-200'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
+            ]"
+            @click="toggleStatus(status.value)"
           >
-            <option value="desc">Absteigend (neueste zuerst)</option>
-            <option value="asc">Aufsteigend (älteste zuerst)</option>
-          </select>
+            <span>{{ status.label }}</span>
+            <span v-if="status.count !== undefined" class="text-[11px] opacity-70">{{ status.count }}</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Active Filters -->
-    <div v-if="activeFilterCount > 0" class="mb-6">
-      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-        Aktive Filter ({{ activeFilterCount }})
-      </h4>
+    <div v-if="activeFilterCount > 0" class="mt-4 border-t border-gray-200 pt-3 dark:border-gray-800">
+      <div class="mb-2 flex items-center justify-between">
+        <h4 class="text-sm font-medium text-gray-900 dark:text-white">Aktive Filter</h4>
+        <span class="text-xs text-gray-500 dark:text-gray-400">{{ activeFilterCount }}</span>
+      </div>
       <div class="flex flex-wrap gap-2">
         <span
           v-for="filter in activeFilters"
           :key="filter.id"
-          class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+          class="inline-flex items-center gap-2 rounded-md bg-gray-100 px-2.5 py-1 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300"
         >
           {{ filter.label }}
           <button
             type="button"
-            class="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800"
+            class="inline-flex h-4 w-4 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-200 hover:text-gray-800 dark:hover:bg-gray-700 dark:hover:text-white"
             @click="removeFilter(filter)"
           >
             <span class="sr-only">Entfernen</span>
-            <svg class="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+            <svg class="h-2.5 w-2.5" stroke="currentColor" fill="none" viewBox="0 0 8 8">
               <path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" />
             </svg>
           </button>
         </span>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { NotificationFilterOptions, NotificationType, NotificationStatus } from '~/types/notification-types'
+import { computed, ref, watch } from 'vue'
+import type { NotificationFilterOptions } from '~/types/notification-types'
 
 interface NotificationFiltersProps {
   filters: NotificationFilterOptions
@@ -184,7 +164,6 @@ const emit = defineEmits<{
   'reset-filters': []
 }>()
 
-// Local copy of filters for two-way binding
 const localFilters = ref<NotificationFilterOptions>({
   ...props.filters,
   type: props.filters.type ? [...props.filters.type] : [],
@@ -194,7 +173,6 @@ const localFilters = ref<NotificationFilterOptions>({
   sortDirection: props.filters.sortDirection || 'desc'
 })
 
-// Update local filters when props change
 watch(() => props.filters, (newFilters) => {
   localFilters.value = {
     ...newFilters,
@@ -206,7 +184,6 @@ watch(() => props.filters, (newFilters) => {
   }
 }, { deep: true })
 
-// Notification types with labels
 const notificationTypes = computed(() => [
   { value: 'system', label: 'System', count: props.typeCounts.system },
   { value: 'user', label: 'Benutzer', count: props.typeCounts.user },
@@ -216,68 +193,50 @@ const notificationTypes = computed(() => [
   { value: 'comment', label: 'Kommentar', count: props.typeCounts.comment },
   { value: 'vote', label: 'Abstimmung', count: props.typeCounts.vote },
   { value: 'invitation', label: 'Einladung', count: props.typeCounts.invitation },
-  { value: 'announcement', label: 'Ankündigung', count: props.typeCounts.announcement },
+  { value: 'announcement', label: 'Ankuendigung', count: props.typeCounts.announcement },
   { value: 'reminder', label: 'Erinnerung', count: props.typeCounts.reminder }
 ])
 
-// Notification statuses with labels
 const notificationStatuses = computed(() => [
   { value: 'unread', label: 'Ungelesen', count: props.statusCounts.unread },
   { value: 'read', label: 'Gelesen', count: props.statusCounts.read },
   { value: 'archived', label: 'Archiviert', count: props.statusCounts.archived }
 ])
 
-// Active filters for display
 const activeFilters = computed(() => {
   const filters = []
-  
-  // Search filter
+
   if (localFilters.value.search) {
-    filters.push({
-      id: 'search',
-      label: `Suche: "${localFilters.value.search}"`,
-      type: 'search'
-    })
+    filters.push({ id: 'search', label: `Suche: "${localFilters.value.search}"`, type: 'search' })
   }
-  
-  // Type filters
-  if (localFilters.value.type && localFilters.value.type.length > 0) {
+
+  if (localFilters.value.type?.length) {
     localFilters.value.type.forEach(type => {
       const typeLabel = notificationTypes.value.find(t => t.value === type)?.label || type
-      filters.push({
-        id: `type-${type}`,
-        label: `Typ: ${typeLabel}`,
-        type: 'type'
-      })
+      filters.push({ id: `type-${type}`, label: `Typ: ${typeLabel}`, type: 'type' })
     })
   }
-  
-  // Status filters
-  if (localFilters.value.status && localFilters.value.status.length > 0) {
+
+  if (localFilters.value.status?.length) {
     localFilters.value.status.forEach(status => {
       const statusLabel = notificationStatuses.value.find(s => s.value === status)?.label || status
-      filters.push({
-        id: `status-${status}`,
-        label: `Status: ${statusLabel}`,
-        type: 'status'
-      })
+      filters.push({ id: `status-${status}`, label: `Status: ${statusLabel}`, type: 'status' })
     })
   }
-  
+
   return filters
 })
 
-// Count of active filters
 const activeFilterCount = computed(() => activeFilters.value.length)
+const selectedTypeCount = computed(() => localFilters.value.type?.length || 0)
+const selectedStatusCount = computed(() => localFilters.value.status?.length || 0)
 
-// Update filters and emit event
 const updateFilters = () => {
   emit('update:filters', { ...localFilters.value })
   emit('update-filters', { ...localFilters.value })
   emit('update-sort', localFilters.value.sortBy || 'createdAt', localFilters.value.sortDirection || 'desc')
 }
 
-// Reset all filters
 const resetFilters = () => {
   localFilters.value = {
     type: [],
@@ -288,12 +247,29 @@ const resetFilters = () => {
   }
   emit('reset')
   emit('reset-filters')
-  emit('update:filters', { ...localFilters.value })
-  emit('update-filters', { ...localFilters.value })
+  updateFilters()
 }
 
-// Remove specific filter
-const removeFilter = (filter: any) => {
+const isTypeSelected = (value: string) => (localFilters.value.type || []).includes(value)
+const isStatusSelected = (value: string) => (localFilters.value.status || []).includes(value)
+
+const toggleType = (value: string) => {
+  const current = localFilters.value.type || []
+  localFilters.value.type = current.includes(value)
+    ? current.filter(type => type !== value)
+    : [...current, value]
+  updateFilters()
+}
+
+const toggleStatus = (value: string) => {
+  const current = localFilters.value.status || []
+  localFilters.value.status = current.includes(value)
+    ? current.filter(status => status !== value)
+    : [...current, value]
+  updateFilters()
+}
+
+const removeFilter = (filter: { id: string, type: string }) => {
   switch (filter.type) {
     case 'search':
       localFilters.value.search = ''
@@ -308,9 +284,3 @@ const removeFilter = (filter: any) => {
   updateFilters()
 }
 </script>
-
-<style scoped>
-.notification-filters {
-  @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4;
-}
-</style>

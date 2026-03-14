@@ -21,8 +21,8 @@ from app.services.in_app_notification_service import (
     DeliveryResult,
     InAppNotificationService,
 )
-from app.services.notification_preference_service import (
-    notification_preference_service
+from app.services.notification_eligibility_service import (
+    notification_eligibility_service,
 )
 from app.services.notification_registry import get_definition, is_known_type
 from app.services.push_notification_service import push_notification_service
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class NotificationDispatchResult:
-    notification: UserNotification
+    notification: Optional[UserNotification]
     deliveries: Dict[str, DeliveryResult]
 
 
@@ -91,28 +91,15 @@ class NotificationService:
         if not is_known_type(notification_type):
             raise ValueError(f"Unknown notification type: {notification_type}")
 
-        allowed_channels = (
-            notification_preference_service.get_allowed_channels(
-                db, user_id, notification_type
-            )
+        allowed_channels = notification_eligibility_service.get_allowed_channels(
+            db,
+            user_id,
+            notification_type,
+            requested_channels=requested_channels,
         )
-        if requested_channels is not None:
-            requested_set = set(requested_channels)
-            allowed_channels = [
-                channel for channel in allowed_channels
-                if channel in requested_set
-            ]
         if not allowed_channels:
-            notification = self.notification_repo.create_notification(
-                db,
-                user_id=user_id,
-                notification_type=notification_type,
-                title=title,
-                message=message,
-                data=data or {},
-            )
             return NotificationDispatchResult(
-                notification=notification, deliveries={}
+                notification=None, deliveries={}
             )
 
         notification = self.notification_repo.create_notification(

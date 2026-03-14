@@ -157,57 +157,60 @@ class NotificationDeliveryRepository(BaseRepository[NotificationDelivery]):
         return delivery
 
 
-class NotificationPreferenceRepository(
-    BaseRepository[UserNotificationPreference]
-):
-    """Repository for user notification preferences."""
+class NotificationPreferenceRepository(BaseRepository[UserNotificationPreference]):
+    """Repository for user notification settings masks."""
 
     def __init__(self):
         super().__init__(UserNotificationPreference)
 
+    def get_by_user_id(
+        self, db: Session, user_id: int
+    ) -> Optional[UserNotificationPreference]:
+        return db.query(self.model).filter(self.model.user_id == user_id).first()
+
     def get_user_preferences(
         self, db: Session, user_id: int
     ) -> List[UserNotificationPreference]:
-        return db.query(self.model).filter(
-            self.model.user_id == user_id
-        ).all()
+        preference = self.get_by_user_id(db, user_id)
+        return [preference] if preference else []
 
-    def get_preference(
-        self, db: Session, user_id: int, notification_type: str, channel: str
-    ) -> Optional[UserNotificationPreference]:
-        return db.query(self.model).filter(
-            self.model.user_id == user_id,
-            self.model.notification_type == notification_type,
-            self.model.channel == channel,
-        ).first()
-
-    def update_or_create_preference(
+    def get_or_create_settings(
         self,
         db: Session,
         user_id: int,
-        notification_type: str,
-        channel: str,
-        enabled: bool,
+        *,
+        default_types_mask: int = 0,
+        default_channels_mask: int = 0,
     ) -> UserNotificationPreference:
-        preference = self.get_preference(
-            db, user_id, notification_type, channel
-        )
-
+        preference = self.get_by_user_id(db, user_id)
         if preference:
-            preference.enabled = enabled
-            db.commit()
-            db.refresh(preference)
             return preference
-
         return self.create(
             db,
             obj_in={
                 "user_id": user_id,
-                "notification_type": notification_type,
-                "channel": channel,
-                "enabled": enabled,
+                "types_mask": str(default_types_mask),
+                "channels_mask": str(default_channels_mask),
+                "quiet_hours": None,
             },
         )
+
+    def update_settings_masks(
+        self,
+        db: Session,
+        *,
+        preference: UserNotificationPreference,
+        types_mask: int,
+        channels_mask: int,
+        quiet_hours: Optional[Dict] = None,
+    ) -> UserNotificationPreference:
+        preference.types_mask = str(types_mask)
+        preference.channels_mask = str(channels_mask)
+        preference.quiet_hours = quiet_hours
+        db.add(preference)
+        db.commit()
+        db.refresh(preference)
+        return preference
 
 
 class PushSubscriptionRepository(BaseRepository[PushSubscription]):
@@ -261,4 +264,4 @@ class NotificationTypeRepository(BaseRepository[NotificationType]):
     ) -> List[NotificationType]:
         return db.query(self.model).filter(
             self.model.category == category
-        ).all()
+        ).order_by(self.model.sort_order.asc(), self.model.id.asc()).all()

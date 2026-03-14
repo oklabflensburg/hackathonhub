@@ -31,8 +31,6 @@ class NotificationType(NotificationTypeBase):
 
 
 class UserNotificationPreferenceBase(BaseModel):
-    notification_type: str
-    channel: str
     enabled: bool = True
 
 
@@ -43,6 +41,8 @@ class UserNotificationPreferenceCreate(UserNotificationPreferenceBase):
 class UserNotificationPreference(UserNotificationPreferenceBase):
     id: int
     user_id: int
+    types_mask: str
+    channels_mask: str
     created_at: datetime
     updated_at: Optional[datetime] = None
     user: Optional["User"] = None

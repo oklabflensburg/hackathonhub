@@ -17,6 +17,9 @@ from app.api.v1.projects.routes import router as projects_router
 from app.api.v1.hackathons.routes import router as hackathons_router
 from app.api.v1.teams.routes import router as teams_router
 from app.api.v1.notifications.routes import router as notifications_router
+from app.api.v1.notifications.preferences_routes import (
+    router as notification_preferences_router,
+)
 from app.api.v1.me.routes import router as me_router
 from app.api.v1.comments.routes import router as comments_router
 from app.api.v1.newsletter.routes import router as newsletter_router
@@ -90,6 +93,11 @@ app.include_router(
     teams_router,
     prefix="/api/teams",
     tags=["teams"]
+)
+app.include_router(
+    notification_preferences_router,
+    prefix="/api/notifications",
+    tags=["notification-preferences"]
 )
 app.include_router(
     notifications_router,

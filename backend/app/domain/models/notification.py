@@ -3,7 +3,7 @@ Notification domain models.
 """
 from sqlalchemy import (
     Column, Integer, String, Text, DateTime,
-    ForeignKey, Boolean, UniqueConstraint, JSON, Index
+    ForeignKey, UniqueConstraint, JSON, Index
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
@@ -20,19 +20,23 @@ class UserNotificationPreference(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey(
         "users.id", ondelete="CASCADE"), nullable=False)
-    notification_type = Column(String(50), nullable=False)
-    # 'email', 'push', 'in_app', 'all'
-    channel = Column(String(20), nullable=False)
-    enabled = Column(Boolean, default=True)
+    types_mask = Column(String(255), nullable=False, default="0")
+    channels_mask = Column(String(255), nullable=False, default="0")
+    quiet_hours = Column(notification_json_type)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     __table_args__ = (
-        UniqueConstraint(
-            'user_id', 'notification_type', 'channel',
-            name='_user_notification_channel_uc'
-        ),
+        UniqueConstraint('user_id', name='uq_user_notification_preferences_user'),
     )
+
+    @property
+    def types_mask_int(self) -> int:
+        return int(self.types_mask or "0")
+
+    @property
+    def channels_mask_int(self) -> int:
+        return int(self.channels_mask or "0")
 
     # Relationships will be defined in __init__.py
     # user = relationship("User", back_populates="notification_preferences")
@@ -47,6 +51,9 @@ class NotificationType(Base):
     category = Column(String(50), nullable=False)
     default_channels = Column(String(100), default='email,in_app')
     description = Column(Text)
+    help_text = Column(Text)
+    type_flag = Column(String(255))
+    sort_order = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

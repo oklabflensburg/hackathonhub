@@ -36,8 +36,47 @@ export interface NotificationType {
   type_key: string
   category: string
   description: string
+  help_text?: string
   default_channels: string[]
   user_preferences: Record<'email' | 'push' | 'in_app', boolean>
+  enabled?: boolean
+}
+
+export interface NotificationSettingsResponse {
+  global_enabled: boolean
+  channels: Record<'email' | 'push' | 'in_app', boolean>
+  categories: Record<string, {
+    enabled: boolean
+    channels: Record<'email' | 'push' | 'in_app', boolean>
+    types: Record<string, {
+      enabled: boolean
+      channels: Record<'email' | 'push' | 'in_app', boolean>
+      description?: string
+      help_text?: string
+      category?: string
+      default_channels?: string[]
+    }>
+  }>
+  types?: Record<string, {
+    enabled: boolean
+    channels: Record<'email' | 'push' | 'in_app', boolean>
+    description?: string
+    help_text?: string
+    category?: string
+    default_channels?: string[]
+  }>
+  masks?: {
+    channels: string
+    types: string
+  }
+  quiet_hours?: {
+    enabled: boolean
+    start: string
+    end: string
+    start_hour?: number
+    end_hour?: number
+    days: number[]
+  }
 }
 
 export interface PushSubscription {
@@ -83,7 +122,28 @@ export const useNotificationStore = defineStore('notification', () => {
   const notifications = ref<UserNotification[]>([])
   const unreadCount = ref(0)
   const notificationTypes = ref<NotificationType[]>([])
-  const preferences = ref<Record<string, any>>({})
+  const preferences = ref<NotificationSettingsResponse>({
+    global_enabled: false,
+    channels: {
+      email: true,
+      push: true,
+      in_app: true
+    },
+    categories: {},
+    types: {},
+    masks: {
+      channels: '0',
+      types: '0'
+    },
+    quiet_hours: {
+      enabled: false,
+      start: '22:00',
+      end: '08:00',
+      start_hour: 22,
+      end_hour: 8,
+      days: []
+    }
+  })
   const pushSubscriptions = ref<PushSubscription[]>([])
   const vapidPublicKey = ref<string | null>(null)
   const serviceWorkerRegistration = ref<ServiceWorkerRegistration | null>(null)
@@ -217,7 +277,8 @@ export const useNotificationStore = defineStore('notification', () => {
                 .split(',')
                 .map((channel: string) => channel.trim())
                 .filter(Boolean),
-          user_preferences: type.user_preferences || { email: false, push: false, in_app: false }
+          user_preferences: type.user_preferences || { email: false, push: false, in_app: false },
+          enabled: type.enabled ?? Object.values(type.user_preferences || {}).some(Boolean)
         }))
       }
     } catch (error) {
@@ -233,7 +294,26 @@ export const useNotificationStore = defineStore('notification', () => {
       
       if (response.ok) {
         const data = await response.json()
-        preferences.value = data
+        preferences.value = {
+          ...data,
+          quiet_hours: {
+            enabled: Boolean(data?.quiet_hours?.enabled),
+            start: data?.quiet_hours?.start || '22:00',
+            end: data?.quiet_hours?.end || '08:00',
+            start_hour: data?.quiet_hours?.start_hour ?? 22,
+            end_hour: data?.quiet_hours?.end_hour ?? 8,
+            days: Array.isArray(data?.quiet_hours?.days) ? data.quiet_hours.days : []
+          }
+        }
+        notificationTypes.value = Object.entries(data.types || {}).map(([typeKey, typeData]: [string, any]) => ({
+          type_key: typeKey,
+          category: typeData.category || 'system',
+          description: typeData.description || typeKey,
+          help_text: typeData.help_text || '',
+          default_channels: Array.isArray(typeData.default_channels) ? typeData.default_channels : [],
+          user_preferences: typeData.channels || { email: false, push: false, in_app: false },
+          enabled: Boolean(typeData.enabled)
+        }))
       }
     } catch (error) {
       console.error('Failed to fetch notification preferences:', error)
@@ -241,8 +321,8 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   async function updatePreference(
-    notificationType: string, 
-    channel: 'email' | 'push' | 'in_app', 
+    notificationType: string,
+    channel: 'email' | 'push' | 'in_app',
     enabled: boolean
   ) {
     if (!authStore.isAuthenticated) return
@@ -257,11 +337,9 @@ export const useNotificationStore = defineStore('notification', () => {
       })
 
       if (response.ok) {
-        // Update local state
-        const type = notificationTypes.value.find(t => t.type_key === notificationType)
-        if (type) {
-          type.user_preferences[channel] = enabled
-        }
+        const data = await response.json()
+        preferences.value = data
+        await fetchPreferences()
         uiStore.showSuccess('Notification preference updated')
       }
     } catch (error) {
@@ -283,12 +361,95 @@ export const useNotificationStore = defineStore('notification', () => {
       })
 
       if (response.ok) {
-        preferences.value = newPreferences
+        const data = await response.json()
+        preferences.value = {
+          ...preferences.value,
+          ...data
+        }
+        await fetchPreferences()
         uiStore.showSuccess('Notification preferences updated')
       }
     } catch (error) {
       console.error('Failed to update notification preferences:', error)
       uiStore.showError(t('errors.failedToUpdateNotificationPreferences'))
+    }
+  }
+
+  async function fetchQuietHours() {
+    if (!authStore.isAuthenticated) return
+
+    try {
+      const response = await authStore.authenticatedFetch('/api/notifications/preferences/quiet-hours')
+
+      if (response.ok) {
+        const data = await response.json()
+        preferences.value = {
+          ...preferences.value,
+          quiet_hours: {
+            enabled: Boolean(data?.enabled),
+            start: data?.start || '22:00',
+            end: data?.end || '08:00',
+            start_hour: data?.start_hour ?? 22,
+            end_hour: data?.end_hour ?? 8,
+            days: Array.isArray(data?.days) ? data.days : []
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch quiet hours:', error)
+    }
+  }
+
+  async function updateQuietHours(quietHours: Record<string, any>) {
+    if (!authStore.isAuthenticated) return
+
+    try {
+      const isToggleOnly = Object.keys(quietHours).length === 1 && typeof quietHours.enabled === 'boolean'
+      const endpoint = isToggleOnly
+        ? `/api/notifications/preferences/quiet-hours/${quietHours.enabled ? 'enable' : 'disable'}`
+        : '/api/notifications/preferences/quiet-hours'
+      const method = isToggleOnly ? 'POST' : 'PUT'
+      const body = isToggleOnly && quietHours.enabled
+        ? JSON.stringify({
+            start_hour: preferences.value.quiet_hours?.start_hour ?? 22,
+            end_hour: preferences.value.quiet_hours?.end_hour ?? 8,
+            days: preferences.value.quiet_hours?.days ?? []
+          })
+        : isToggleOnly
+          ? undefined
+          : JSON.stringify(quietHours)
+
+      const response = await authStore.authenticatedFetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || `Quiet hours update failed with ${response.status}`)
+      }
+
+      const data = await response.json()
+      preferences.value = {
+        ...preferences.value,
+        quiet_hours: {
+          enabled: Boolean(data?.enabled),
+          start: data?.start || `${String(data?.start_hour ?? preferences.value.quiet_hours?.start_hour ?? 22).padStart(2, '0')}:00`,
+          end: data?.end || `${String(data?.end_hour ?? preferences.value.quiet_hours?.end_hour ?? 8).padStart(2, '0')}:00`,
+          start_hour: data?.start_hour ?? preferences.value.quiet_hours?.start_hour ?? 22,
+          end_hour: data?.end_hour ?? preferences.value.quiet_hours?.end_hour ?? 8,
+          days: Array.isArray(data?.days) ? data.days : []
+        }
+      }
+      await fetchPreferences()
+      uiStore.showSuccess(t('notificationSettings.settingsSaved'))
+    } catch (error) {
+      console.error('Failed to update quiet hours:', error)
+      uiStore.showError(t('notificationSettings.saveError'))
+      throw error
     }
   }
 
@@ -500,6 +661,21 @@ export const useNotificationStore = defineStore('notification', () => {
   function clearNotifications() {
     notifications.value = []
     unreadCount.value = 0
+    preferences.value = {
+      global_enabled: false,
+      channels: { email: true, push: true, in_app: true },
+      categories: {},
+      types: {},
+      masks: { channels: '0', types: '0' },
+      quiet_hours: {
+        enabled: false,
+        start: '22:00',
+        end: '08:00',
+        start_hour: 22,
+        end_hour: 8,
+        days: []
+      }
+    }
   }
 
   // Initialize
@@ -549,8 +725,10 @@ export const useNotificationStore = defineStore('notification', () => {
     markAllAsRead,
     fetchNotificationTypes,
     fetchPreferences,
+    fetchQuietHours,
     updatePreference,
     updatePreferences,
+    updateQuietHours,
     checkPushSupport,
     getVapidPublicKey,
     registerServiceWorker,

@@ -1,32 +1,27 @@
-"""
-Compatibility API routes for frontend that expects certain endpoints at root level.
-"""
+"""Compatibility API routes for frontend that expects certain endpoints at root level."""
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Any, Dict, List
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.domain.schemas.notification import (
-    UserNotificationPreference, PushSubscription,
-    UserNotificationPreferenceCreate
+    PushSubscription,
 )
 from app.repositories.notification_repository import (
-    NotificationPreferenceRepository,
     PushSubscriptionRepository
 )
 from app.i18n.dependencies import get_locale
 from app.i18n.helpers import raise_i18n_http_exception
+from app.services.notification_settings_service import (
+    notification_settings_service,
+)
 
 router = APIRouter()
-preference_repository = NotificationPreferenceRepository()
 push_subscription_repository = PushSubscriptionRepository()
 
 
-@router.get(
-    "/notification-preferences",
-    response_model=List[UserNotificationPreference]
-)
+@router.get("/notification-preferences")
 async def get_notification_preferences(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -34,39 +29,25 @@ async def get_notification_preferences(
 ):
     """Get user notification preferences (compatibility endpoint)."""
     try:
-        preferences = preference_repository.get_user_preferences(
+        return notification_settings_service.get_settings(
             db, current_user.id
         )
-        return preferences
     except Exception:
-        # If user is not authenticated, return empty array for compatibility
-        return []
+        return {"global_enabled": False, "channels": {}, "categories": {}}
 
 
-@router.put(
-    "/notification-preferences",
-    response_model=List[UserNotificationPreference]
-)
+@router.put("/notification-preferences")
 async def update_notification_preferences(
-    preferences: List[UserNotificationPreferenceCreate],
+    preferences: Dict[str, Any],
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
     locale: str = Depends(get_locale)
 ):
     """Update user notification preferences (compatibility endpoint)."""
     try:
-        updated = []
-        for pref in preferences:
-            # Update or create each preference
-            updated_pref = preference_repository.update_or_create_preference(
-                db,
-                user_id=current_user.id,
-                notification_type=pref.notification_type,
-                channel=pref.channel,
-                enabled=pref.enabled
-            )
-            updated.append(updated_pref)
-        return updated
+        return notification_settings_service.update_settings(
+            db, current_user.id, preferences
+        )
     except Exception as e:
         raise_i18n_http_exception(
             locale=locale,

@@ -11,6 +11,7 @@ from app.core.database import SessionLocal, engine
 from app.domain.models import Base, User
 from app.main import app
 from app.services.notification_preference_service import notification_preference_service
+from app.services.notification_settings_service import notification_settings_service
 from app.services.notification_service import NotificationService
 
 
@@ -113,6 +114,30 @@ class NotificationApiTests(unittest.TestCase):
             headers=self.headers,
         ).json()
         self.assertEqual(final_list["total"], 0)
+
+    def test_preferences_endpoint_returns_masks_and_derived_state(self):
+        response = self.client.get(
+            "/api/notifications/preferences",
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("masks", payload)
+        self.assertTrue(payload["global_enabled"])
+
+        update_response = self.client.put(
+            "/api/notifications/preferences",
+            headers=self.headers,
+            json={"types": {"team_invitation": {"enabled": False}}},
+        )
+        self.assertEqual(update_response.status_code, 200)
+
+        refreshed = self.client.get(
+            "/api/notifications/preferences",
+            headers=self.headers,
+        ).json()
+        self.assertFalse(refreshed["global_enabled"])
+        self.assertFalse(refreshed["categories"]["team"]["enabled"])
 
 
 if __name__ == "__main__":

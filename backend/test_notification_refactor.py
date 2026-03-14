@@ -10,9 +10,14 @@ from app.repositories.notification_repository import (
     NotificationDeliveryRepository,
     NotificationPreferenceRepository,
 )
+from app.services.notification_flags import CHANNEL_FLAGS, TYPE_FLAGS
+from app.services.notification_mask_utils import has_flag
 from app.services.in_app_notification_service import InAppNotificationService
 from app.services.notification_preference_service import (
     notification_preference_service,
+)
+from app.services.notification_settings_service import (
+    notification_settings_service,
 )
 from app.services.notification_service import NotificationService
 
@@ -44,12 +49,14 @@ class NotificationRefactorTests(unittest.TestCase):
 
     def test_preference_disables_push_without_affecting_in_app(self):
         preference_repo = NotificationPreferenceRepository()
-        preference_repo.update_or_create_preference(
+        settings = preference_repo.get_or_create_settings(
+            self.db, user_id=self.user.id
+        )
+        preference_repo.update_settings_masks(
             self.db,
-            user_id=self.user.id,
-            notification_type="team_invitation",
-            channel="push",
-            enabled=False,
+            preference=settings,
+            types_mask=settings.types_mask_int,
+            channels_mask=settings.channels_mask_int & ~CHANNEL_FLAGS["push"],
         )
 
         service = NotificationService()
@@ -67,6 +74,32 @@ class NotificationRefactorTests(unittest.TestCase):
         self.assertTrue(result["in_app"])
         self.assertNotIn("push", channels)
         self.assertIn("in_app", channels)
+
+    def test_global_enabled_requires_all_type_flags(self):
+        settings = notification_settings_service.get_settings(self.db, self.user.id)
+        self.assertTrue(settings["global_enabled"])
+
+        notification_settings_service.update_settings(
+            self.db,
+            self.user.id,
+            {"types": {"team_invitation": {"enabled": False}}},
+        )
+        updated = notification_settings_service.get_settings(self.db, self.user.id)
+        self.assertFalse(updated["global_enabled"])
+        self.assertFalse(updated["categories"]["team"]["enabled"])
+
+    def test_masks_are_persisted_as_strings(self):
+        notification_settings_service.update_settings(
+            self.db,
+            self.user.id,
+            {"channels": {"push": False}},
+        )
+        preference = NotificationPreferenceRepository().get_by_user_id(
+            self.db, self.user.id
+        )
+        self.assertIsInstance(preference.types_mask, str)
+        self.assertIsInstance(preference.channels_mask, str)
+        self.assertFalse(has_flag(preference.channels_mask_int, CHANNEL_FLAGS["push"]))
 
     def test_notification_persists_one_logical_record_with_deliveries(self):
         service = NotificationService()

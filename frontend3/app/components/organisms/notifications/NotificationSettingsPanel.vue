@@ -50,6 +50,64 @@
       </div>
     </div>
 
+    <div class="quiet-hours card mb-8">
+      <div class="card-header mb-6">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              {{ quietHoursTitle }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ quietHoursDescription }}
+            </p>
+          </div>
+          <button
+            @click="$emit('toggle-quiet-hours')"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+              quietHours.enabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
+            ]"
+            :aria-label="quietHours.enabled ? disableQuietHoursLabel : enableQuietHoursLabel"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                quietHours.enabled ? 'translate-x-5' : 'translate-x-0'
+              ]"
+            />
+          </button>
+        </div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-1 block text-sm font-medium text-gray-900 dark:text-white">
+            {{ quietHoursStartLabel }}
+          </span>
+          <input
+            :value="quietHours.start"
+            type="time"
+            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            :disabled="!quietHours.enabled"
+            @change="handleQuietHoursChange('start', $event)"
+          />
+        </label>
+
+        <label class="block">
+          <span class="mb-1 block text-sm font-medium text-gray-900 dark:text-white">
+            {{ quietHoursEndLabel }}
+          </span>
+          <input
+            :value="quietHours.end"
+            type="time"
+            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            :disabled="!quietHours.enabled"
+            @change="handleQuietHoursChange('end', $event)"
+          />
+        </label>
+      </div>
+    </div>
+
     <!-- Channel Preferences -->
     <div class="channel-preferences card mb-8">
       <div class="card-header mb-6">
@@ -186,12 +244,31 @@
     <!-- Notification Types by Category -->
     <div v-for="category in categories" :key="category.id" class="category-settings card mb-8">
       <div class="card-header mb-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-          {{ category.title }}
-        </h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{ category.description }}
-        </p>
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              {{ category.title }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ category.description }}
+            </p>
+          </div>
+          <button
+            @click="$emit('toggle-category', category.id)"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+              category.enabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
+            ]"
+            :aria-label="category.enabled ? disableAllLabel : enableAllLabel"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                category.enabled ? 'translate-x-5' : 'translate-x-0'
+              ]"
+            />
+          </button>
+        </div>
       </div>
       
       <div class="space-y-4">
@@ -262,6 +339,8 @@ export interface NotificationCategory {
   id: string
   title: string
   description: string
+  enabled: boolean
+  channels?: NotificationChannels
   types: NotificationType[]
 }
 
@@ -287,6 +366,18 @@ export interface NotificationSettingsPanelProps {
   enableAllLabel?: string
   enableAllDescription?: string
   disableAllLabel?: string
+
+  quietHours?: {
+    enabled: boolean
+    start: string
+    end: string
+  }
+  quietHoursTitle?: string
+  quietHoursDescription?: string
+  quietHoursStartLabel?: string
+  quietHoursEndLabel?: string
+  enableQuietHoursLabel?: string
+  disableQuietHoursLabel?: string
   
   // Channel preferences
   channels?: NotificationChannels
@@ -328,6 +419,18 @@ const props = withDefaults(defineProps<NotificationSettingsPanelProps>(), {
   enableAllLabel: 'Enable all notifications',
   enableAllDescription: 'Turn all notifications on or off',
   disableAllLabel: 'Disable all notifications',
+
+  quietHours: () => ({
+    enabled: false,
+    start: '22:00',
+    end: '08:00'
+  }),
+  quietHoursTitle: 'Quiet hours',
+  quietHoursDescription: 'Pause non-urgent notifications during your preferred off-hours',
+  quietHoursStartLabel: 'Start time',
+  quietHoursEndLabel: 'End time',
+  enableQuietHoursLabel: 'Enable quiet hours',
+  disableQuietHoursLabel: 'Disable quiet hours',
   
   channels: () => ({
     email: true,
@@ -359,10 +462,24 @@ const props = withDefaults(defineProps<NotificationSettingsPanelProps>(), {
 
 const emit = defineEmits<{
   'toggle-global': []
+  'toggle-category': [categoryId: string]
   'toggle-channel': [channel: string]
   'toggle-type': [typeKey: string]
+  'toggle-quiet-hours': []
+  'update-quiet-hours': [payload: { start?: string; end?: string }]
   'enable-push': []
 }>()
+
+function handleQuietHoursChange(
+  field: 'start' | 'end',
+  event: Event
+) {
+  const target = event.target as HTMLInputElement | null
+  if (!target?.value) {
+    return
+  }
+  emit('update-quiet-hours', { [field]: target.value })
+}
 </script>
 
 <style scoped>
