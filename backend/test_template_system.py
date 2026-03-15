@@ -2,13 +2,16 @@
 """
 Simple test for Email Template System without database dependencies.
 """
-from app.services.email_orchestrator import (
-    EmailTemplateValidator, LanguageResolver
-)
-from app.utils.jinja2_engine import Jinja2TemplateEngine
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from app.services.email_orchestrator import (  # noqa: E402
+    EmailTemplateValidator,
+    LanguageResolver,
+)
+from app.utils.jinja2_engine import Jinja2TemplateEngine  # noqa: E402
 
 
 def test_jinja2_engine():

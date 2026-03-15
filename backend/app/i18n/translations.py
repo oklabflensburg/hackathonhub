@@ -264,26 +264,92 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "hackathon_start_reminder_title": "Hackathon Reminder"
         },
         "notifications": {
-            "help_text.team_invitation": "Alerts you when another participant invites you to a team so you can accept, decline, or react before collaboration starts without you.",
-            "help_text.team_invitation_accepted": "Lets you know that an invited member has joined, so you can assign roles, share context, and continue coordination without checking manually.",
-            "help_text.team_invitation_declined": "Informs you when an invitation is declined, so you can quickly invite someone else or rebalance the team before deadlines get closer.",
-            "help_text.team_member_added": "Notifies you that you were added to a team, including cases where active project work already depends on your participation.",
-            "help_text.team_created": "Confirms team creation and keeps newly created collaboration spaces visible when you manage multiple teams or hackathons.",
-            "help_text.project_created": "Tells you when a new project appears in your team so you can review ownership, scope, and next steps early.",
-            "help_text.project_commented": "Highlights new project discussion so feedback, review requests, and blockers are not missed.",
-            "help_text.hackathon_registered": "Confirms successful registration and keeps event-related communication attached to the hackathon you joined.",
-            "help_text.hackathon_started": "Signals the official event start so you can join on time and avoid missing kickoff, submissions, or early announcements.",
-            "help_text.hackathon_start_reminder": "Sends a reminder shortly before kickoff so you have time to prepare teammates, devices, and submission materials.",
-            "help_text.comment_reply": "Keeps threaded conversations visible when someone answers your comment and expects follow-up or clarification.",
-            "help_text.vote_received": "Shows engagement with your project inside the app without creating unnecessary email or push noise by default.",
-            "help_text.system_announcement": "Covers platform-wide announcements, maintenance information, and operational updates relevant to your account.",
-            "help_text.security_alert": "Reserved for security-sensitive events that may require immediate action, such as suspicious access or account changes.",
-            "help_text.verification_confirmed": "Confirms that your email address is verified and your account is ready for features that require a verified identity.",
-            "help_text.password_reset_confirmed": "Confirms that a password reset was completed so you can spot unexpected account recovery activity.",
-            "help_text.password_changed": "Warns you whenever the account password changes, which is critical for detecting unauthorized access quickly.",
-            "help_text.newsletter_unsubscribed": "Records newsletter subscription changes so you have a clear audit trail of marketing preference updates.",
-            "help_text.security_login_new_device": "Notifies you about sign-ins from new devices to help detect account takeover attempts and react immediately.",
-            "help_text.settings_changed": "Confirms sensitive account setting changes so you can verify that profile or security updates were intentional."
+            "help_text.team_invitation": (
+                "Alerts you when another participant invites you to a team "
+                "so you can accept, decline, or react before collaboration "
+                "starts without you."
+            ),
+            "help_text.team_invitation_accepted": (
+                "Lets you know that an invited member has joined, so you can "
+                "assign roles, share context, and continue coordination "
+                "without checking manually."
+            ),
+            "help_text.team_invitation_declined": (
+                "Informs you when an invitation is declined, so you can "
+                "quickly invite someone else or rebalance the team before "
+                "deadlines get closer."
+            ),
+            "help_text.team_member_added": (
+                "Notifies you that you were added to a team, including cases "
+                "where active project work already depends on your "
+                "participation."
+            ),
+            "help_text.team_created": (
+                "Confirms team creation and keeps newly created collaboration "
+                "spaces visible when you manage multiple teams or hackathons."
+            ),
+            "help_text.project_created": (
+                "Tells you when a new project appears in your team so you can "
+                "review ownership, scope, and next steps early."
+            ),
+            "help_text.project_commented": (
+                "Highlights new project discussion so feedback, review "
+                "requests, and blockers are not missed."
+            ),
+            "help_text.hackathon_registered": (
+                "Confirms successful registration and keeps event-related "
+                "communication attached to the hackathon you joined."
+            ),
+            "help_text.hackathon_started": (
+                "Signals the official event start so you can join on time and "
+                "avoid missing kickoff, submissions, or early announcements."
+            ),
+            "help_text.hackathon_start_reminder": (
+                "Sends a reminder shortly before kickoff so you have time to "
+                "prepare teammates, devices, and submission materials."
+            ),
+            "help_text.comment_reply": (
+                "Keeps threaded conversations visible when someone answers "
+                "your comment and expects follow-up or clarification."
+            ),
+            "help_text.vote_received": (
+                "Shows engagement with your project inside the app without "
+                "creating unnecessary email or push noise by default."
+            ),
+            "help_text.system_announcement": (
+                "Covers platform-wide announcements, maintenance information, "
+                "and operational updates relevant to your account."
+            ),
+            "help_text.security_alert": (
+                "Reserved for security-sensitive events that may require "
+                "immediate action, such as suspicious access or account "
+                "changes."
+            ),
+            "help_text.verification_confirmed": (
+                "Confirms that your email address is verified and your "
+                "account is ready for features that require a verified "
+                "identity."
+            ),
+            "help_text.password_reset_confirmed": (
+                "Confirms that a password reset was completed so you can spot "
+                "unexpected account recovery activity."
+            ),
+            "help_text.password_changed": (
+                "Warns you whenever the account password changes, which is "
+                "critical for detecting unauthorized access quickly."
+            ),
+            "help_text.newsletter_unsubscribed": (
+                "Records newsletter subscription changes so you have a clear "
+                "audit trail of marketing preference updates."
+            ),
+            "help_text.security_login_new_device": (
+                "Notifies you about sign-ins from new devices to help detect "
+                "account takeover attempts and react immediately."
+            ),
+            "help_text.settings_changed": (
+                "Confirms sensitive account setting changes so you can verify "
+                "that profile or security updates were intentional."
+            )
         }
     },
     "de": {
@@ -573,26 +639,99 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "hackathon_start_reminder_title": "Hackathon-Erinnerung"
         },
         "notifications": {
-            "help_text.team_invitation": "Informiert dich, wenn dich jemand in ein Team einlädt, damit du rechtzeitig annehmen, ablehnen oder reagieren kannst, bevor die Zusammenarbeit ohne dich startet.",
-            "help_text.team_invitation_accepted": "Zeigt dir, dass ein eingeladener Nutzer beigetreten ist, damit du Rollen vergeben, Kontext teilen und die Zusammenarbeit direkt fortsetzen kannst.",
-            "help_text.team_invitation_declined": "Informiert dich, wenn eine Einladung abgelehnt wurde, damit du schnell andere Personen einladen oder das Team neu ausbalancieren kannst.",
-            "help_text.team_member_added": "Benachrichtigt dich, wenn du zu einem Team hinzugefügt wurdest, auch in Fällen, in denen bereits laufende Projektarbeit von deiner Teilnahme abhängt.",
-            "help_text.team_created": "Bestätigt die Teamerstellung und hält neue Kollaborationsräume sichtbar, wenn du mehrere Teams oder Hackathons verwaltest.",
-            "help_text.project_created": "Informiert dich, wenn in deinem Team ein neues Projekt angelegt wurde, damit du Zuständigkeiten, Umfang und nächste Schritte früh prüfen kannst.",
-            "help_text.project_commented": "Hebt neue Diskussionen am Projekt hervor, damit Feedback, Review-Anfragen und Blocker nicht untergehen.",
-            "help_text.hackathon_registered": "Bestätigt deine erfolgreiche Anmeldung und bündelt wichtige Kommunikationspunkte zum Hackathon, an dem du teilnimmst.",
-            "help_text.hackathon_started": "Signalisiert den offiziellen Start des Events, damit du Kickoff, Einreichungen und frühe Ankündigungen nicht verpasst.",
-            "help_text.hackathon_start_reminder": "Erinnert dich kurz vor dem Start, damit du Team, Geräte und Einreichungsunterlagen rechtzeitig vorbereiten kannst.",
-            "help_text.comment_reply": "Hält Kommentar-Threads sichtbar, wenn jemand auf deinen Beitrag antwortet und eine Rückmeldung oder Klärung erwartet.",
-            "help_text.vote_received": "Zeigt Interaktionen mit deinem Projekt in der App an, ohne standardmäßig unnötige E-Mail- oder Push-Benachrichtigungen zu erzeugen.",
-            "help_text.system_announcement": "Umfasst plattformweite Ankündigungen, Wartungshinweise und betriebliche Updates, die für dein Konto relevant sind.",
-            "help_text.security_alert": "Ist für sicherheitsrelevante Ereignisse reserviert, bei denen möglicherweise sofortiges Handeln nötig ist, etwa bei verdächtigen Zugriffen oder Kontoänderungen.",
-            "help_text.verification_confirmed": "Bestätigt, dass deine E-Mail-Adresse verifiziert wurde und dein Konto für Funktionen mit verifizierter Identität bereit ist.",
-            "help_text.password_reset_confirmed": "Bestätigt den Abschluss eines Passwort-Resets, damit dir unerwartete Kontowiederherstellungen auffallen.",
-            "help_text.password_changed": "Warnt dich bei jeder Passwortänderung, was wichtig ist, um unbefugten Zugriff schnell zu erkennen.",
-            "help_text.newsletter_unsubscribed": "Dokumentiert Änderungen an deinen Newsletter-Einstellungen, damit du einen klaren Verlauf deiner Marketing-Präferenzen hast.",
-            "help_text.security_login_new_device": "Benachrichtigt dich über Anmeldungen von neuen Geräten, damit du mögliche Kontoübernahmen früh erkennst und sofort reagieren kannst.",
-            "help_text.settings_changed": "Bestätigt sensible Änderungen an Kontoeinstellungen, damit du prüfen kannst, ob Profil- oder Sicherheitsänderungen beabsichtigt waren."
+            "help_text.team_invitation": (
+                "Informiert dich, wenn dich jemand in ein Team einlädt, "
+                "damit du rechtzeitig annehmen, ablehnen oder reagieren "
+                "kannst, bevor die Zusammenarbeit ohne dich startet."
+            ),
+            "help_text.team_invitation_accepted": (
+                "Zeigt dir, dass ein eingeladener Nutzer beigetreten ist, "
+                "damit du Rollen vergeben, Kontext teilen und die "
+                "Zusammenarbeit direkt fortsetzen kannst."
+            ),
+            "help_text.team_invitation_declined": (
+                "Informiert dich, wenn eine Einladung abgelehnt wurde, damit "
+                "du schnell andere Personen einladen oder das Team neu "
+                "ausbalancieren kannst."
+            ),
+            "help_text.team_member_added": (
+                "Benachrichtigt dich, wenn du zu einem Team hinzugefügt "
+                "wurdest, auch in Fällen, in denen bereits laufende "
+                "Projektarbeit von deiner Teilnahme abhängt."
+            ),
+            "help_text.team_created": (
+                "Bestätigt die Teamerstellung und hält neue "
+                "Kollaborationsräume sichtbar, wenn du mehrere Teams oder "
+                "Hackathons verwaltest."
+            ),
+            "help_text.project_created": (
+                "Informiert dich, wenn in deinem Team ein neues Projekt "
+                "angelegt wurde, damit du Zuständigkeiten, Umfang und nächste "
+                "Schritte früh prüfen kannst."
+            ),
+            "help_text.project_commented": (
+                "Hebt neue Diskussionen am Projekt hervor, damit Feedback, "
+                "Review-Anfragen und Blocker nicht untergehen."
+            ),
+            "help_text.hackathon_registered": (
+                "Bestätigt deine erfolgreiche Anmeldung und bündelt wichtige "
+                "Kommunikationspunkte zum Hackathon, an dem du teilnimmst."
+            ),
+            "help_text.hackathon_started": (
+                "Signalisiert den offiziellen Start des Events, damit du "
+                "Kickoff, Einreichungen und frühe Ankündigungen nicht "
+                "verpasst."
+            ),
+            "help_text.hackathon_start_reminder": (
+                "Erinnert dich kurz vor dem Start, damit du Team, Geräte und "
+                "Einreichungsunterlagen rechtzeitig vorbereiten kannst."
+            ),
+            "help_text.comment_reply": (
+                "Hält Kommentar-Threads sichtbar, wenn jemand auf deinen "
+                "Beitrag antwortet und eine Rückmeldung oder Klärung erwartet."
+            ),
+            "help_text.vote_received": (
+                "Zeigt Interaktionen mit deinem Projekt in der App an, ohne "
+                "standardmäßig unnötige E-Mail- oder Push-Benachrichtigungen "
+                "zu erzeugen."
+            ),
+            "help_text.system_announcement": (
+                "Umfasst plattformweite Ankündigungen, Wartungshinweise und "
+                "betriebliche Updates, die für dein Konto relevant sind."
+            ),
+            "help_text.security_alert": (
+                "Ist für sicherheitsrelevante Ereignisse reserviert, bei "
+                "denen möglicherweise sofortiges Handeln nötig ist, etwa bei "
+                "verdächtigen Zugriffen oder Kontoänderungen."
+            ),
+            "help_text.verification_confirmed": (
+                "Bestätigt, dass deine E-Mail-Adresse verifiziert wurde und "
+                "dein Konto für Funktionen mit verifizierter Identität bereit "
+                "ist."
+            ),
+            "help_text.password_reset_confirmed": (
+                "Bestätigt den Abschluss eines Passwort-Resets, damit dir "
+                "unerwartete Kontowiederherstellungen auffallen."
+            ),
+            "help_text.password_changed": (
+                "Warnt dich bei jeder Passwortänderung, was wichtig ist, um "
+                "unbefugten Zugriff schnell zu erkennen."
+            ),
+            "help_text.newsletter_unsubscribed": (
+                "Dokumentiert Änderungen an deinen "
+                "Newsletter-Einstellungen, damit du einen klaren Verlauf "
+                "deiner Marketing-Präferenzen hast."
+            ),
+            "help_text.security_login_new_device": (
+                "Benachrichtigt dich über Anmeldungen von neuen Geräten, "
+                "damit du mögliche Kontoübernahmen früh erkennst und sofort "
+                "reagieren kannst."
+            ),
+            "help_text.settings_changed": (
+                "Bestätigt sensible Änderungen an Kontoeinstellungen, damit "
+                "du prüfen kannst, ob Profil- oder Sicherheitsänderungen "
+                "beabsichtigt waren."
+            )
         }
     }
 }

@@ -4,22 +4,22 @@ import unittest
 os.environ.setdefault("DEBUG", "false")
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
-from app.core.database import SessionLocal, engine
-from app.domain.models import Base, User
-from app.repositories.notification_repository import (
+from app.core.database import SessionLocal, engine  # noqa: E402
+from app.domain.models import Base, User  # noqa: E402
+from app.repositories.notification_repository import (  # noqa: E402
     NotificationDeliveryRepository,
     NotificationPreferenceRepository,
 )
-from app.services.notification_flags import CHANNEL_FLAGS, TYPE_FLAGS
-from app.services.notification_mask_utils import has_flag
-from app.services.in_app_notification_service import InAppNotificationService
-from app.services.notification_preference_service import (
+from app.services.in_app_notification_service import InAppNotificationService  # noqa: E402
+from app.services.notification_preference_service import (  # noqa: E402
     notification_preference_service,
 )
-from app.services.notification_settings_service import (
+from app.services.notification_settings_service import (  # noqa: E402
     notification_settings_service,
 )
-from app.services.notification_service import NotificationService
+from app.services.notification_service import NotificationService  # noqa: E402
+from app.utils.notification_flags import CHANNEL_FLAGS  # noqa: E402
+from app.utils.notification_mask_utils import has_flag  # noqa: E402
 
 
 class NotificationRefactorTests(unittest.TestCase):

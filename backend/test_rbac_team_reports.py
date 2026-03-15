@@ -5,13 +5,24 @@ from datetime import datetime, timedelta, timezone
 os.environ.setdefault('DEBUG', 'false')
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from app.core.auth import create_tokens
-from app.core.database import SessionLocal, engine
-from app.core.permissions import PERMISSION_CODES
-from app.domain.models import Base, Hackathon, Permission, Role, RolePermission, Team, TeamMember, TeamReport, User, UserRole
-from app.main import app
+from app.core.auth import create_tokens  # noqa: E402
+from app.core.database import SessionLocal, engine  # noqa: E402
+from app.core.permissions import PERMISSION_CODES  # noqa: E402
+from app.domain.models import (  # noqa: E402
+    Base,
+    Hackathon,
+    Permission,
+    Role,
+    RolePermission,
+    Team,
+    TeamMember,
+    TeamReport,
+    User,
+    UserRole,
+)
+from app.main import app  # noqa: E402
 
 
 class RbacTeamReportTests(unittest.TestCase):
@@ -20,10 +31,30 @@ class RbacTeamReportTests(unittest.TestCase):
         Base.metadata.create_all(bind=engine)
         self.db = SessionLocal()
 
-        self.owner = User(email='owner@example.com', username='owner', password_hash='secret', email_verified=True)
-        self.reporter = User(email='reporter@example.com', username='reporter', password_hash='secret', email_verified=True)
-        self.superuser = User(email='root@example.com', username='root', password_hash='secret', email_verified=True)
-        self.stranger = User(email='stranger@example.com', username='stranger', password_hash='secret', email_verified=True)
+        self.owner = User(
+            email='owner@example.com',
+            username='owner',
+            password_hash='secret',
+            email_verified=True,
+        )
+        self.reporter = User(
+            email='reporter@example.com',
+            username='reporter',
+            password_hash='secret',
+            email_verified=True,
+        )
+        self.superuser = User(
+            email='root@example.com',
+            username='root',
+            password_hash='secret',
+            email_verified=True,
+        )
+        self.stranger = User(
+            email='stranger@example.com',
+            username='stranger',
+            password_hash='secret',
+            email_verified=True,
+        )
         self.db.add_all([self.owner, self.reporter, self.superuser, self.stranger])
         self.db.commit()
         for user in (self.owner, self.reporter, self.superuser, self.stranger):
@@ -44,14 +75,26 @@ class RbacTeamReportTests(unittest.TestCase):
         self.db.refresh(hackathon)
         self.hackathon = hackathon
 
-        team = Team(name='Team Alpha', hackathon_id=hackathon.id, created_by=self.owner.id)
+        team = Team(
+            name='Team Alpha',
+            hackathon_id=hackathon.id,
+            created_by=self.owner.id,
+        )
         self.db.add(team)
         self.db.commit()
         self.db.refresh(team)
         self.team = team
 
-        self.db.add(TeamMember(team_id=team.id, user_id=self.owner.id, role='owner'))
-        self.db.add(TeamReport(team_id=team.id, reporter_id=self.reporter.id, reason='Spam links'))
+        self.db.add(
+            TeamMember(team_id=team.id, user_id=self.owner.id, role='owner')
+        )
+        self.db.add(
+            TeamReport(
+                team_id=team.id,
+                reporter_id=self.reporter.id,
+                reason='Spam links',
+            )
+        )
         self.db.commit()
 
         self._seed_superuser_role()
@@ -70,10 +113,29 @@ class RbacTeamReportTests(unittest.TestCase):
         return {'Authorization': f'Bearer {token}'}
 
     def _seed_superuser_role(self):
-        super_role = Role(name='superuser', description='System role: superuser', is_system=True)
-        assign_permission = Permission(code=PERMISSION_CODES['rbac_assign_roles'], description='assign roles', resource='rbac', action='assign_roles')
-        view_permission = Permission(code=PERMISSION_CODES['rbac_view'], description='view roles', resource='rbac', action='view')
-        report_permission = Permission(code=PERMISSION_CODES['team_reports_review'], description='review team reports', resource='team_reports', action='review')
+        super_role = Role(
+            name='superuser',
+            description='System role: superuser',
+            is_system=True,
+        )
+        assign_permission = Permission(
+            code=PERMISSION_CODES['rbac_assign_roles'],
+            description='assign roles',
+            resource='rbac',
+            action='assign_roles',
+        )
+        view_permission = Permission(
+            code=PERMISSION_CODES['rbac_view'],
+            description='view roles',
+            resource='rbac',
+            action='view',
+        )
+        report_permission = Permission(
+            code=PERMISSION_CODES['team_reports_review'],
+            description='review team reports',
+            resource='team_reports',
+            action='review',
+        )
         self.db.add_all([super_role, assign_permission, view_permission, report_permission])
         self.db.commit()
         self.db.refresh(super_role)

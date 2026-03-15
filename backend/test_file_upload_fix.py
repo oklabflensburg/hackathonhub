@@ -3,7 +3,6 @@
 Test script to verify the FileUploadService changes.
 """
 import sys
-import os
 from pathlib import Path
 
 # Add the app directory to the path
@@ -14,7 +13,7 @@ def test_settings_import():
     """Test that settings can be imported and UPLOAD_DIR is accessible."""
     try:
         from app.core.config import settings
-        print(f"✓ settings imported successfully")
+        print("✓ settings imported successfully")
         print(f"  settings.UPLOAD_DIR = {settings.UPLOAD_DIR}")
         return True
     except Exception as e:
@@ -27,7 +26,7 @@ def test_file_upload_service():
     try:
         from app.utils.file_upload import FileUploadService
         service = FileUploadService()
-        print(f"✓ FileUploadService instantiated successfully")
+        print("✓ FileUploadService instantiated successfully")
         print(f"  service.upload_dir = {service.upload_dir}")
         print(f"  service.upload_dir exists: {service.upload_dir.exists()}")
 

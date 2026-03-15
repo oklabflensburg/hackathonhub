@@ -3,10 +3,11 @@
 Performance test for projects API.
 """
 import time
-import requests
 import statistics
-from typing import List, Dict
 import sys
+from typing import Dict
+
+import requests
 
 # Configuration
 BASE_URL = "http://localhost:8000"  # Adjust if needed
@@ -17,20 +18,21 @@ ENDPOINTS = [
     "/api/v1/projects?search=test",
 ]
 
+
 def test_endpoint(endpoint: str, iterations: int = 5) -> Dict:
     """Test a single endpoint and return performance metrics."""
     url = f"{BASE_URL}{endpoint}"
     times = []
     successes = 0
-    
+
     print(f"Testing {url}...")
-    
+
     for i in range(iterations):
         try:
             start_time = time.time()
             response = requests.get(url, timeout=10)
             elapsed = (time.time() - start_time) * 1000  # Convert to ms
-            
+
             if response.status_code == 200:
                 times.append(elapsed)
                 successes += 1
@@ -39,7 +41,7 @@ def test_endpoint(endpoint: str, iterations: int = 5) -> Dict:
                 print(f"  Iteration {i+1}: Failed with status {response.status_code}")
         except Exception as e:
             print(f"  Iteration {i+1}: Error - {e}")
-    
+
     if times:
         return {
             "endpoint": endpoint,
@@ -63,24 +65,25 @@ def test_endpoint(endpoint: str, iterations: int = 5) -> Dict:
             "sample_size": 0,
         }
 
+
 def main():
     """Run performance tests on all endpoints."""
     print("=" * 60)
     print("Performance Test for Projects API")
     print("=" * 60)
-    
+
     results = []
-    
+
     for endpoint in ENDPOINTS:
         result = test_endpoint(endpoint)
         results.append(result)
         print()
-    
+
     # Print summary
     print("=" * 60)
     print("PERFORMANCE SUMMARY")
     print("=" * 60)
-    
+
     for result in results:
         print(f"\nEndpoint: {result['endpoint']}")
         print(f"  Success Rate: {result['success_rate']:.1f}%")
@@ -98,9 +101,9 @@ def main():
         for r in slow_endpoints:
             print(f"  - {r['endpoint']}: {r['avg_time_ms']:.2f} ms")
         return 1
-    else:
-        print("\n✅ All endpoints are performing well (< 500ms)")
-        return 0
+    print("\n✅ All endpoints are performing well (< 500ms)")
+    return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

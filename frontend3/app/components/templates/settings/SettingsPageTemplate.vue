@@ -11,11 +11,13 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex flex-col lg:flex-row gap-8">
+    <div class="flex flex-col xl:flex-row gap-6 xl:gap-8">
       <!-- Left Sidebar: Navigation -->
-      <div class="lg:w-64 flex-shrink-0">
+      <div class="xl:w-72 flex-shrink-0">
         <SettingsNavigation
           :active-tab="activeTab"
+          :has-unsaved-changes="hasUnsavedChanges"
+          :last-updated="lastSavedAt"
           @tab-change="handleTabChange"
         />
       </div>
@@ -94,6 +96,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import { useThemeStore } from '~/stores/theme'
 import SettingsNavigation from '~/components/organisms/settings/SettingsNavigation.vue'
 import SettingsContent from '~/components/organisms/settings/SettingsContent.vue'
 import SettingsActions from '~/components/organisms/settings/SettingsActions.vue'
@@ -112,6 +115,7 @@ import type {
 
 // Auth store
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 
 // Reactive state
 const activeTab = ref('profile')
@@ -201,6 +205,13 @@ const platform = ref<PlatformPreferences>({
 
 const errors = ref<Record<string, any>>({})
 
+const syncPlatformTheme = (theme: PlatformPreferences['theme']) => {
+  themeStore.setTheme(theme)
+  if (authStore.user) {
+    authStore.user.theme = theme
+  }
+}
+
 const normalizeSecuritySettings = (value: Partial<SecuritySettings> | undefined): SecuritySettings => ({
   two_factor_enabled: Boolean(value?.two_factor_enabled),
   two_factor_last_enabled: value?.two_factor_last_enabled,
@@ -242,6 +253,7 @@ const fetchSettings = async () => {
       notifications.value = data.settings.notifications
       privacy.value = data.settings.privacy
       platform.value = data.settings.platform
+      syncPlatformTheme(data.settings.platform.theme)
       
       // Store original settings for reset functionality
       originalSettings.value = data.settings
@@ -315,9 +327,58 @@ const handlePrivacyUpdate = (updatedPrivacy: PrivacySettings) => {
   hasUnsavedChanges.value = true
 }
 
+const savePlatformSettings = async (nextPlatform: PlatformPreferences) => {
+  isSaving.value = true
+  error.value = undefined
+
+  try {
+    const response = await authStore.fetchWithAuth('/api/settings/', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        platform: nextPlatform
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(`Failed to save platform settings: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`)
+    }
+
+    const data: SettingsResponse = await response.json()
+    if (data.settings) {
+      platform.value = data.settings.platform
+      syncPlatformTheme(data.settings.platform.theme)
+      originalSettings.value = originalSettings.value
+        ? { ...originalSettings.value, platform: data.settings.platform }
+        : data.settings
+    }
+
+    lastSavedAt.value = data.last_updated
+    hasUnsavedChanges.value = false
+  } catch (err) {
+    console.error('Error saving platform settings:', err)
+    error.value = 'Fehler beim Speichern der Plattformeinstellungen.'
+    if (originalSettings.value) {
+      platform.value = originalSettings.value.platform
+      syncPlatformTheme(originalSettings.value.platform.theme)
+    }
+  } finally {
+    isSaving.value = false
+  }
+}
+
 const handlePlatformUpdate = (updatedPlatform: PlatformPreferences) => {
   platform.value = updatedPlatform
+  syncPlatformTheme(updatedPlatform.theme)
   hasUnsavedChanges.value = true
+
+  // Platform changes should persist immediately so the theme survives reloads.
+  if (autoSaveEnabled.value && !isSaving.value) {
+    void savePlatformSettings(updatedPlatform)
+  }
 }
 
 const handleToggleTwoFactor = (enabled: boolean) => {
@@ -481,6 +542,7 @@ const handleSave = async () => {
       notifications.value = data.settings.notifications
       privacy.value = data.settings.privacy
       platform.value = data.settings.platform
+      syncPlatformTheme(data.settings.platform.theme)
       originalSettings.value = data.settings
     }
     
@@ -508,6 +570,7 @@ const handleReset = () => {
     notifications.value = originalSettings.value.notifications
     privacy.value = originalSettings.value.privacy
     platform.value = originalSettings.value.platform
+    syncPlatformTheme(originalSettings.value.platform.theme)
   } else {
     // If no original settings, reload from API
     fetchSettings()

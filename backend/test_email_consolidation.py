@@ -14,7 +14,7 @@ print("=" * 50)
 # Test 1: Template Registry
 print("\n1. Testing Template Registry...")
 try:
-    from app.utils.template_registry import TemplateRegistry
+    from app.utils.template_registry import TemplateRegistry  # noqa: E402
     registry = TemplateRegistry()
 
     # Check new templates
@@ -41,7 +41,7 @@ except Exception as e:
 # Test 2: Email Orchestrator
 print("\n2. Testing Email Orchestrator...")
 try:
-    from app.services.email_orchestrator import EmailOrchestrator
+    from app.services.email_orchestrator import EmailOrchestrator  # noqa: E402
     orchestrator = EmailOrchestrator()
 
     # Dry run test
@@ -68,7 +68,7 @@ except Exception as e:
 # Test 3: Notification Service
 print("\n3. Testing Notification Service...")
 try:
-    from app.services.notification_service import NotificationService
+    from app.services.notification_service import NotificationService  # noqa: E402
     service = NotificationService()
 
     # Check template mapping
@@ -85,7 +85,7 @@ except Exception as e:
 print("\n4. Checking modified services...")
 try:
     # Check email_verification_service has new method
-    from app.services.email_verification_service import (
+    from app.services.email_verification_service import (  # noqa: E402
         EmailVerificationService
     )
 
@@ -98,7 +98,7 @@ try:
         print("  ✗ EmailVerificationService missing new method")
 
     # Check hackathon_service has notification integration
-    from app.services.hackathon_service import HackathonService
+    from app.services.hackathon_service import HackathonService  # noqa: E402
 
     hs = HackathonService()
     if hasattr(hs, "notification_service"):

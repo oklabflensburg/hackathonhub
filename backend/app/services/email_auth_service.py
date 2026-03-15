@@ -2,25 +2,28 @@
 Email authentication service for user registration,
 login, and password management.
 """
-import logging
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from email_validator import validate_email, EmailNotValidError
-import bcrypt
-import json
 import base64
-import uuid
+import json
+import logging
 import os
+import uuid
+from datetime import datetime, timedelta
+
+import bcrypt
+from email_validator import EmailNotValidError, validate_email
+from sqlalchemy.orm import Session
+
+from app.core.auth import create_tokens
+from app.domain.schemas.user import User, UserCreate, UserRegister
+from app.repositories.user_repository import (
+    PasswordResetTokenRepository,
+    RefreshTokenRepository,
+    UserRepository,
+)
+from app.services.email_orchestrator import EmailContext, EmailOrchestrator
+from app.services.email_verification_service import EmailVerificationService
 
 logger = logging.getLogger(__name__)
-
-from app.domain.schemas.user import UserRegister, UserCreate, User
-from app.repositories.user_repository import (
-    UserRepository, RefreshTokenRepository, PasswordResetTokenRepository
-)
-from app.core.auth import create_tokens
-from app.services.email_orchestrator import EmailOrchestrator, EmailContext
-from app.services.email_verification_service import EmailVerificationService
 
 
 class EmailAuthService:

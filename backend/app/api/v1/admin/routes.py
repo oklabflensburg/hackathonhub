@@ -1,11 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.core.permissions import PERMISSION_CODES, require_permission
-from app.domain.schemas.rbac import Permission as PermissionSchema, Role as RoleSchema, UserRoleAssignmentRequest
-from app.repositories.rbac_repository import PermissionRepository, RoleRepository, UserRoleRepository
+from app.domain.schemas.rbac import (
+    Permission as PermissionSchema,
+    Role as RoleSchema,
+    UserRoleAssignmentRequest
+)
+from app.repositories.rbac_repository import (
+    PermissionRepository,
+    RoleRepository,
+    UserRoleRepository
+)
 from app.repositories.user_repository import UserRepository
 
 router = APIRouter()
@@ -39,7 +46,10 @@ async def get_user_roles(
 ):
     user = user_repository.get(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail='User not found')
+        raise HTTPException(
+            status_code=404,
+            detail='User not found'
+        )
     return user_role_repository.get_user_roles(db, user_id)
 
 
@@ -48,12 +58,20 @@ async def set_user_roles(
     user_id: int,
     payload: UserRoleAssignmentRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(require_permission(PERMISSION_CODES['rbac_assign_roles'])),
+    current_user=Depends(
+        require_permission(PERMISSION_CODES['rbac_assign_roles'])
+    ),
 ):
     user = user_repository.get(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail='User not found')
+        raise HTTPException(
+            status_code=404,
+            detail='User not found'
+        )
     roles = role_repository.get_by_ids(db, payload.role_ids)
     if len(roles) != len(set(payload.role_ids)):
-        raise HTTPException(status_code=400, detail='One or more roles do not exist')
+        raise HTTPException(
+            status_code=400,
+            detail='One or more roles do not exist'
+        )
     return user_role_repository.set_user_roles(db, user_id, roles)

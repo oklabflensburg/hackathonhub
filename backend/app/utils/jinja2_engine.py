@@ -157,12 +157,16 @@ class Jinja2TemplateEngine:
             "hackathon/registered": "email.hackathon_registered_subject",
             "hackathon/started": "email.hackathon_started_subject",
             "verification_confirmed": "email.verification_confirmed_subject",
-            "password_reset_confirmed": "email.password_reset_confirmed_subject",
+            "password_reset_confirmed":
+                "email.password_reset_confirmed_subject",
             "password_changed": "email.password_changed_subject",
-            "newsletter_unsubscribed": "email.newsletter_unsubscribed_subject",
-            "security_login_new_device": "email.security_login_new_device_subject",
+            "newsletter_unsubscribed":
+                "email.newsletter_unsubscribed_subject",
+            "security_login_new_device":
+                "email.security_login_new_device_subject",
             "settings_changed": "email.settings_changed_subject",
-            "hackathon/start_reminder": "email.hackathon_start_reminder_subject",
+            "hackathon/start_reminder":
+                "email.hackathon_start_reminder_subject",
         }
 
         subject_key = subject_key_map.get(template_name)
@@ -195,7 +199,8 @@ class Jinja2TemplateEngine:
             "password_reset_confirmed": "email.password_reset_confirmed_title",
             "password_changed": "email.password_changed_title",
             "newsletter_unsubscribed": "email.newsletter_unsubscribed_title",
-            "security_login_new_device": "email.security_login_new_device_title",
+            "security_login_new_device":
+                "email.security_login_new_device_title",
             "settings_changed": "email.settings_changed_title",
             "hackathon/start_reminder": "email.hackathon_start_reminder_title",
         }

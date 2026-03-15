@@ -278,8 +278,6 @@ async def get_hackathon_teams(
     return {"teams": team_list, "hackathon_id": hackathon_id}
 
 
-
-
 @router.post("/{hackathon_id}/reports", response_model=Report)
 async def report_hackathon(
     hackathon_id: int,

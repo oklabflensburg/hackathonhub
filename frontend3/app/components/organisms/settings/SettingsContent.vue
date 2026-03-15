@@ -269,23 +269,54 @@
 
       <!-- Notifications Tab -->
       <div v-else-if="activeTab === 'notifications'" class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Benachrichtigungsarten
-          </h3>
-          <div class="space-y-4">
-            <SettingsToggle
-              label="E-Mail-Benachrichtigungen"
-               description="Erhalte wichtige Updates per E-Mail."
-              v-model="notificationsEmail"
-            />
-            <SettingsToggle
-              label="Push-Benachrichtigungen"
-               description="Erhalte Push-Benachrichtigungen in deinem Browser."
-              v-model="notificationsPush"
-            />
-          </div>
-        </div>
+        <NotificationSettingsPanel
+          title="Benachrichtigungseinstellungen"
+          description="Steuere global, pro Kategorie und pro Kanal, wie du Benachrichtigungen erhalten möchtest."
+          :loading="notificationPreferencesLoading"
+          loading-text="Benachrichtigungseinstellungen werden geladen..."
+          :error="notificationPreferencesError || undefined"
+          error-title="Benachrichtigungseinstellungen konnten nicht geladen werden"
+          :global-enabled="globalNotificationsEnabled"
+          global-settings-title="Globale Benachrichtigungen"
+          global-settings-description="Aktiviere oder deaktiviere alle Benachrichtigungstypen gleichzeitig."
+          enable-all-label="Alle Benachrichtigungen aktivieren"
+          enable-all-description="Wenn deaktiviert, werden keine Benachrichtigungstypen mehr ausgelöst."
+          disable-all-label="Alle Benachrichtigungen deaktivieren"
+          :quiet-hours="notificationQuietHours"
+          quiet-hours-title="Ruhezeiten"
+          quiet-hours-description="Während der Ruhezeiten werden Benachrichtigungen zurückgehalten."
+          quiet-hours-start-label="Start"
+          quiet-hours-end-label="Ende"
+          enable-quiet-hours-label="Ruhezeiten aktivieren"
+          disable-quiet-hours-label="Ruhezeiten deaktivieren"
+          :channels="notificationChannels"
+          channel-preferences-title="Kanäle"
+          channel-preferences-description="Lege fest, auf welchen Wegen Benachrichtigungen zugestellt werden dürfen."
+          email-label="E-Mail"
+          email-description="Erhalte Benachrichtigungen per E-Mail."
+          enable-email-label="E-Mail aktivieren"
+          disable-email-label="E-Mail deaktivieren"
+          push-label="Push"
+          push-description="Erhalte Push-Benachrichtigungen im Browser."
+          enable-push-label="Push aktivieren"
+          disable-push-label="Push deaktivieren"
+          in-app-label="In-App"
+          in-app-description="Zeige Benachrichtigungen direkt in der Anwendung."
+          enable-in-app-label="In-App aktivieren"
+          disable-in-app-label="In-App deaktivieren"
+          :is-push-supported="notificationStore.isPushSupported"
+          :push-enabled="notificationStore.pushSubscriptions.length > 0"
+          push-not-supported-text="Push wird auf diesem Gerät oder Browser nicht unterstützt."
+          enable-push-button-text="Push im Browser aktivieren"
+          :categories="notificationCategories"
+          @toggle-global="handleToggleGlobalNotifications"
+          @toggle-category="handleToggleNotificationCategory"
+          @toggle-channel="handleToggleNotificationChannel"
+          @toggle-type="handleToggleNotificationType"
+          @toggle-quiet-hours="handleToggleNotificationQuietHours"
+          @update-quiet-hours="handleUpdateNotificationQuietHours"
+          @enable-push="enablePushNotifications"
+        />
       </div>
 
       <!-- Privacy Tab -->
@@ -453,7 +484,7 @@
  </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import type {
   ProfileSettings,
   SecuritySettings,
@@ -462,7 +493,6 @@ import type {
   PlatformPreferences
 } from '~/types/settings-types'
 import SettingsInput from '~/components/molecules/SettingsInput.vue'
-import SettingsToggle from '~/components/molecules/SettingsToggle.vue'
 import SettingsSelect from '~/components/molecules/SettingsSelect.vue'
 import SettingsRadioGroup from '~/components/molecules/SettingsRadioGroup.vue'
 import ErrorMessage from '~/components/atoms/ErrorMessage.vue'
@@ -474,6 +504,12 @@ import Button from '~/components/atoms/Button.vue'
 import Badge from '~/components/atoms/Badge.vue'
 import Icon from '~/components/atoms/Icon.vue'
 import Modal from '~/components/molecules/Modal.vue'
+import NotificationSettingsPanel from '~/components/organisms/notifications/NotificationSettingsPanel.vue'
+import { useNotificationStore } from '~/stores/notification'
+import type {
+  NotificationCategory,
+  NotificationChannels
+} from '~/components/organisms/notifications/NotificationSettingsPanel.vue'
 
 interface Props {
   activeTab: string
@@ -501,6 +537,9 @@ interface Props {
 
 const props = defineProps<Props>()
 const generalError = ref<string>('')
+const notificationStore = useNotificationStore()
+const notificationPreferencesLoading = ref(false)
+const notificationPreferencesError = ref<string | null>(null)
 
 // 2FA Modal States
 const showTwoFactorSetup = ref(false)
@@ -563,20 +602,6 @@ const securityTwoFactor = computed({
   get: () => props.security.two_factor_enabled,
   set: (value) => {
     emit('update:security', { ...props.security, two_factor_enabled: value })
-  }
-})
-
-const notificationsEmail = computed({
-  get: () => props.notifications.email_enabled,
-  set: (value) => {
-    emit('update:notifications', { ...props.notifications, email_enabled: value })
-  }
-})
-
-const notificationsPush = computed({
-  get: () => props.notifications.push_enabled,
-  set: (value) => {
-    emit('update:notifications', { ...props.notifications, push_enabled: value })
   }
 })
 
@@ -663,6 +688,155 @@ const toggleTwoFactor = (enabled: boolean) => {
   emit('toggle-two-factor', enabled)
 }
 
+const globalNotificationsEnabled = computed(() => notificationStore.preferences.global_enabled === true)
+const notificationChannels = computed<NotificationChannels>(() => ({
+  email: notificationStore.preferences.channels?.email === true,
+  push: notificationStore.preferences.channels?.push === true,
+  in_app: notificationStore.preferences.channels?.in_app === true
+}))
+
+const notificationQuietHours = computed(() => ({
+  enabled: notificationStore.preferences.quiet_hours?.enabled === true,
+  start: notificationStore.preferences.quiet_hours?.start || '22:00',
+  end: notificationStore.preferences.quiet_hours?.end || '08:00'
+}))
+
+const notificationCategories = computed<NotificationCategory[]>(() => {
+  return Object.entries(notificationStore.preferences.categories || {}).map(([categoryKey, categoryValue]) => ({
+    id: categoryKey,
+    title: categoryKey.replaceAll('_', ' '),
+    description: '',
+    enabled: categoryValue.enabled === true,
+    channels: categoryValue.channels,
+    types: Object.entries(categoryValue.types || {}).map(([typeKey, typeValue]) => ({
+      type_key: typeKey,
+      description: typeValue.description || typeKey,
+      help_text: typeValue.help_text || '',
+      enabled: typeValue.enabled === true
+    }))
+  }))
+})
+
+const loadNotificationPreferences = async () => {
+  notificationPreferencesLoading.value = true
+  notificationPreferencesError.value = null
+  try {
+    await Promise.all([
+      notificationStore.fetchPreferences(),
+      notificationStore.fetchNotificationTypes()
+    ])
+  } catch (error) {
+    notificationPreferencesError.value = error instanceof Error ? error.message : 'Benachrichtigungseinstellungen konnten nicht geladen werden.'
+  } finally {
+    notificationPreferencesLoading.value = false
+  }
+}
+
+const handleToggleGlobalNotifications = async () => {
+  notificationPreferencesLoading.value = true
+  notificationPreferencesError.value = null
+  try {
+    await notificationStore.updatePreferences({ global_enabled: !globalNotificationsEnabled.value })
+  } catch (error) {
+    notificationPreferencesError.value = error instanceof Error ? error.message : 'Globale Benachrichtigungen konnten nicht aktualisiert werden.'
+  } finally {
+    notificationPreferencesLoading.value = false
+  }
+}
+
+const handleToggleNotificationCategory = async (categoryId: string) => {
+  notificationPreferencesLoading.value = true
+  notificationPreferencesError.value = null
+  try {
+    const category = notificationStore.preferences.categories?.[categoryId]
+    await notificationStore.updatePreferences({
+      categories: {
+        [categoryId]: {
+          enabled: !(category?.enabled === true)
+        }
+      }
+    })
+  } catch (error) {
+    notificationPreferencesError.value = error instanceof Error ? error.message : 'Kategorie konnte nicht aktualisiert werden.'
+  } finally {
+    notificationPreferencesLoading.value = false
+  }
+}
+
+const handleToggleNotificationChannel = async (channel: string) => {
+  notificationPreferencesLoading.value = true
+  notificationPreferencesError.value = null
+  try {
+    const channelKey = channel as keyof NotificationChannels
+    await notificationStore.updatePreferences({
+      channels: {
+        [channel]: !notificationChannels.value[channelKey]
+      }
+    })
+  } catch (error) {
+    notificationPreferencesError.value = error instanceof Error ? error.message : 'Kanal konnte nicht aktualisiert werden.'
+  } finally {
+    notificationPreferencesLoading.value = false
+  }
+}
+
+const handleToggleNotificationType = async (typeKey: string) => {
+  notificationPreferencesLoading.value = true
+  notificationPreferencesError.value = null
+  try {
+    const current = notificationStore.preferences.types?.[typeKey]
+    await notificationStore.updatePreferences({
+      types: {
+        [typeKey]: {
+          enabled: !(current?.enabled === true)
+        }
+      }
+    })
+  } catch (error) {
+    notificationPreferencesError.value = error instanceof Error ? error.message : 'Benachrichtigungstyp konnte nicht aktualisiert werden.'
+  } finally {
+    notificationPreferencesLoading.value = false
+  }
+}
+
+const handleToggleNotificationQuietHours = async () => {
+  notificationPreferencesLoading.value = true
+  notificationPreferencesError.value = null
+  try {
+    await notificationStore.updateQuietHours({
+      enabled: !notificationQuietHours.value.enabled
+    })
+  } catch (error) {
+    notificationPreferencesError.value = error instanceof Error ? error.message : 'Ruhezeiten konnten nicht aktualisiert werden.'
+  } finally {
+    notificationPreferencesLoading.value = false
+  }
+}
+
+const handleUpdateNotificationQuietHours = async (payload: { start?: string; end?: string }) => {
+  notificationPreferencesLoading.value = true
+  notificationPreferencesError.value = null
+  try {
+    await notificationStore.updateQuietHours(payload)
+  } catch (error) {
+    notificationPreferencesError.value = error instanceof Error ? error.message : 'Ruhezeiten konnten nicht aktualisiert werden.'
+  } finally {
+    notificationPreferencesLoading.value = false
+  }
+}
+
+const enablePushNotifications = async () => {
+  try {
+    if (!notificationStore.isPushSupported) return
+    const permission = await Notification.requestPermission()
+    if (permission === 'granted') {
+      await notificationStore.subscribeToPushNotifications()
+    }
+  } catch (error) {
+    notificationPreferencesError.value = error instanceof Error ? error.message : 'Push konnte nicht aktiviert werden.'
+  }
+}
+
 // 2FA Operation Handlers
 const handle2FASetupComplete = () => {
   showTwoFactorSetup.value = false
@@ -709,6 +883,18 @@ const formatDate = (dateString: string) => {
     return dateString
   }
 }
+
+onMounted(() => {
+  if (props.activeTab === 'notifications') {
+    void loadNotificationPreferences()
+  }
+})
+
+watch(() => props.activeTab, (tab) => {
+  if (tab === 'notifications') {
+    void loadNotificationPreferences()
+  }
+})
 </script>
 
 <style scoped>

@@ -1,19 +1,25 @@
 <template>
-  <div class="notifications-page">
+  <div class="notifications-page px-1 sm:px-0">
     <!-- Header -->
-    <div class="page-header mb-8">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+    <div class="page-header mb-6 sm:mb-8">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
             {{ t('notifications.title') }}
           </h1>
-          <p class="mt-2 text-gray-600 dark:text-gray-400">
+          <p class="mt-2 max-w-2xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
             {{ t('notifications.description') }}
           </p>
         </div>
-        <div class="flex items-center space-x-4">
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-end lg:gap-3">
+          <button
+            @click="router.push('/settings')"
+            class="inline-flex min-h-10 items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          >
+            Einstellungen
+          </button>
           <button v-if="hasUnreadNotifications" @click="markAllAsRead" :disabled="isMarkingAllAsRead"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+            class="inline-flex min-h-10 items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
             <svg v-if="isMarkingAllAsRead" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none"
               viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -23,7 +29,7 @@
             {{ t('notifications.markAllAsRead') }}
           </button>
           <button @click="refreshNotifications" :disabled="isRefreshingNotifications"
-            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            class="inline-flex min-h-10 items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:col-span-2 lg:col-span-1">
             <svg v-if="isRefreshingNotifications" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none"
               viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -41,24 +47,24 @@
     </div>
 
     <!-- Stats -->
-    <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
-      <div class="stats-card bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
+    <div class="mt-6 mb-6 grid grid-cols-1 gap-3 sm:mt-8 sm:mb-8 sm:grid-cols-3 sm:gap-5">
+      <div class="stats-card overflow-hidden rounded-xl bg-white shadow dark:bg-gray-800">
+        <div class="p-4 sm:p-5">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="rounded-md bg-blue-500 p-3">
-                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="rounded-md bg-blue-500 p-2.5 sm:p-3">
+                <svg class="h-5 w-5 text-white sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
               </div>
             </div>
-            <div class="ml-5 w-0 flex-1">
+            <div class="ml-4 w-0 flex-1 sm:ml-5">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                <dt class="truncate text-xs font-medium text-gray-500 dark:text-gray-400 sm:text-sm">
                   {{ t('notifications.totalNotifications') }}
                 </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                <dd class="text-base font-medium text-gray-900 dark:text-white sm:text-lg">
                   {{ totalNotifications }}
                 </dd>
               </dl>
@@ -67,23 +73,23 @@
         </div>
       </div>
 
-      <div class="stats-card bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
+      <div class="stats-card overflow-hidden rounded-xl bg-white shadow dark:bg-gray-800">
+        <div class="p-4 sm:p-5">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="rounded-md bg-green-500 p-3">
-                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="rounded-md bg-green-500 p-2.5 sm:p-3">
+                <svg class="h-5 w-5 text-white sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
-            <div class="ml-5 w-0 flex-1">
+            <div class="ml-4 w-0 flex-1 sm:ml-5">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                <dt class="truncate text-xs font-medium text-gray-500 dark:text-gray-400 sm:text-sm">
                   {{ t('notifications.readNotifications') }}
                 </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                <dd class="text-base font-medium text-gray-900 dark:text-white sm:text-lg">
                   {{ readNotificationsCount }}
                 </dd>
               </dl>
@@ -92,23 +98,23 @@
         </div>
       </div>
 
-      <div class="stats-card bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
+      <div class="stats-card overflow-hidden rounded-xl bg-white shadow dark:bg-gray-800">
+        <div class="p-4 sm:p-5">
           <div class="flex items-center">
             <div class="flex-shrink-0">
-              <div class="rounded-md bg-yellow-500 p-3">
-                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="rounded-md bg-yellow-500 p-2.5 sm:p-3">
+                <svg class="h-5 w-5 text-white sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
-            <div class="ml-5 w-0 flex-1">
+            <div class="ml-4 w-0 flex-1 sm:ml-5">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                <dt class="truncate text-xs font-medium text-gray-500 dark:text-gray-400 sm:text-sm">
                   {{ t('notifications.unreadNotifications') }}
                 </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                <dd class="text-base font-medium text-gray-900 dark:text-white sm:text-lg">
                   {{ unreadNotificationsCount }}
                 </dd>
               </dl>
@@ -119,11 +125,11 @@
     </div>
 
     <!-- Tabs -->
-    <div class="mt-8 mb-8">
+    <div class="mb-6 mt-6 sm:mb-8 sm:mt-8">
       <div class="border-b border-gray-200 dark:border-gray-700">
-        <nav class="-mb-px flex space-x-8">
+        <nav class="-mb-px flex gap-6 overflow-x-auto whitespace-nowrap pb-1 scrollbar-none sm:gap-8">
           <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key" :class="[
-            'py-4 px-1 border-b-2 font-medium text-sm',
+            'border-b-2 px-1 py-3 text-sm font-medium sm:py-4',
             activeTab === tab.key
               ? 'border-primary-500 text-primary-600 dark:text-primary-400'
               : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
@@ -143,61 +149,8 @@
     </div>
 
     <!-- Content -->
-    <div class="mt-8">
-      <template v-if="activeTab === 'preferences'">
-        <!-- Preferences Tab -->
-        <div>
-          <NotificationSettingsPanel
-            :title="t('notificationSettings.title')"
-            :description="t('notificationSettings.description')"
-            :loading="isLoadingPreferences"
-            :loading-text="t('notificationSettings.loading')"
-            :error="preferencesError || undefined"
-            :error-title="t('notificationSettings.errorTitle')"
-            :global-enabled="globalNotificationsEnabled"
-            :global-settings-title="t('notificationSettings.globalSettings')"
-            :global-settings-description="t('notificationSettings.globalDescription')"
-            :enable-all-label="t('notificationSettings.enableAllNotifications')"
-            :enable-all-description="t('notificationSettings.enableAllDescription')"
-            :disable-all-label="t('notificationSettings.disableAllNotifications')"
-            :quiet-hours="quietHours"
-            :quiet-hours-title="t('notificationSettings.quietHours')"
-            :quiet-hours-description="t('notificationSettings.quietHoursDescription')"
-            :quiet-hours-start-label="t('notificationSettings.quietHoursStart')"
-            :quiet-hours-end-label="t('notificationSettings.quietHoursEnd')"
-            :enable-quiet-hours-label="t('notificationSettings.enableQuietHours')"
-            :disable-quiet-hours-label="t('notificationSettings.disableQuietHours')"
-            :channels="notificationChannels"
-            :channel-preferences-title="t('notificationSettings.channelPreferences')"
-            :channel-preferences-description="t('notificationSettings.channelDescription')"
-            :email-label="t('notificationSettings.emailNotifications')"
-            :email-description="t('notificationSettings.emailDescription')"
-            :enable-email-label="t('notificationSettings.enableEmailNotifications')"
-            :disable-email-label="t('notificationSettings.disableEmailNotifications')"
-            :push-label="t('notificationSettings.pushNotifications')"
-            :push-description="t('notificationSettings.pushDescription')"
-            :enable-push-label="t('notificationSettings.enablePushNotifications')"
-            :disable-push-label="t('notificationSettings.disablePushNotifications')"
-            :in-app-label="t('notificationSettings.inAppNotifications')"
-            :in-app-description="t('notificationSettings.inAppDescription')"
-            :enable-in-app-label="t('notificationSettings.enableInAppNotifications')"
-            :disable-in-app-label="t('notificationSettings.disableInAppNotifications')"
-            :is-push-supported="isPushSupported"
-            :push-enabled="pushEnabled"
-            :push-not-supported-text="t('notificationSettings.pushNotSupported')"
-            :enable-push-button-text="t('notificationSettings.enablePushButton')"
-            :categories="notificationCategories"
-            @toggle-global="handleToggleGlobal"
-            @toggle-category="handleToggleCategory"
-            @toggle-channel="handleToggleChannel"
-            @toggle-type="handleToggleType"
-            @toggle-quiet-hours="handleToggleQuietHours"
-            @update-quiet-hours="handleUpdateQuietHours"
-            @enable-push="enablePushNotifications"
-          />
-        </div>
-      </template>
-      <template v-else>
+    <div class="mt-6 sm:mt-8">
+      <template>
         <!-- Atomic Design Notifications Components -->
         <div>
           <!-- Notification Filters Component -->
@@ -261,9 +214,9 @@
           </div>
 
           <!-- Load More -->
-          <div v-if="atomicNotifications.length > 0 && !atomicNotificationsLoading" class="mt-8 text-center">
+          <div v-if="atomicNotifications.length > 0 && !atomicNotificationsLoading" class="mt-6 text-center sm:mt-8">
             <button @click="() => fetchAtomicNotifications()" :disabled="atomicNotificationsLoading"
-              class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+              class="inline-flex min-h-10 items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
               <svg v-if="atomicNotificationsLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none"
                 viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -286,7 +239,6 @@ import { useNotificationStore } from '~/stores/notification'
 import { useUIStore } from '~/stores/ui'
 import { useI18n } from 'vue-i18n'
 import NotificationCenter from '~/components/organisms/notifications/NotificationCenter.vue'
-import NotificationSettingsPanel from '~/components/organisms/notifications/NotificationSettingsPanel.vue'
 import NotificationList from '~/components/organisms/notifications/NotificationList.vue'
 import NotificationFilters from '~/components/organisms/notifications/NotificationFilters.vue'
 import { useNotifications } from '~/composables/useNotifications'
@@ -301,7 +253,6 @@ import type {
   NotificationSortDirection
 } from '~/types/notification-types'
 import type { Notification, NotificationFilter } from '~/components/organisms/notifications/NotificationCenter.vue'
-import type { NotificationCategory, NotificationChannels, NotificationType } from '~/components/organisms/notifications/NotificationSettingsPanel.vue'
 import type { UserNotification } from '~/stores/notification'
 
 const router = useRouter()
@@ -310,11 +261,9 @@ const uiStore = useUIStore()
 const { t } = useI18n()
 
 // State
-const activeTab = ref<'all' | 'unread' | 'read' | 'preferences'>('all')
+const activeTab = ref<'all' | 'unread' | 'read'>('all')
 const isMarkingAllAsRead = ref(false)
 const isLoadingMore = ref(false)
-const isLoadingPreferences = ref(false)
-const preferencesError = ref<string | null>(null)
 const pageSize = 20
 const currentPage = ref(1)
 
@@ -358,8 +307,7 @@ const isRefreshingNotifications = computed(() => isLoading.value || atomicNotifi
 const tabs = computed(() => [
   { key: 'all' as const, label: t('notifications.tabs.all'), count: totalNotifications.value },
   { key: 'unread' as const, label: t('notifications.tabs.unread'), count: unreadNotificationsCount.value },
-  { key: 'read' as const, label: t('notifications.tabs.read'), count: readNotificationsCount.value },
-  { key: 'preferences' as const, label: t('notifications.tabs.preferences'), count: undefined }
+  { key: 'read' as const, label: t('notifications.tabs.read'), count: readNotificationsCount.value }
 ])
 
 const filteredNotifications = computed(() => {
@@ -394,42 +342,6 @@ const notificationFilters = computed<NotificationFilter[]>(() => [
   { id: 'unread', label: t('notifications.filters.unread') },
   { id: 'read', label: t('notifications.filters.read') }
 ])
-
-// Notification Settings
-const globalNotificationsEnabled = computed(() => {
-  return notificationStore.preferences.global_enabled === true
-})
-
-const notificationChannels = computed<NotificationChannels>(() => ({
-  email: notificationStore.preferences.channels?.email === true,
-  push: notificationStore.preferences.channels?.push === true,
-  in_app: notificationStore.preferences.channels?.in_app === true
-}))
-
-const quietHours = computed(() => ({
-  enabled: notificationStore.preferences.quiet_hours?.enabled === true,
-  start: notificationStore.preferences.quiet_hours?.start || '22:00',
-  end: notificationStore.preferences.quiet_hours?.end || '08:00'
-}))
-
-const isPushSupported = computed(() => notificationStore.isPushSupported)
-const pushEnabled = computed(() => notificationStore.pushSubscriptions.length > 0)
-
-const notificationCategories = computed<NotificationCategory[]>(() => {
-  return Object.entries(notificationStore.preferences.categories || {}).map(([categoryKey, categoryValue]) => ({
-    id: categoryKey,
-    title: t(`notificationSettings.categories.${categoryKey}`, categoryKey),
-    description: t(`notificationSettings.categoryDescriptions.${categoryKey}`, ''),
-    enabled: categoryValue.enabled === true,
-    channels: categoryValue.channels,
-    types: Object.entries(categoryValue.types || {}).map(([typeKey, typeValue]) => ({
-      type_key: typeKey,
-      description: typeValue.description || typeKey,
-      help_text: typeValue.help_text || '',
-      enabled: typeValue.enabled === true
-    }))
-  }))
-})
 
 // Methods
 const markAllAsRead = async () => {
@@ -468,139 +380,6 @@ const loadMoreNotifications = async () => {
     console.error('Failed to load more notifications:', error)
   } finally {
     isLoadingMore.value = false
-  }
-}
-
-// Wrapper functions for event signature conversion
-const handleToggleGlobal = () => {
-  const newEnabled = !globalNotificationsEnabled.value
-  toggleGlobalNotifications(newEnabled)
-}
-
-const handleToggleCategory = (categoryId: string) => {
-  const category = notificationStore.preferences.categories?.[categoryId]
-  const newEnabled = !(category?.enabled === true)
-  toggleCategory(categoryId, newEnabled)
-}
-
-const handleToggleChannel = (channel: string) => {
-  const channelKey = channel as keyof NotificationChannels
-  const newEnabled = !notificationChannels.value[channelKey]
-  toggleChannel(channelKey, newEnabled)
-}
-
-const handleToggleType = (typeKey: string) => {
-  const type = notificationStore.preferences.types?.[typeKey]
-  const newEnabled = !(type?.enabled === true)
-  toggleNotificationType(typeKey, newEnabled)
-}
-
-const toggleGlobalNotifications = async (enabled: boolean) => {
-  isLoadingPreferences.value = true
-  preferencesError.value = null
-  try {
-    await notificationStore.updatePreferences({ global_enabled: enabled })
-  } catch (error) {
-    preferencesError.value = error instanceof Error ? error.message : 'Failed to update global notifications'
-  } finally {
-    isLoadingPreferences.value = false
-  }
-}
-
-const toggleCategory = async (categoryId: string, enabled: boolean) => {
-  isLoadingPreferences.value = true
-  preferencesError.value = null
-  try {
-    await notificationStore.updatePreferences({
-      categories: {
-        [categoryId]: {
-          enabled
-        }
-      }
-    })
-  } catch (error) {
-    preferencesError.value = error instanceof Error ? error.message : `Failed to update ${categoryId} category`
-  } finally {
-    isLoadingPreferences.value = false
-  }
-}
-
-const toggleChannel = async (channel: keyof NotificationChannels, enabled: boolean) => {
-  isLoadingPreferences.value = true
-  preferencesError.value = null
-  try {
-    await notificationStore.updatePreferences({
-      channels: {
-        [channel]: enabled
-      }
-    })
-  } catch (error) {
-    preferencesError.value = error instanceof Error ? error.message : `Failed to update ${channel} channel`
-  } finally {
-    isLoadingPreferences.value = false
-  }
-}
-
-const toggleNotificationType = async (typeKey: string, enabled: boolean) => {
-  isLoadingPreferences.value = true
-  preferencesError.value = null
-  try {
-    await notificationStore.updatePreferences({
-      types: {
-        [typeKey]: {
-          enabled
-        }
-      }
-    })
-  } catch (error) {
-    preferencesError.value = error instanceof Error ? error.message : `Failed to update ${typeKey} preference`
-  } finally {
-    isLoadingPreferences.value = false
-  }
-}
-
-const handleToggleQuietHours = async () => {
-  isLoadingPreferences.value = true
-  preferencesError.value = null
-  try {
-    await notificationStore.updateQuietHours({
-      enabled: !quietHours.value.enabled
-    })
-  } catch (error) {
-    preferencesError.value = error instanceof Error ? error.message : 'Failed to update quiet hours'
-  } finally {
-    isLoadingPreferences.value = false
-  }
-}
-
-const handleUpdateQuietHours = async (payload: { start?: string; end?: string }) => {
-  isLoadingPreferences.value = true
-  preferencesError.value = null
-  try {
-    await notificationStore.updateQuietHours(payload)
-  } catch (error) {
-    preferencesError.value = error instanceof Error ? error.message : 'Failed to update quiet hours'
-  } finally {
-    isLoadingPreferences.value = false
-  }
-}
-
-const enablePushNotifications = async () => {
-  try {
-    // Check if push is supported
-    if (!notificationStore.isPushSupported) {
-      console.warn('Push notifications not supported')
-      return
-    }
-    
-    // Request permission
-    const permission = await Notification.requestPermission()
-    if (permission === 'granted') {
-      console.log('Push notification permission granted')
-      // In a real implementation, you would subscribe to push notifications here
-    }
-  } catch (error) {
-    console.error('Failed to enable push notifications:', error)
   }
 }
 
@@ -692,7 +471,15 @@ const handleFilterSelected = (filter: NotificationFilter) => {
 // Lifecycle
 onMounted(() => {
   notificationStore.fetchNotifications()
-  notificationStore.fetchNotificationTypes()
-  notificationStore.fetchPreferences()
 })
 </script>
+
+<style scoped>
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+</style>

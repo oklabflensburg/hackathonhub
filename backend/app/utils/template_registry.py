@@ -581,7 +581,8 @@ class TemplateRegistry:
                 },
                 {
                     "name": "unsubscribe_url",
-                    "description": "URL to unsubscribe from comment notifications",
+                    "description": ("URL to unsubscribe from "
+                                    "comment notifications"),
                     "required": False,
                     "example": "https://example.com/settings/notifications"
                 },

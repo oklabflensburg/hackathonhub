@@ -5,7 +5,6 @@ from typing import Optional, List
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
-from app.domain.models.user import User
 from app.domain.schemas.user import UserCreate, UserUpdate, User as UserSchema
 from app.repositories.user_repository import (
     UserRepository, RefreshTokenRepository,

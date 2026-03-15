@@ -1,7 +1,7 @@
 """
 Notification repository for database operations.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Sequence
 
 from sqlalchemy.orm import Session, joinedload
@@ -157,7 +157,9 @@ class NotificationDeliveryRepository(BaseRepository[NotificationDelivery]):
         return delivery
 
 
-class NotificationPreferenceRepository(BaseRepository[UserNotificationPreference]):
+class NotificationPreferenceRepository(
+    BaseRepository[UserNotificationPreference]
+):
     """Repository for user notification settings masks."""
 
     def __init__(self):
@@ -166,7 +168,9 @@ class NotificationPreferenceRepository(BaseRepository[UserNotificationPreference
     def get_by_user_id(
         self, db: Session, user_id: int
     ) -> Optional[UserNotificationPreference]:
-        return db.query(self.model).filter(self.model.user_id == user_id).first()
+        return db.query(self.model).filter(
+            self.model.user_id == user_id
+        ).first()
 
     def get_user_preferences(
         self, db: Session, user_id: int
@@ -191,7 +195,8 @@ class NotificationPreferenceRepository(BaseRepository[UserNotificationPreference
                 "user_id": user_id,
                 "types_mask": str(default_types_mask),
                 "channels_mask": str(default_channels_mask),
-                "quiet_hours": None,
+                "quiet_hours": {},
+                "updated_at": datetime.now(timezone.utc),
             },
         )
 
@@ -206,7 +211,8 @@ class NotificationPreferenceRepository(BaseRepository[UserNotificationPreference
     ) -> UserNotificationPreference:
         preference.types_mask = str(types_mask)
         preference.channels_mask = str(channels_mask)
-        preference.quiet_hours = quiet_hours
+        preference.quiet_hours = quiet_hours or {}
+        preference.updated_at = datetime.now(timezone.utc)
         db.add(preference)
         db.commit()
         db.refresh(preference)

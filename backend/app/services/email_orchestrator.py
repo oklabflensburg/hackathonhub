@@ -48,11 +48,11 @@ class EmailTemplateValidator:
         "team/member_added": ["team_name", "added_by_name"],
         "team/created": ["team_name", "creator_name", "team_id"],
         "project/created": ["project_name", "creator_name", "project_url"],
-        "project/commented": ["project_name", "commenter_name", 
+        "project/commented": ["project_name", "commenter_name",
                               "comment_preview", "project_url"],
-        "hackathon/registered": ["hackathon_name", "user_name", 
+        "hackathon/registered": ["hackathon_name", "user_name",
                                  "hackathon_date", "hackathon_url"],
-        "hackathon/started": ["hackathon_name", "user_name", 
+        "hackathon/started": ["hackathon_name", "user_name",
                               "start_time", "hackathon_dashboard_url"]
     }
 

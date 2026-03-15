@@ -56,7 +56,7 @@ class SettingsService:
         Returns:
             SettingsResponse object with settings and metadata
         """
-        user = self.user_service.get_user(db, user_id)
+        user = self.user_service.user_repo.get(db, user_id)
         if not user:
             raise_not_found("en", "user")
 
@@ -144,6 +144,131 @@ class SettingsService:
 
         # Get updated settings
         return self.get_user_settings(db, user_id)
+
+    def _get_user_or_raise(self, db: Session, user_id: int) -> User:
+        user = self.user_service.user_repo.get(db, user_id)
+        if not user:
+            raise_not_found("en", "user")
+        return user
+
+    def _update_profile_settings(
+        self,
+        db: Session,
+        user_id: int,
+        profile: ProfileSettings
+    ) -> None:
+        user = self._get_user_or_raise(db, user_id)
+        user.username = profile.username
+        user.email = profile.email
+        user.name = profile.name
+        user.avatar_url = profile.avatar_url
+        user.bio = profile.bio
+        user.location = profile.location
+        user.company = profile.company
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    def _update_security_settings(
+        self,
+        db: Session,
+        user_id: int,
+        security: SecuritySettings
+    ) -> None:
+        user = self._get_user_or_raise(db, user_id)
+        user.two_factor_enabled = bool(security.two_factor_enabled)
+        db.add(user)
+        db.commit()
+
+    def _update_privacy_settings(
+        self,
+        db: Session,
+        user_id: int,
+        privacy: PrivacySettings
+    ) -> None:
+        user = self._get_user_or_raise(db, user_id)
+        # These columns do not exist in older schemas; ignore safely there.
+        for field, value in (
+            ("profile_visibility", privacy.profile_visibility),
+            ("email_visibility", privacy.email_visibility),
+            ("show_online_status", privacy.show_online_status),
+            ("allow_messages_from", privacy.allow_messages_from),
+            ("show_activity", privacy.show_activity),
+            ("allow_tagging", privacy.allow_tagging),
+            ("data_sharing_analytics", privacy.data_sharing.analytics),
+            ("data_sharing_marketing", privacy.data_sharing.marketing),
+            ("data_sharing_third_parties", privacy.data_sharing.third_parties),
+        ):
+            if hasattr(user, field):
+                setattr(user, field, value)
+        db.add(user)
+        db.commit()
+
+    def _update_platform_preferences(
+        self,
+        db: Session,
+        user_id: int,
+        platform: PlatformPreferences
+    ) -> None:
+        user = self._get_user_or_raise(db, user_id)
+        user.theme = platform.theme.value
+        user.language = platform.language
+        user.timezone = platform.timezone
+        user.date_format = platform.date_format.value
+        user.time_format = platform.time_format.value
+        user.notifications_sound = bool(platform.notifications_sound)
+        user.reduce_animations = bool(platform.reduce_animations)
+        user.compact_mode = bool(platform.compact_mode)
+        user.default_view_hackathons = platform.default_view.hackathons
+        user.default_view_projects = platform.default_view.projects
+        user.default_view_notifications = platform.default_view.notifications
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    def _update_notification_settings(
+        self,
+        db: Session,
+        user_id: int,
+        notifications: NotificationSettings
+    ) -> None:
+        quiet_hours = notifications.quiet_hours
+        normalized_quiet_hours = None
+        if quiet_hours is not None:
+            normalized_quiet_hours = {
+                "enabled": quiet_hours.enabled,
+                "start": quiet_hours.start,
+                "end": quiet_hours.end,
+            }
+
+        normalized = {
+            "channels": {
+                "email": notifications.email_enabled,
+                "push": notifications.push_enabled,
+                "in_app": True,
+            },
+        }
+        if normalized_quiet_hours is not None:
+            normalized["quiet_hours"] = normalized_quiet_hours
+        self.notification_service.update_user_preferences(
+            db, user_id, normalized
+        )
+
+    def _update_oauth_connections(
+        self,
+        db: Session,
+        user_id: int,
+        connections: OAuthConnections
+    ) -> None:
+        return None
+
+    def _update_data_management(
+        self,
+        db: Session,
+        user_id: int,
+        data: DataManagement
+    ) -> None:
+        return None
 
     def change_password(
         self,
@@ -440,24 +565,41 @@ class SettingsService:
         if not user:
             raise_not_found("en", "user")
 
-        hackathons = db.query(Hackathon).filter(Hackathon.owner_id == user_id).all()
-        teams = db.query(Team).filter(Team.created_by == user_id).all()
-        projects = db.query(Project).filter(Project.owner_id == user_id).all()
+        hackathons = db.query(Hackathon).filter(
+            Hackathon.owner_id == user_id).all()
+        teams = db.query(Team).filter(
+            Team.created_by == user_id).all()
+        projects = db.query(Project).filter(
+            Project.owner_id == user_id).all()
 
         hackathon_items = [
-            OwnedResourceSummary(id=item.id, name=item.name or f"Hackathon #{item.id}", resource_type="hackathon")
+            OwnedResourceSummary(
+                id=item.id,
+                name=item.name or f"Hackathon #{item.id}",
+                resource_type="hackathon"
+            )
             for item in hackathons
         ]
         team_items = [
-            OwnedResourceSummary(id=item.id, name=item.name or f"Team #{item.id}", resource_type="team")
+            OwnedResourceSummary(
+                id=item.id,
+                name=item.name or f"Team #{item.id}",
+                resource_type="team"
+            )
             for item in teams
         ]
         project_items = [
-            OwnedResourceSummary(id=item.id, name=item.title or f"Project #{item.id}", resource_type="project")
+            OwnedResourceSummary(
+                id=item.id,
+                name=item.title or f"Project #{item.id}",
+                resource_type="project"
+            )
             for item in projects
         ]
 
-        has_owned_resources = bool(hackathon_items or team_items or project_items)
+        has_owned_resources = bool(
+            hackathon_items or team_items or project_items
+        )
         return AccountImpactResponse(
             can_delete=not has_owned_resources,
             can_deactivate=True,
@@ -466,7 +608,8 @@ class SettingsService:
             teams=team_items,
             projects=project_items,
             message=(
-                "Permanent deletion is blocked while you still own hackathons, teams, or projects."
+                "Permanent deletion is blocked while you still "
+                "own hackathons, teams, or projects."
                 if has_owned_resources else
                 "Your account can be permanently deleted."
             )
@@ -718,9 +861,42 @@ class SettingsService:
 
     def _build_notification_settings(self, prefs: Any) -> NotificationSettings:
         """Build NotificationSettings from notification preferences."""
-        # This is a simplified version
-        # In a real implementation, you would map the preferences
-        return NotificationSettings()
+        channels = prefs.get("channels", {}) if isinstance(prefs, dict) else {}
+        quiet_hours = (
+            prefs.get("quiet_hours", {}) if isinstance(prefs, dict) else {}
+        ) or {}
+
+        categories = {
+            "project_updates": True,
+            "team_invitations": True,
+            "hackathon_announcements": True,
+            "comment_replies": True,
+            "vote_notifications": True,
+            "mention_notifications": True,
+            "system_announcements": True,
+            "newsletter": False,
+        }
+
+        if isinstance(prefs, dict):
+            category_map = prefs.get("categories", {})
+            if isinstance(category_map, dict):
+                for key, value in category_map.items():
+                    if key in categories and isinstance(value, dict):
+                        categories[key] = bool(value.get("enabled", True))
+                    elif key in categories:
+                        categories[key] = bool(value)
+
+        return NotificationSettings(
+            email_enabled=bool(channels.get("email", True)),
+            push_enabled=bool(channels.get("push", True)),
+            in_app_enabled=bool(channels.get("in_app", True)),
+            categories=categories,
+            quiet_hours={
+                "enabled": bool(quiet_hours.get("enabled", False)),
+                "start": quiet_hours.get("start", "22:00"),
+                "end": quiet_hours.get("end", "08:00"),
+            },
+        )
 
     def _build_github_connection(self, user: User) -> Optional[Dict[str, Any]]:
         """Build GitHub OAuth connection info."""

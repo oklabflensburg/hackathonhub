@@ -327,8 +327,17 @@ export const usePreferencesStore = defineStore('preferences', () => {
   }
 
   // Theme module
-  const themeCurrent = ref<'light' | 'dark'>('light')
-  const themeIsDark = computed(() => themeCurrent.value === 'dark')
+  const themeCurrent = ref<'light' | 'dark' | 'system'>('system')
+  const resolveTheme = (themeValue: 'light' | 'dark' | 'system') => {
+    if (themeValue === 'system') {
+      if (typeof window !== 'undefined') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      }
+      return 'light'
+    }
+    return themeValue
+  }
+  const themeIsDark = computed(() => resolveTheme(themeCurrent.value) === 'dark')
   
   const theme = {
     // Key
@@ -342,10 +351,14 @@ export const usePreferencesStore = defineStore('preferences', () => {
 
     // Initialize from storage
     initialize() {
-      let savedTheme = storage.getItem<'light' | 'dark'>(this.THEME_KEY)
+      let savedTheme = storage.getItem<'light' | 'dark' | 'system'>(this.THEME_KEY)
       if (!savedTheme) {
         const themeCookie = useCookie(this.THEME_KEY)
-        if (themeCookie.value === 'light' || themeCookie.value === 'dark') {
+        if (
+          themeCookie.value === 'light' ||
+          themeCookie.value === 'dark' ||
+          themeCookie.value === 'system'
+        ) {
           savedTheme = themeCookie.value
         }
       }
@@ -354,15 +367,14 @@ export const usePreferencesStore = defineStore('preferences', () => {
       } else {
         // Check system preference
         if (typeof window !== 'undefined') {
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-          themeCurrent.value = prefersDark ? 'dark' : 'light'
+          themeCurrent.value = 'system'
         }
       }
       return themeCurrent.value
     },
 
     // Actions
-    setTheme(themeValue: 'light' | 'dark') {
+    setTheme(themeValue: 'light' | 'dark' | 'system') {
       themeCurrent.value = themeValue
       storage.setItem(this.THEME_KEY, themeValue)
       const themeCookie = useCookie(this.THEME_KEY, {
@@ -375,7 +387,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     },
 
     toggleTheme() {
-      const newTheme = themeCurrent.value === 'light' ? 'dark' : 'light'
+      const newTheme = resolveTheme(themeCurrent.value) === 'light' ? 'dark' : 'light'
       theme.setTheme(newTheme)
     }
   }
@@ -473,11 +485,14 @@ export const usePreferencesStore = defineStore('preferences', () => {
   // Helper function to update document class for theme
   function updateDocumentClass() {
     if (typeof window === 'undefined') return
-    if (theme.currentTheme.value === 'dark') {
+    const resolvedTheme = resolveTheme(theme.currentTheme.value)
+    document.documentElement.classList.remove('light', 'dark')
+    if (resolvedTheme === 'dark') {
       document.documentElement.classList.add('dark')
     } else {
-      document.documentElement.classList.remove('dark')
+      document.documentElement.classList.add('light')
     }
+    document.documentElement.setAttribute('data-theme', resolvedTheme)
   }
 
   // Update document class when theme changes

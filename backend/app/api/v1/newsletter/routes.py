@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Header, Depends, HTTPException
+import json
+from typing import Any, Optional
+
+from fastapi import APIRouter, Header, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import Optional
+from pydantic import ValidationError
 
 from app.core.database import get_db
 from app.domain.schemas.newsletter import (
@@ -14,15 +17,17 @@ router = APIRouter()
 
 @router.post("/subscribe")
 async def subscribe_to_newsletter(
-    request: NewsletterSubscribeRequest,
+    request: Request,
     idempotency_key: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     """Subscribe to newsletter with atomic duplicate prevention"""
     try:
+        payload = await _parse_request_model(request, NewsletterSubscribeRequest)
+
         # Use the newsletter service to handle subscription
         result = newsletter_service.subscribe(
-            db, email=request.email, source=request.source
+            db, email=payload.email, source=payload.source
         )
 
         subscription = result["subscription"]
@@ -46,11 +51,12 @@ async def subscribe_to_newsletter(
 
 @router.post("/unsubscribe")
 async def unsubscribe_from_newsletter(
-    request: NewsletterUnsubscribeRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Unsubscribe from newsletter"""
-    result = newsletter_service.unsubscribe(db, email=request.email)
+    payload = await _parse_request_model(request, NewsletterUnsubscribeRequest)
+    result = newsletter_service.unsubscribe(db, email=payload.email)
 
     if not result:
         raise HTTPException(
@@ -65,3 +71,20 @@ async def unsubscribe_from_newsletter(
         "email": subscription.email,
         "unsubscribed_at": result["unsubscribed_at"]
     }
+
+
+async def _parse_request_model(
+    request: Request,
+    model_class: type[NewsletterSubscribeRequest] | type[NewsletterUnsubscribeRequest],
+) -> Any:
+    try:
+        raw_body = await request.body()
+        if not raw_body:
+            payload: Any = {}
+        else:
+            payload = json.loads(raw_body)
+            if isinstance(payload, str):
+                payload = json.loads(payload)
+        return model_class.model_validate(payload)
+    except (json.JSONDecodeError, ValidationError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

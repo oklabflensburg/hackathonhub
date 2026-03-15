@@ -1,7 +1,9 @@
 """
 Newsletter-related Pydantic schemas.
 """
-from pydantic import BaseModel, ConfigDict, EmailStr
+import json
+
+from pydantic import BaseModel, ConfigDict, EmailStr, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -28,6 +30,20 @@ class NewsletterSubscribeRequest(BaseModel):
     email: EmailStr
     source: Optional[str] = "website"
 
+    @model_validator(mode="before")
+    @classmethod
+    def parse_stringified_body(cls, data):
+        if isinstance(data, str):
+            return json.loads(data)
+        return data
+
 
 class NewsletterUnsubscribeRequest(BaseModel):
     email: EmailStr
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_stringified_body(cls, data):
+        if isinstance(data, str):
+            return json.loads(data)
+        return data

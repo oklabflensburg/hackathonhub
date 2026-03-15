@@ -4,15 +4,16 @@ import unittest
 os.environ.setdefault("DEBUG", "false")
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from app.core.auth import create_tokens
-from app.core.database import SessionLocal, engine
-from app.domain.models import Base, User
-from app.main import app
-from app.services.notification_preference_service import notification_preference_service
-from app.services.notification_settings_service import notification_settings_service
-from app.services.notification_service import NotificationService
+from app.core.auth import create_tokens  # noqa: E402
+from app.core.database import SessionLocal, engine  # noqa: E402
+from app.domain.models import Base, User  # noqa: E402
+from app.main import app  # noqa: E402
+from app.services.notification_preference_service import (  # noqa: E402
+    notification_preference_service,
+)
+from app.services.notification_service import NotificationService  # noqa: E402
 
 
 class NotificationApiTests(unittest.TestCase):

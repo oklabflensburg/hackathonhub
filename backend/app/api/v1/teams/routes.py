@@ -318,7 +318,11 @@ async def add_team_member(
             raise_bad_request(locale, "team_full", entity="team")
     else:
         # Adding another user requires owner/admin permission
-        if not can_manage_team(db, current_user, team) and not user_has_permission(db, current_user, PERMISSION_CODES["teams_update_any"]):
+        if not can_manage_team(db, current_user, team) and not user_has_permission(
+            db,
+            current_user,
+            PERMISSION_CODES["teams_update_any"],
+        ):
             raise_forbidden(locale, "add_member", entity="team")
 
     # Check if user is already a member
@@ -458,7 +462,11 @@ async def create_team_invitation(
     if not team:
         raise_not_found(locale, "team")
 
-    if not can_manage_team(db, current_user, team) and not user_has_permission(db, current_user, PERMISSION_CODES["team_invitations_create"]):
+    if not can_manage_team(db, current_user, team) and not user_has_permission(
+        db,
+        current_user,
+        PERMISSION_CODES["team_invitations_create"],
+    ):
         raise_forbidden(locale, "create_invitation", entity="team")
 
     # Check if target user is already a team member
@@ -578,7 +586,15 @@ async def delete_team_invitation(
 
     is_inviter = invitation.invited_by == current_user.id
     invitation_team = team_repository.get(db, invitation.team_id)
-    if not (is_inviter or can_manage_team(db, current_user, invitation_team) or user_has_permission(db, current_user, PERMISSION_CODES["team_invitations_review"])):
+    if not (
+        is_inviter
+        or can_manage_team(db, current_user, invitation_team)
+        or user_has_permission(
+            db,
+            current_user,
+            PERMISSION_CODES["team_invitations_review"],
+        )
+    ):
         raise_forbidden(locale, "delete_invitation", entity="invitation")
 
     # Delete invitation

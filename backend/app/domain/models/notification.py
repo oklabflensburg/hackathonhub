@@ -1,6 +1,8 @@
 """
 Notification domain models.
 """
+from datetime import datetime, timezone
+
 from sqlalchemy import (
     Column, Integer, String, Text, DateTime,
     ForeignKey, UniqueConstraint, JSON, Index
@@ -24,7 +26,13 @@ class UserNotificationPreference(Base):
     channels_mask = Column(String(255), nullable=False, default="0")
     quiet_hours = Column(notification_json_type)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
 
     __table_args__ = (
         UniqueConstraint(

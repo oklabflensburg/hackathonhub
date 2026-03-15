@@ -268,8 +268,6 @@ def can_delete_project(
     )
 
 
-
-
 def can_manage_hackathon_reports(
     db: Session, user: User | None, hackathon_id: int
 ) -> bool:
@@ -298,7 +296,9 @@ def can_manage_project_reports(
         if can_manage_team(db, user, team):
             return True
     if project.hackathon_id:
-        hackathon = db.query(Hackathon).filter(Hackathon.id == project.hackathon_id).first()
+        hackathon = db.query(Hackathon).filter(
+            Hackathon.id == project.hackathon_id
+        ).first()
         if hackathon and hackathon.owner_id == user.id:
             return True
     return False
@@ -312,7 +312,9 @@ def can_review_report(
     if user_has_permission(db, user, PERMISSION_CODES["reports_review"]):
         return True
     if report.resource_type == "hackathon":
-        hackathon = db.query(Hackathon).filter(Hackathon.id == report.resource_id).first()
+        hackathon = db.query(Hackathon).filter(
+            Hackathon.id == report.resource_id
+        ).first()
         return bool(hackathon and hackathon.owner_id == user.id)
     if report.resource_type == "project":
         return can_manage_project_reports(db, user, report.resource_id)
@@ -320,6 +322,8 @@ def can_review_report(
         team = db.query(Team).filter(Team.id == report.resource_id).first()
         return bool(team and can_manage_team(db, user, team))
     return False
+
+
 def can_manage_team_reports_for_hackathon(
     db: Session, user: User | None, hackathon_id: int
 ) -> bool:

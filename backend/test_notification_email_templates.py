@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.utils.jinja2_engine import Jinja2TemplateEngine
+from app.utils.jinja2_engine import Jinja2TemplateEngine  # noqa: E402
 
 
 ENGINE = Jinja2TemplateEngine()

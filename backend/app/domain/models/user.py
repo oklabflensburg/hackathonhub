@@ -34,6 +34,17 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     deactivated_at = Column(DateTime(timezone=True), nullable=True)
+    theme = Column(String(16), nullable=False, server_default="system")
+    language = Column(String(8), nullable=False, server_default="en")
+    timezone = Column(String(64), nullable=False, server_default="UTC")
+    date_format = Column(String(16), nullable=False, server_default="YYYY-MM-DD")
+    time_format = Column(String(8), nullable=False, server_default="24h")
+    notifications_sound = Column(Boolean, nullable=False, server_default="true")
+    reduce_animations = Column(Boolean, nullable=False, server_default="false")
+    compact_mode = Column(Boolean, nullable=False, server_default="false")
+    default_view_hackathons = Column(String(16), nullable=False, server_default="grid")
+    default_view_projects = Column(String(16), nullable=False, server_default="grid")
+    default_view_notifications = Column(String(24), nullable=False, server_default="grouped")
 
     # Two-factor authentication fields
     two_factor_secret = Column(String, nullable=True)

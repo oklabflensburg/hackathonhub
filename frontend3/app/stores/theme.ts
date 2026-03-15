@@ -3,50 +3,67 @@ import { ref, computed } from 'vue'
 import { usePreferencesStore } from './preferences'
 
 export const useThemeStore = defineStore('theme', () => {
-  const themeCookie = useCookie<'light' | 'dark' | null>('theme')
-  const isDark = ref(themeCookie.value === 'dark')
+  const themeCookie = useCookie<'light' | 'dark' | 'system' | null>('theme')
+  const selectedTheme = ref<'light' | 'dark' | 'system'>(themeCookie.value ?? 'system')
+  const systemPrefersDark = ref(false)
+  const isInitialized = ref(false)
 
-  const theme = computed(() => isDark.value ? 'dark' : 'light')
-  const icon = computed(() => isDark.value ? '🌙' : '☀️')
+  const resolvedTheme = computed<'light' | 'dark'>(() => {
+    if (selectedTheme.value === 'system') {
+      return systemPrefersDark.value ? 'dark' : 'light'
+    }
+    return selectedTheme.value
+  })
+  const isDark = computed(() => resolvedTheme.value === 'dark')
+  const theme = computed(() => selectedTheme.value)
 
-  function toggleTheme() {
-    const preferences = usePreferencesStore()
-    const newTheme = isDark.value ? 'light' : 'dark'
-    isDark.value = !isDark.value
-    preferences.theme.setTheme(newTheme)
+  const syncSystemPreference = () => {
+    if (typeof window === 'undefined') return
+    systemPrefersDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
   }
 
-  function setTheme(dark: boolean) {
-    isDark.value = dark
+  function toggleTheme() {
+    setTheme(isDark.value ? 'light' : 'dark')
+  }
+
+  function setTheme(nextTheme: 'light' | 'dark' | 'system') {
+    selectedTheme.value = nextTheme
+    themeCookie.value = nextTheme
     const preferences = usePreferencesStore()
-    preferences.theme.setTheme(dark ? 'dark' : 'light')
+    preferences.theme.setTheme(nextTheme)
+    updateDocumentClass()
   }
 
   function initializeTheme() {
+    if (typeof window === 'undefined') {
+      isInitialized.value = true
+      return theme.value
+    }
+
     const preferences = usePreferencesStore()
     const savedTheme = preferences.theme.initialize()
-    isDark.value = savedTheme === 'dark'
+    selectedTheme.value = savedTheme
+    syncSystemPreference()
     updateDocumentClass()
+    isInitialized.value = true
+    return savedTheme
   }
 
   function updateDocumentClass() {
     if (typeof window === 'undefined') return
-    if (isDark.value) {
+    document.documentElement.classList.remove('light', 'dark')
+    if (resolvedTheme.value === 'dark') {
       document.documentElement.classList.add('dark')
     } else {
-      document.documentElement.classList.remove('dark')
+      document.documentElement.classList.add('light')
     }
-  }
-
-  // Initialize theme immediately if we're on client side
-  if (typeof window !== 'undefined') {
-    initializeTheme()
+    document.documentElement.setAttribute('data-theme', resolvedTheme.value)
   }
 
   return {
     isDark,
+    isInitialized,
     theme,
-    icon,
     toggleTheme,
     setTheme,
     initializeTheme

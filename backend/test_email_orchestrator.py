@@ -2,14 +2,20 @@
 """
 Test script for Email Orchestrator and Jinja2 Template Engine integration.
 """
-from app.utils.jinja2_engine import Jinja2TemplateEngine
-from app.services.email_orchestrator import EmailOrchestrator, EmailContext
-from app.core.config import settings
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
 import sys
 import os
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from app.core.config import settings  # noqa: E402
+from app.services.email_orchestrator import (  # noqa: E402
+    EmailContext,
+    EmailOrchestrator,
+)
+from app.utils.jinja2_engine import Jinja2TemplateEngine  # noqa: E402
 
 
 # Import the orchestrator

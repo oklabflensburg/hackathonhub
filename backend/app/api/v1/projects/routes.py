@@ -9,7 +9,13 @@ from typing import List, Optional
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
-from app.core.permissions import PERMISSION_CODES, can_delete_project, can_manage_project, can_manage_project_reports, user_has_permission
+from app.core.permissions import (
+    PERMISSION_CODES,
+    can_delete_project,
+    can_manage_project,
+    can_manage_project_reports,
+    user_has_permission,
+)
 from app.domain.schemas.project import (
     Project, ProjectCreate, ProjectUpdate, CommentCreate, Comment
 )
@@ -280,8 +286,6 @@ async def delete_project(
     return {"message": message}
 
 
-
-
 @router.post("/{project_id}/reports", response_model=Report)
 async def report_project(
     project_id: int,
@@ -321,9 +325,17 @@ async def get_project_reports(
     if not project:
         raise_not_found(locale, "project")
     if not can_manage_project_reports(db, current_user, project_id):
-        raise HTTPException(status_code=403, detail="Not authorized to view reports for this project")
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view reports for this project",
+        )
     return report_service.list_reports_for_resource(
-        db, resource_type="project", resource_id=project_id, status=status, skip=skip, limit=limit
+        db,
+        resource_type="project",
+        resource_id=project_id,
+        status=status,
+        skip=skip,
+        limit=limit,
     )
 
 

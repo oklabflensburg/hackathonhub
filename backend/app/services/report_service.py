@@ -4,10 +4,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.domain.models.hackathon import Hackathon
-from app.domain.models.project import Project
 from app.domain.models.report import Report as ReportModel
-from app.domain.models.team import Team
 from app.domain.schemas.report import Report as ReportSchema, ReportResourceSummary, ReportUpdateRequest
 from app.repositories.hackathon_repository import HackathonRepository
 from app.repositories.project_repository import ProjectRepository
@@ -59,26 +56,50 @@ class ReportService:
 
     def _to_schema(self, db: Session, report: ReportModel) -> ReportSchema:
         schema = ReportSchema.model_validate(report)
-        _, resource = self._resource_summary(db, report.resource_type, report.resource_id)
+        _, resource = self._resource_summary(
+            db,
+            report.resource_type,
+            report.resource_id,
+        )
         schema.resource = resource
         return schema
 
-    def create_report(self, db: Session, *, reporter_id: int, resource_type: str, resource_id: int, reason: str) -> ReportSchema:
+    def create_report(
+        self,
+        db: Session,
+        *,
+        reporter_id: int,
+        resource_type: str,
+        resource_id: int,
+        reason: str,
+    ) -> ReportSchema:
         resource, _ = self._resource_summary(db, resource_type, resource_id)
         if not resource:
             raise ValueError(f"{resource_type.capitalize()} not found")
 
-        report = self.report_repo.create(db, obj_in={
-            "reporter_id": reporter_id,
-            "resource_type": resource_type,
-            "resource_id": resource_id,
-            "reason": reason.strip(),
-            "status": "pending",
-        })
+        report = self.report_repo.create(
+            db,
+            obj_in={
+                "reporter_id": reporter_id,
+                "resource_type": resource_type,
+                "resource_id": resource_id,
+                "reason": reason.strip(),
+                "status": "pending",
+            },
+        )
         report = self.report_repo.get_with_users(db, report.id) or report
         return self._to_schema(db, report)
 
-    def list_reports_for_resource(self, db: Session, *, resource_type: str, resource_id: int, status: str | None = None, skip: int = 0, limit: int = 100):
+    def list_reports_for_resource(
+        self,
+        db: Session,
+        *,
+        resource_type: str,
+        resource_id: int,
+        status: str | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ):
         reports = self.report_repo.list_by_resource(
             db,
             resource_type=resource_type,
