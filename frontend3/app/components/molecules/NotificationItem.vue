@@ -68,13 +68,11 @@ interface Props {
   progress?: number
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   dismissible: true,
   autoDismiss: false,
   progress: 0
 })
-
-const props = defineProps<Props>()
 defineEmits<{
   action: []
   dismiss: []

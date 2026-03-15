@@ -1,0 +1,13 @@
+<div class="content">
+    <p>Hello {{ user_name }},</p>
+    <p>A sensitive account setting was changed.</p>
+    <p><strong>Changed setting:</strong> {{ changed_setting }}</p>
+    <p><strong>Change time:</strong> {{ change_time }}</p>
+    {% if ip_address %}
+    <p><strong>IP address:</strong> {{ ip_address }}</p>
+    {% endif %}
+    {% if device_info %}
+    <p><strong>Device:</strong> {{ device_info }}</p>
+    {% endif %}
+    <p>If you did not make this change, please review your account immediately.</p>
+</div>

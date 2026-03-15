@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { TeamMember } from '~/composables/useTeamMembers'
+import type { TeamMember } from '~/stores/team'
 import LoadingSpinner from '~/components/atoms/LoadingSpinner.vue'
 import ErrorState from '~/components/molecules/ErrorState.vue'
 import EmptyState from '~/components/molecules/EmptyState.vue'

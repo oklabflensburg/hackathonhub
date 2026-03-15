@@ -1,11 +1,12 @@
 import { ref, computed, watch } from 'vue'
 import {
   NotificationType,
-  NotificationStatus
+  NotificationStatus,
+  NotificationPriority
 } from '~/types/notification-types'
 import type {
   Notification,
-  NotificationUIFilter,
+  NotificationFilterOptions,
   NotificationSortField,
   NotificationSortDirection
 } from '~/types/notification-types'
@@ -15,7 +16,7 @@ import { useUIStore } from '~/stores/ui'
 interface UseNotificationsOptions {
   userId?: string | number
   autoFetch?: boolean
-  initialFilters?: Partial<NotificationUIFilter>
+  initialFilters?: Partial<NotificationFilterOptions>
   pageSize?: number
 }
 
@@ -49,18 +50,18 @@ const mapApiNotificationType = (apiType: string): NotificationType => {
   return typeMap[apiType.toLowerCase()] || NotificationType.SYSTEM
 }
 
-const mapApiPriority = (apiPriority: string): 'low' | 'medium' | 'high' | 'critical' => {
-  const priorityMap: Record<string, 'low' | 'medium' | 'high' | 'critical'> = {
-    low: 'low',
-    medium: 'medium',
-    high: 'high',
-    critical: 'critical',
-    '1': 'low',
-    '2': 'medium',
-    '3': 'high',
-    '4': 'critical'
+const mapApiPriority = (apiPriority: string): NotificationPriority => {
+  const priorityMap: Record<string, NotificationPriority> = {
+    low: NotificationPriority.LOW,
+    medium: NotificationPriority.MEDIUM,
+    high: NotificationPriority.HIGH,
+    critical: NotificationPriority.CRITICAL,
+    '1': NotificationPriority.LOW,
+    '2': NotificationPriority.MEDIUM,
+    '3': NotificationPriority.HIGH,
+    '4': NotificationPriority.CRITICAL
   }
-  return priorityMap[apiPriority?.toString().toLowerCase()] || 'low'
+  return priorityMap[apiPriority?.toString().toLowerCase()] || NotificationPriority.LOW
 }
 
 /**
@@ -101,11 +102,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const hasMore = ref(true)
 
   // Filters
-  const filters = ref<NotificationUIFilter>({
+  const filters = ref<NotificationFilterOptions>({
     search: '',
     type: undefined,
     status: undefined,
-    dateRange: undefined,
+    sortBy: 'createdAt',
+    sortDirection: 'desc',
     ...initialFilters
   })
 
@@ -176,20 +178,20 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       }
 
       // Type filter
-      if (filters.value.type && filters.value.type !== 'all') {
-        if (notification.type !== filters.value.type) return false
+      if (filters.value.type) {
+        if (!filters.value.type.includes(notification.type)) return false
       }
 
       // Status filter
-      if (filters.value.status && filters.value.status !== 'all') {
-        if (notification.status !== filters.value.status) return false
+      if (filters.value.status) {
+        if (!filters.value.status.includes(notification.status)) return false
       }
 
       // Date range filter
-      if (filters.value.dateRange?.from && filters.value.dateRange?.to) {
+      if (filters.value.startDate && filters.value.endDate) {
         const notificationDate = new Date(notification.createdAt)
-        const fromDate = new Date(filters.value.dateRange.from)
-        const toDate = new Date(filters.value.dateRange.to)
+        const fromDate = new Date(filters.value.startDate)
+        const toDate = new Date(filters.value.endDate)
 
         if (notificationDate < fromDate || notificationDate > toDate) {
           return false
@@ -272,7 +274,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       params.append('limit', pageSize.toString())
 
       // Map status filter to unread_only parameter
-      if (filters.value.status === 'unread') {
+      if (filters.value.status?.includes(NotificationStatus.UNREAD)) {
         params.append('unread_only', 'true')
       }
 
@@ -448,7 +450,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     }
   }
 
-  const updateFilters = (newFilters: Partial<NotificationUIFilter>) => {
+  const updateFilters = (newFilters: Partial<NotificationFilterOptions>) => {
     filters.value = { ...filters.value, ...newFilters }
     fetchNotifications(true)
   }
@@ -464,7 +466,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       search: '',
       type: undefined,
       status: undefined,
-      dateRange: undefined
+      sortBy: 'createdAt',
+      sortDirection: 'desc'
     }
     fetchNotifications(true)
   }
@@ -472,13 +475,21 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const getNotificationIcon = (type: NotificationType): string => {
     const icons: Record<NotificationType, string> = {
       [NotificationType.SYSTEM]: 'i-heroicons-cog',
+      [NotificationType.TEAM_JOIN_REQUEST]: 'i-heroicons-user-plus',
       [NotificationType.PROJECT_COMMENT]: 'i-heroicons-document-text',
       [NotificationType.TEAM_INVITATION]: 'i-heroicons-user-group',
       [NotificationType.TEAM_MEMBER_ADDED]: 'i-heroicons-user-plus',
+      [NotificationType.TEAM_MEMBER_REMOVED]: 'i-heroicons-user-minus',
+      [NotificationType.TEAM_ROLE_UPDATED]: 'i-heroicons-shield-check',
       [NotificationType.HACKATHON_REGISTRATION]: 'i-heroicons-calendar',
       [NotificationType.HACKATHON_STARTING_SOON]: 'i-heroicons-bell-alert',
+      [NotificationType.HACKATHON_COMPLETED]: 'i-heroicons-flag',
       [NotificationType.COMMENT_REPLY]: 'i-heroicons-chat-bubble-left-right',
+      [NotificationType.COMMENT_VOTE]: 'i-heroicons-hand-thumb-up',
       [NotificationType.PROJECT_VOTE]: 'i-heroicons-hand-thumb-up',
+      [NotificationType.PROJECT_SHARE]: 'i-heroicons-share',
+      [NotificationType.USER_FOLLOW]: 'i-heroicons-user-circle',
+      [NotificationType.USER_MENTION]: 'i-heroicons-at-symbol',
       [NotificationType.EMAIL_VERIFICATION]: 'i-heroicons-envelope',
       [NotificationType.PASSWORD_RESET]: 'i-heroicons-key',
       [NotificationType.NEWSLETTER]: 'i-heroicons-megaphone',
@@ -490,13 +501,21 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const getNotificationColor = (type: NotificationType): string => {
     const colors: Record<NotificationType, string> = {
       [NotificationType.SYSTEM]: 'gray',
+      [NotificationType.TEAM_JOIN_REQUEST]: 'purple',
       [NotificationType.PROJECT_COMMENT]: 'green',
       [NotificationType.TEAM_INVITATION]: 'purple',
       [NotificationType.TEAM_MEMBER_ADDED]: 'purple',
+      [NotificationType.TEAM_MEMBER_REMOVED]: 'red',
+      [NotificationType.TEAM_ROLE_UPDATED]: 'blue',
       [NotificationType.HACKATHON_REGISTRATION]: 'orange',
       [NotificationType.HACKATHON_STARTING_SOON]: 'amber',
+      [NotificationType.HACKATHON_COMPLETED]: 'emerald',
       [NotificationType.COMMENT_REPLY]: 'yellow',
+      [NotificationType.COMMENT_VOTE]: 'indigo',
       [NotificationType.PROJECT_VOTE]: 'indigo',
+      [NotificationType.PROJECT_SHARE]: 'sky',
+      [NotificationType.USER_FOLLOW]: 'pink',
+      [NotificationType.USER_MENTION]: 'pink',
       [NotificationType.EMAIL_VERIFICATION]: 'pink',
       [NotificationType.PASSWORD_RESET]: 'red',
       [NotificationType.NEWSLETTER]: 'red',

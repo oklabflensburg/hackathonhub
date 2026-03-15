@@ -1,0 +1,11 @@
+<div class="content">
+    <p>Hallo {{ user_name }},</p>
+    <p>Dein Passwort-Reset wurde erfolgreich abgeschlossen.</p>
+    {% if reset_date %}
+    <p><strong>Zeitpunkt:</strong> {{ reset_date }}</p>
+    {% endif %}
+    {% if ip_address %}
+    <p><strong>IP-Adresse:</strong> {{ ip_address }}</p>
+    {% endif %}
+    <p>Falls du diese Aktion nicht selbst durchgeführt hast, solltest du dein Konto sofort absichern.</p>
+</div>

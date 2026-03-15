@@ -66,13 +66,13 @@
     <div
       v-if="dropdownOpen"
       v-click-outside="closeDropdown"
-      class="user-menu-dropdown absolute z-50 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 divide-y divide-gray-100 dark:divide-gray-700"
+      class="user-menu-dropdown absolute z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white py-2 shadow-elevated dark:border-gray-700 dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 glass-effect"
       :class="dropdownPlacementClasses"
       role="menu"
       aria-orientation="vertical"
     >
       <!-- User Info Section -->
-      <div v-if="showUserInfoInDropdown" class="px-4 py-3" role="none">
+      <div v-if="showUserInfoInDropdown" class="px-3 sm:px-4 py-2 sm:py-3" role="none">
         <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
           {{ user?.username || 'User' }}
         </p>
@@ -228,12 +228,12 @@ const triggerAriaLabel = computed(() => {
 
 // Klassen
 const triggerClasses = computed(() => {
-  const base = 'flex items-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded-full transition-colors'
+  const base = 'flex items-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200'
   
   const variantClasses = {
-    'avatar-only': 'p-1 hover:bg-gray-100 dark:hover:bg-gray-800',
-    'with-info': 'px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md',
-    'minimal': 'p-0 hover:opacity-80',
+    'avatar-only': 'space-x-1 sm:space-x-2 p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800',
+    'with-info': 'space-x-1 sm:space-x-2 p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800',
+    'minimal': 'p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800',
   }
   
   return `${base} ${variantClasses[props.variant] || variantClasses['avatar-only']}`
@@ -290,7 +290,7 @@ const dropdownPlacementClasses = computed(() => {
 
 // Option Klassen
 function optionClasses(option: UserMenuOption) {
-  const base = 'flex items-center w-full px-4 py-2 text-sm transition-colors'
+  const base = 'flex items-center w-full px-3 sm:px-4 py-2 sm:py-3 text-sm transition-colors'
   
   if (option.dangerous) {
     return `${base} text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 focus:bg-red-50 dark:focus:bg-red-900/20`
@@ -337,11 +337,7 @@ function handleThemeChange(theme: string) {
 
 <style scoped>
 .user-menu-trigger {
-  transition: all 0.2s ease;
-}
-
-.user-menu-trigger:hover {
-  transform: translateY(-1px);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .user-menu-dropdown {
@@ -349,11 +345,7 @@ function handleThemeChange(theme: string) {
 }
 
 .user-menu-option {
-  transition: all 0.15s ease;
-}
-
-.user-menu-option:hover {
-  transform: translateX(2px);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 @keyframes fadeInScale {

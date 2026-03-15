@@ -160,7 +160,7 @@
                     type="button"
                     class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
                     :class="currentSort === option.value ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'"
-                    @click="handleSortChange(option.value)"
+                    @click="handleSortChange(option.value as ProjectSortOption, 'desc')"
                   >
                     {{ option.label }}
                   </button>
@@ -186,7 +186,7 @@
             :filters="filters"
             :sort-option="currentSort"
             @filter-change="handleFilterChange"
-            @sort-change="handleSortChange"
+            @sort-change="handleProjectFiltersSortChange"
             @clear-filters="handleClearFilters"
           />
           
@@ -439,6 +439,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { ProjectSortOption } from '../../types/project-types'
 import type { Project, ProjectFilterOptions } from '../../types/project-types'
 import ProjectList from '../organisms/ProjectList.vue'
 import ProjectFilters from '../organisms/ProjectFilters.vue'
@@ -540,13 +541,13 @@ const emit = defineEmits<{
   search: [query: string]
   create: []
   viewModeChange: [mode: 'grid' | 'list']
-  sortChange: [sortOption: string]
+  sortChange: [sortOption: ProjectSortOption | null, direction: 'asc' | 'desc']
   filterChange: [filters: ProjectFilterOptions]
   clearFilters: []
   pageChange: [page: number]
   retry: []
   projectClick: [project: Project]
-  projectVote: [project: Project, voteValue: 1 | -1 | null]
+  projectVote: [project: Project, voteType: 'up' | 'down']
   projectComment: [project: Project]
   projectShare: [project: Project]
   projectBookmark: [project: Project, isBookmarked: boolean]
@@ -623,11 +624,13 @@ const visiblePages = computed(() => {
 })
 
 const showStartEllipsis = computed(() => {
-  return visiblePages.value.length > 0 && visiblePages.value[0] > 1
+  const firstVisiblePage = visiblePages.value[0]
+  return typeof firstVisiblePage === 'number' && firstVisiblePage > 1
 })
 
 const showEndEllipsis = computed(() => {
-  return visiblePages.value.length > 0 && visiblePages.value[visiblePages.value.length - 1] < totalPages.value
+  const lastVisiblePage = visiblePages.value[visiblePages.value.length - 1]
+  return typeof lastVisiblePage === 'number' && lastVisiblePage < totalPages.value
 })
 
 // Methods
@@ -648,9 +651,13 @@ const toggleSortDropdown = () => {
   showSortOptions.value = !showSortOptions.value
 }
 
-const handleSortChange = (sortOption: string) => {
+const handleSortChange = (sortOption: ProjectSortOption | null, direction: 'asc' | 'desc' = 'desc') => {
   showSortOptions.value = false
-  emit('sortChange', sortOption)
+  emit('sortChange', sortOption, direction)
+}
+
+const handleProjectFiltersSortChange = (sortOption: ProjectSortOption | null, direction: 'asc' | 'desc') => {
+  handleSortChange(sortOption, direction)
 }
 
 const handleFilterChange = (filters: ProjectFilterOptions) => {
@@ -676,8 +683,8 @@ const handleProjectClick = (project: Project) => {
   emit('projectClick', project)
 }
 
-const handleProjectVote = (project: Project, voteValue: 1 | -1 | null) => {
-  emit('projectVote', project, voteValue)
+const handleProjectVote = (project: Project, voteType: 'up' | 'down') => {
+  emit('projectVote', project, voteType)
 }
 
 const handleProjectComment = (project: Project) => {

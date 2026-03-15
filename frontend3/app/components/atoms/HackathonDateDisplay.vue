@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { format } from 'date-fns'
+import { format as formatDateValue } from 'date-fns'
 import { de } from 'date-fns/locale'
 import Icon from '~/components/atoms/Icon.vue'
 import Badge from '~/components/atoms/Badge.vue'
@@ -43,21 +43,21 @@ const formattedDate = computed(() => {
   
   switch (props.format) {
     case 'short':
-      return format(date, 'dd.MM.yy', { locale })
+      return formatDateValue(date, 'dd.MM.yy', { locale })
     case 'medium':
-      return format(date, 'dd. MMMM yyyy', { locale })
+      return formatDateValue(date, 'dd. MMMM yyyy', { locale })
     case 'long':
-      return format(date, 'EEEE, dd. MMMM yyyy', { locale })
+      return formatDateValue(date, 'EEEE, dd. MMMM yyyy', { locale })
     case 'relative':
       return getRelativeTime(date)
     default:
-      return format(date, 'dd. MMMM yyyy', { locale })
+      return formatDateValue(date, 'dd. MMMM yyyy', { locale })
   }
 })
 
 const formattedTime = computed(() => {
   const date = dateObj.value
-  return format(date, 'HH:mm')
+  return formatDateValue(date, 'HH:mm')
 })
 
 const statusVariant = computed(() => {

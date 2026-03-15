@@ -59,7 +59,7 @@
                   class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"
                 >
                   <img
-                    :src="notification.avatarUrl || notification.userAvatar"
+                    :src="notification.avatarUrl || notification.userAvatar || undefined"
                     :alt="notification.userName || 'Notification'"
                     class="w-full h-full object-cover"
                   />

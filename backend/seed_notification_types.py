@@ -8,10 +8,11 @@ This script should be run after the migration
 import sys
 import os
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
+from app.domain.models.notification import NotificationType
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -110,79 +111,56 @@ NOTIFICATION_DEFINITIONS = [
 
 def seed_notification_types():
     """Seed notification_types table with canonical definitions."""
-    # Create database engine
     engine = create_engine(settings.DATABASE_URL)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False,
-                                bind=engine)
+    SessionLocal = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
 
     with SessionLocal() as session:
-        # Check if table exists and has any data
-        result = session.execute(
-            text("SELECT COUNT(*) FROM notification_types")
-        )
-        count = result.scalar()
+        count = session.query(NotificationType).count()
 
         print(f"Found {count} existing notification types in database")
 
-        # Process each definition
+        existing_by_key = {
+            notification_type.type_key: notification_type
+            for notification_type in session.query(NotificationType).all()
+        }
+
         for i, definition in enumerate(NOTIFICATION_DEFINITIONS):
-            (type_key, category, channels_str, description,
-             help_text, help_text_key, email_template) = definition
+            (
+                type_key,
+                category,
+                channels_str,
+                description,
+                help_text,
+                help_text_key,
+                email_template,
+            ) = definition
 
-            # Check if this type already exists
-            result = session.execute(
-                text("""SELECT id FROM notification_types
-                       WHERE type_key = :key"""),
-                {"key": type_key}
-            )
-            existing = result.fetchone()
-
+            existing = existing_by_key.get(type_key)
             if existing:
-                # Update existing record
-                session.execute(
-                    text("""
-                        UPDATE notification_types
-                        SET category = :category,
-                            default_channels = :channels,
-                            description = :description,
-                            help_text = :help_text,
-                            help_text_key = :help_text_key,
-                            email_template = :email_template
-                        WHERE type_key = :key
-                    """),
-                    {
-                        "key": type_key,
-                        "category": category,
-                        "channels": channels_str,
-                        "description": description,
-                        "help_text": help_text,
-                        "help_text_key": help_text_key,
-                        "email_template": email_template
-                    }
-                )
+                existing.category = category
+                existing.default_channels = channels_str
+                existing.description = description
+                existing.help_text = help_text
+                existing.help_text_key = help_text_key
+                existing.email_template = email_template
+                existing.sort_order = i + 1
                 print(f"✓ Updated: {type_key}")
             else:
-                # Insert new record
-                session.execute(
-                    text("""
-                        INSERT INTO notification_types
-                        (type_key, category, default_channels, description,
-                         help_text, help_text_key, email_template, sort_order)
-                        VALUES
-                        (:key, :category, :channels, :description,
-                         :help_text, :help_text_key, :email_template,
-                         :sort_order)
-                    """),
-                    {
-                        "key": type_key,
-                        "category": category,
-                        "channels": channels_str,
-                        "description": description,
-                        "help_text": help_text,
-                        "help_text_key": help_text_key,
-                        "email_template": email_template,
-                        "sort_order": i + 1
-                    }
+                session.add(
+                    NotificationType(
+                        type_key=type_key,
+                        category=category,
+                        default_channels=channels_str,
+                        description=description,
+                        help_text=help_text,
+                        help_text_key=help_text_key,
+                        email_template=email_template,
+                        sort_order=i + 1,
+                    )
                 )
                 print(f"✓ Inserted: {type_key}")
 

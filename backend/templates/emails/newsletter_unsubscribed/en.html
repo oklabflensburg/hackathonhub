@@ -1,0 +1,8 @@
+<div class="content">
+    <p>Hello,</p>
+    <p>The email address <strong>{{ email }}</strong> has been unsubscribed from the newsletter.</p>
+    {% if unsubscribe_date %}
+    <p><strong>Date:</strong> {{ unsubscribe_date }}</p>
+    {% endif %}
+    <p>You will no longer receive newsletter emails unless you subscribe again.</p>
+</div>

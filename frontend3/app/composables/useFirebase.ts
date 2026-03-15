@@ -14,10 +14,6 @@ import { useAuthStore } from '~/stores/auth'
 import { useUIStore } from '~/stores/ui'
 
 // Firebase types (we'll use dynamic imports to avoid bundle size issues)
-interface FirebaseApp {
-  // Firebase app instance
-}
-
 interface FirebaseMessaging {
   getToken(options?: { vapidKey?: string }): Promise<string>
   onMessage(callback: (payload: any) => void): () => void

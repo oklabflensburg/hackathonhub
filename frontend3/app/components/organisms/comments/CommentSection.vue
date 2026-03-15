@@ -83,9 +83,13 @@
           :current-user-id="currentUserId"
           :is-authenticated="isAuthenticated"
           :format-date="formatDate"
-          @edit="startEdit"
-          @delete="confirmDelete"
-          @reply="startReply"
+          :submitting="submitting"
+          :save-label="saveLabel"
+          :post-reply-label="postReplyLabel"
+          :reply-placeholder="replyPlaceholder"
+          @update="forwardUpdate"
+          @remove="confirmDelete"
+          @reply="forwardReply"
           @vote="handleVote"
         />
       </div>
@@ -206,5 +210,13 @@ const confirmDelete = (commentId: number) => {
 
 const handleVote = (commentId: number, voteType: 'upvote' | 'downvote') => {
   emit('vote', commentId, voteType)
+}
+
+const forwardUpdate = (id: number, content: string) => {
+  emit('update', id, content)
+}
+
+const forwardReply = (parentId: number, content: string) => {
+  emit('reply', parentId, content)
 }
 </script>

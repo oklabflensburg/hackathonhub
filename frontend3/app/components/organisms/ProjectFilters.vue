@@ -535,35 +535,35 @@ const handleClearAll = () => {
 }
 
 // Type-safe event handlers for ProjectFilterItem
-const handleStatusChange = (value: string | number | string[] | number[] | null) => {
+const handleStatusChange = (value: string | number | string[] | number[] | (string | number)[] | null) => {
   const values = Array.isArray(value) ? value.map(v => String(v)) : []
   statusValue.value = values
   emit('status-change', values)
 }
 
-const handleTechnologyChange = (value: string | number | string[] | number[] | null) => {
+const handleTechnologyChange = (value: string | number | string[] | number[] | (string | number)[] | null) => {
   const values = Array.isArray(value) ? value.map(v => String(v)) : []
   technologyValue.value = values
   emit('technology-change', values)
 }
 
-const handleTagChange = (value: string | number | string[] | number[] | null) => {
+const handleTagChange = (value: string | number | string[] | number[] | (string | number)[] | null) => {
   const values = Array.isArray(value) ? value.map(v => String(v)) : []
   tagValue.value = values
   emit('tag-change', values)
 }
 
-const handleDateFromChange = (value: string | number | string[] | number[] | null) => {
+const handleDateFromChange = (value: string | number | string[] | number[] | (string | number)[] | null) => {
   dateFrom.value = typeof value === 'string' ? value : ''
   emit('date-change', dateFrom.value, dateTo.value)
 }
 
-const handleDateToChange = (value: string | number | string[] | number[] | null) => {
+const handleDateToChange = (value: string | number | string[] | number[] | (string | number)[] | null) => {
   dateTo.value = typeof value === 'string' ? value : ''
   emit('date-change', dateFrom.value, dateTo.value)
 }
 
-const handleTeamSizeChange = (value: string | number | string[] | number[] | null) => {
+const handleTeamSizeChange = (value: string | number | string[] | number[] | (string | number)[] | null) => {
   const numValue = typeof value === 'number' ? value : props.teamSizeMin
   teamSizeValue.value = numValue
   emit('team-size-change', numValue)

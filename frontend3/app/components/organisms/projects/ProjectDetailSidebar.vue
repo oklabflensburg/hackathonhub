@@ -35,6 +35,7 @@ interface Props {
   project: any
   canEditProject: boolean
   canViewReports?: boolean
+  commentCount?: number
 }
 
 const props = defineProps<Props>()
@@ -45,7 +46,7 @@ const { t } = useI18n()
 const stats = computed(() => ({
   votes: props.project.total_votes ?? ((props.project.upvote_count || 0) + (props.project.downvote_count || 0)),
   voteChange: 0, // Not available from API
-  comments: props.project.total_comments ?? (props.project.comment_count || 0),
+  comments: props.commentCount ?? props.project.total_comments ?? (props.project.comment_count || 0),
   views: props.project.view_count || 0,
   shares: 0, // Not available
   engagementRate: props.project.engagement_rate ?? 0,

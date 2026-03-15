@@ -1,0 +1,8 @@
+<div class="content">
+    <p>Hallo,</p>
+    <p>Die E-Mail-Adresse <strong>{{ email }}</strong> wurde vom Newsletter abgemeldet.</p>
+    {% if unsubscribe_date %}
+    <p><strong>Datum:</strong> {{ unsubscribe_date }}</p>
+    {% endif %}
+    <p>Du erhältst keine Newsletter-E-Mails mehr, bis du dich erneut anmeldest.</p>
+</div>

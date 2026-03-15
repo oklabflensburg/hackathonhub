@@ -1,0 +1,8 @@
+<div class="content">
+    <p>Hallo {{ user_name }},</p>
+    <p>Deine E-Mail-Adresse wurde erfolgreich verifiziert. Dein Konto ist jetzt vollständig einsatzbereit.</p>
+    {% if verification_date %}
+    <p><strong>Verifizierungsdatum:</strong> {{ verification_date }}</p>
+    {% endif %}
+    <p>Du kannst nun alle Funktionen des Hackathon Dashboards nutzen, die eine verifizierte Identität voraussetzen.</p>
+</div>

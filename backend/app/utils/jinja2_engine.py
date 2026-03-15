@@ -14,6 +14,11 @@ from app.i18n.translations import get_translation
 logger = logging.getLogger(__name__)
 
 
+class _SafeFormatDict(dict):
+    def __missing__(self, key: str) -> str:
+        return "{" + key + "}"
+
+
 class Jinja2TemplateEngine:
     """Jinja2-based template engine for email rendering."""
 
@@ -150,20 +155,24 @@ class Jinja2TemplateEngine:
             "project/created": "email.project_created_subject",
             "project/commented": "email.project_commented_subject",
             "hackathon/registered": "email.hackathon_registered_subject",
-            "hackathon/started": "email.hackathon_started_subject"
+            "hackathon/started": "email.hackathon_started_subject",
+            "verification_confirmed": "email.verification_confirmed_subject",
+            "password_reset_confirmed": "email.password_reset_confirmed_subject",
+            "password_changed": "email.password_changed_subject",
+            "newsletter_unsubscribed": "email.newsletter_unsubscribed_subject",
+            "security_login_new_device": "email.security_login_new_device_subject",
+            "settings_changed": "email.settings_changed_subject",
+            "hackathon/start_reminder": "email.hackathon_start_reminder_subject",
         }
 
         subject_key = subject_key_map.get(template_name)
         if subject_key:
             try:
-                # Use Jinja2 to render subject with variables
                 subject_template = get_translation(subject_key, language)
-                # Create a simple Jinja2 environment for subject rendering
-                subject_env = Environment()
-                subject_template_parsed = subject_env.from_string(
-                    subject_template
+                subject = self._interpolate_translation(
+                    subject_template,
+                    variables,
                 )
-                subject = subject_template_parsed.render(**variables)
             except KeyError:
                 subject = "Email from Hackathon Dashboard"
         else:
@@ -181,7 +190,14 @@ class Jinja2TemplateEngine:
             "project/created": "email.project_created_title",
             "project/commented": "email.project_commented_title",
             "hackathon/registered": "email.hackathon_registered_title",
-            "hackathon/started": "email.hackathon_started_title"
+            "hackathon/started": "email.hackathon_started_title",
+            "verification_confirmed": "email.verification_confirmed_title",
+            "password_reset_confirmed": "email.password_reset_confirmed_title",
+            "password_changed": "email.password_changed_title",
+            "newsletter_unsubscribed": "email.newsletter_unsubscribed_title",
+            "security_login_new_device": "email.security_login_new_device_title",
+            "settings_changed": "email.settings_changed_title",
+            "hackathon/start_reminder": "email.hackathon_start_reminder_title",
         }
 
         title_key = title_key_map.get(template_name)
@@ -211,6 +227,25 @@ class Jinja2TemplateEngine:
             "html": rendered_content,
             "text": text_content
         }
+
+    def _interpolate_translation(
+        self,
+        template: str,
+        variables: Dict[str, Any],
+    ) -> str:
+        """Render translation strings that use `{name}` placeholders."""
+        try:
+            return template.format_map(
+                _SafeFormatDict(
+                    {
+                        key: "" if value is None else str(value)
+                        for key, value in variables.items()
+                    }
+                )
+            )
+        except Exception as exc:
+            logger.warning("Failed to interpolate email translation: %s", exc)
+            return template
 
     def _get_title(self, template_name: str, language: str) -> str:
         """Get email title based on template name and language."""
@@ -258,6 +293,34 @@ class Jinja2TemplateEngine:
             "hackathon/started": {
                 "en": "Hackathon Started",
                 "de": "Hackathon gestartet"
+            },
+            "verification_confirmed": {
+                "en": "Email Verified",
+                "de": "E-Mail verifiziert"
+            },
+            "password_reset_confirmed": {
+                "en": "Password Reset Confirmed",
+                "de": "Passwort-Reset bestätigt"
+            },
+            "password_changed": {
+                "en": "Password Changed",
+                "de": "Passwort geändert"
+            },
+            "newsletter_unsubscribed": {
+                "en": "Newsletter Unsubscribed",
+                "de": "Newsletter abgemeldet"
+            },
+            "security_login_new_device": {
+                "en": "New Device Sign-In",
+                "de": "Neues Gerät erkannt"
+            },
+            "settings_changed": {
+                "en": "Settings Changed",
+                "de": "Einstellungen geändert"
+            },
+            "hackathon/start_reminder": {
+                "en": "Hackathon Reminder",
+                "de": "Hackathon-Erinnerung"
             }
         }
 

@@ -344,7 +344,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     initialize() {
       let savedTheme = storage.getItem<'light' | 'dark'>(this.THEME_KEY)
       if (!savedTheme) {
-        const themeCookie = useCookie<'light' | 'dark' | null>(this.THEME_KEY)
+        const themeCookie = useCookie(this.THEME_KEY)
         if (themeCookie.value === 'light' || themeCookie.value === 'dark') {
           savedTheme = themeCookie.value
         }
@@ -365,7 +365,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
     setTheme(themeValue: 'light' | 'dark') {
       themeCurrent.value = themeValue
       storage.setItem(this.THEME_KEY, themeValue)
-      const themeCookie = useCookie<'light' | 'dark'>(this.THEME_KEY, {
+      const themeCookie = useCookie(this.THEME_KEY, {
         path: '/',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 365

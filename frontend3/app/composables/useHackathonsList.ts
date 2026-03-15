@@ -43,26 +43,41 @@ export function useHackathonsList(options: UseHackathonsListOptions = {}) {
   const hasMore = ref(true)
 
   const transformApiHackathon = (apiHackathon: any): Hackathon => {
+    const startDate = apiHackathon.start_date || apiHackathon.startDate || new Date().toISOString()
+    const endDate = apiHackathon.end_date || apiHackathon.endDate || startDate
+    const createdAt = apiHackathon.created_at || apiHackathon.createdAt || new Date().toISOString()
+    const updatedAt = apiHackathon.updated_at || apiHackathon.updatedAt || createdAt
+
     return {
-      id: apiHackathon.id,
+      id: String(apiHackathon.id),
       name: apiHackathon.name,
-      description: apiHackathon.description,
+      description: apiHackathon.description || '',
+      startDate,
+      endDate,
+      imageUrl: apiHackathon.image_url || null,
+      isActive: Boolean(apiHackathon.is_active),
+      participantCount: apiHackathon.participant_count || 0,
+      viewCount: apiHackathon.view_count || 0,
+      projectCount: apiHackathon.project_count || 0,
+      registrationDeadline: apiHackathon.registration_deadline || null,
+      prizePool: apiHackathon.prize_pool || null,
+      createdAt,
+      updatedAt,
+      location: apiHackathon.location || '',
+      status: apiHackathon.status,
+      prizes: apiHackathon.prizes || [],
+      rules: apiHackathon.rules || '',
+      organizers: apiHackathon.organizers || [],
+      tags: apiHackathon.tags || [],
+      isVirtual: Boolean(apiHackathon.is_virtual),
       start_date: apiHackathon.start_date,
       end_date: apiHackathon.end_date,
-      location: apiHackathon.location,
       image_url: apiHackathon.image_url,
-      status: apiHackathon.status,
       is_active: apiHackathon.is_active,
       participant_count: apiHackathon.participant_count,
       view_count: apiHackathon.view_count,
       project_count: apiHackathon.project_count,
-      registration_deadline: apiHackathon.registration_deadline,
-      prizes: apiHackathon.prizes || [],
-      rules: apiHackathon.rules,
-      organizers: apiHackathon.organizers || [],
-      prize_pool: apiHackathon.prize_pool,
-      created_at: apiHackathon.created_at,
-      updated_at: apiHackathon.updated_at
+      registration_deadline: apiHackathon.registration_deadline
     }
   }
 

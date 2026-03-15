@@ -21,8 +21,8 @@
         <h2>Projektdetails</h2>
         <ul>
             <li><strong>Projekt:</strong> {{ project_name }}</li>
-            <li><strong>Hackathon:</strong> {{ hackathon_name }}</li>
-            <li><strong>Kommentardatum:</strong> {{ comment_date }}</li>
+            {% if hackathon_name %}<li><strong>Hackathon:</strong> {{ hackathon_name }}</li>{% endif %}
+            {% if comment_date %}<li><strong>Kommentardatum:</strong> {{ comment_date }}</li>{% endif %}
         </ul>
     </div>
     
@@ -31,7 +31,7 @@
     </div>
     
     <div class="cta-button">
-        <a href="{{ reply_url }}" class="button secondary">Auf Kommentar antworten</a>
+        <a href="{{ reply_url or project_url }}" class="button secondary">Auf Kommentar antworten</a>
     </div>
     
     <p>Du erhältst diese Benachrichtigung, weil du der Projektbesitzer oder ein Teammitglied bist.

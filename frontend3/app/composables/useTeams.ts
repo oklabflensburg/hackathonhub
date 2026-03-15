@@ -616,7 +616,9 @@ export function useTeams(options: UseTeamsOptions = {}): UseTeamsReturn {
               totalComments: 0,
               averageRating: null,
               lastActivityAt: null,
-              viewCount: 0
+              viewCount: 0,
+              engagementScore: 0,
+              engagementLevel: 'low'
             }),
             memberCount: (existingTeam.stats?.memberCount || 0) + 1
           }
@@ -675,7 +677,9 @@ export function useTeams(options: UseTeamsOptions = {}): UseTeamsReturn {
               totalComments: 0,
               averageRating: null,
               lastActivityAt: null,
-              viewCount: 0
+              viewCount: 0,
+              engagementScore: 0,
+              engagementLevel: 'low'
             }),
             memberCount: Math.max(0, (existingTeam.stats?.memberCount || 1) - 1)
           }

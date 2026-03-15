@@ -1,13 +1,17 @@
-<p>Hallo {{ recipient_name }},</p>
+<p>Hallo {{ recipient_name or user_name }},</p>
 
-<p>Ein neues Projekt wurde von {{ actor_name }} erstellt.</p>
+<p>Ein neues Projekt wurde von {{ creator_name or actor_name }} erstellt.</p>
 
-<p><strong>Projekttitel:</strong> {{ project_title }}</p>
+<p><strong>Projekttitel:</strong> {{ project_title or project_name }}</p>
 
+{% if project_description %}
 <p><strong>Beschreibung:</strong><br>
 {{ project_description }}</p>
+{% endif %}
 
+{% if project_technologies %}
 <p><strong>Technologien:</strong> {{ project_technologies }}</p>
+{% endif %}
 
 {% if hackathon_name %}
 <p><strong>Hackathon:</strong> {{ hackathon_name }}</p>

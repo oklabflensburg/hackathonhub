@@ -113,7 +113,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { TeamMember } from '~/composables/useTeamMembers'
+import type { TeamMember } from '~/stores/team'
 import Avatar from '~/components/atoms/Avatar.vue'
 import Button from '~/components/atoms/Button.vue'
 

@@ -3,6 +3,8 @@ Project repository for database operations.
 """
 from typing import List
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import delete
+from app.domain.models.project import CommentVote
 
 from app.repositories.base import BaseRepository
 from app.domain.models.project import Project, Vote, Comment
@@ -210,3 +212,24 @@ class CommentRepository(BaseRepository[Comment]):
         ).order_by(
             self.model.created_at.asc()
         ).all()
+
+    def delete(self, db: Session, *, id: int) -> bool:
+        """Delete a comment including nested replies and their votes."""
+        comment = db.query(self.model).filter(self.model.id == id).first()
+        if not comment:
+            return False
+
+        comment_ids = self._collect_descendant_ids(comment)
+        db.execute(
+            delete(CommentVote).where(CommentVote.comment_id.in_(comment_ids))
+        )
+
+        db.delete(comment)
+        db.commit()
+        return True
+
+    def _collect_descendant_ids(self, comment: Comment) -> List[int]:
+        ids = [comment.id]
+        for reply in list(comment.replies or []):
+            ids.extend(self._collect_descendant_ids(reply))
+        return ids

@@ -9,8 +9,8 @@
         <h2>Event Details</h2>
         <ul>
             <li><strong>Date:</strong> {{ hackathon_date }}</li>
-            <li><strong>Location:</strong> {{ hackathon_location }}</li>
-            <li><strong>Registration ID:</strong> {{ registration_id }}</li>
+            {% if hackathon_location %}<li><strong>Location:</strong> {{ hackathon_location }}</li>{% endif %}
+            {% if registration_id %}<li><strong>Registration ID:</strong> {{ registration_id }}</li>{% endif %}
         </ul>
     </div>
     
@@ -26,7 +26,9 @@
         <a href="{{ hackathon_url }}" class="button">View Hackathon Details</a>
     </div>
     
+    {% if organizer_email %}
     <p>If you have any questions, please contact the organizers at {{ organizer_email }}.</p>
+    {% endif %}
     
     <p>We're excited to see what you'll build!</p>
     

@@ -90,7 +90,7 @@
         <Button
           :variant="mode === 'delete' ? 'danger' : 'outline'"
           :loading="loading"
-          :disabled="mode === 'delete' && impact && !impact.can_delete"
+          :disabled="mode === 'delete' ? Boolean(impact && !impact.can_delete) : false"
           @click="submit"
         >
           {{ mode === 'delete' ? 'Konto löschen' : 'Konto deaktivieren' }}

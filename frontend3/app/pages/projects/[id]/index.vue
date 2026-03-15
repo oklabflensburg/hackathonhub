@@ -75,6 +75,7 @@
           <div class="space-y-6">
             <ProjectDetailSidebar
               :project="project"
+              :comment-count="commentCount"
               :can-edit-project="canEditProject"
               :can-view-reports="canViewProjectReports"
               @delete-project="deleteProject"
@@ -139,6 +140,7 @@ const {
   loading: commentsLoading,
   submitting: submittingComment,
   error: commentsError,
+  commentCount,
   fetchComments,
   postComment,
   updateComment,

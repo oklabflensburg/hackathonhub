@@ -52,9 +52,15 @@ Comment.parent = relationship(
 Comment.replies = relationship(
     "Comment",
     back_populates="parent",
-    cascade="all, delete-orphan"
+    cascade="all, delete-orphan",
+    single_parent=True,
 )
-Comment.votes = relationship("CommentVote", back_populates="comment")
+Comment.votes = relationship(
+    "CommentVote",
+    back_populates="comment",
+    cascade="all, delete-orphan",
+    passive_deletes=True,
+)
 
 # Set up CommentVote relationships
 CommentVote.user = relationship("User", back_populates="comment_votes")

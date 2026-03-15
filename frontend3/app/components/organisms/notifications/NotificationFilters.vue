@@ -137,17 +137,25 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { NotificationFilterOptions } from '~/types/notification-types'
+import {
+  NotificationStatus,
+  NotificationType
+} from '~/types/notification-types'
+import type {
+  NotificationFilterOptions,
+  NotificationSortDirection,
+  NotificationSortField
+} from '~/types/notification-types'
 
 interface NotificationFiltersProps {
   filters: NotificationFilterOptions
-  sortField?: string
-  sortDirection?: 'asc' | 'desc'
-  availableTypes?: string[]
-  availableStatuses?: string[]
+  sortField?: NotificationSortField
+  sortDirection?: NotificationSortDirection
+  availableTypes?: Array<'all' | NotificationType>
+  availableStatuses?: Array<'all' | NotificationStatus>
   showReset?: boolean
-  typeCounts?: Record<string, number>
-  statusCounts?: Record<string, number>
+  typeCounts?: Partial<Record<NotificationType, number>>
+  statusCounts?: Partial<Record<NotificationStatus, number>>
 }
 
 const props = withDefaults(defineProps<NotificationFiltersProps>(), {
@@ -159,7 +167,7 @@ const props = withDefaults(defineProps<NotificationFiltersProps>(), {
 const emit = defineEmits<{
   'update:filters': [filters: NotificationFilterOptions]
   'update-filters': [filters: NotificationFilterOptions]
-  'update-sort': [field: string, direction: 'asc' | 'desc']
+  'update-sort': [field: NotificationSortField, direction: NotificationSortDirection]
   'reset': []
   'reset-filters': []
 }>()
@@ -184,27 +192,25 @@ watch(() => props.filters, (newFilters) => {
   }
 }, { deep: true })
 
-const notificationTypes = computed(() => [
-  { value: 'system', label: 'System', count: props.typeCounts.system },
-  { value: 'user', label: 'Benutzer', count: props.typeCounts.user },
-  { value: 'project', label: 'Projekt', count: props.typeCounts.project },
-  { value: 'team', label: 'Team', count: props.typeCounts.team },
-  { value: 'hackathon', label: 'Hackathon', count: props.typeCounts.hackathon },
-  { value: 'comment', label: 'Kommentar', count: props.typeCounts.comment },
-  { value: 'vote', label: 'Abstimmung', count: props.typeCounts.vote },
-  { value: 'invitation', label: 'Einladung', count: props.typeCounts.invitation },
-  { value: 'announcement', label: 'Ankuendigung', count: props.typeCounts.announcement },
-  { value: 'reminder', label: 'Erinnerung', count: props.typeCounts.reminder }
+const notificationTypes = computed<Array<{ value: NotificationType; label: string; count?: number }>>(() => [
+  { value: NotificationType.SYSTEM, label: 'System', count: props.typeCounts[NotificationType.SYSTEM] },
+  { value: NotificationType.TEAM_INVITATION, label: 'Team', count: props.typeCounts[NotificationType.TEAM_INVITATION] },
+  { value: NotificationType.PROJECT_COMMENT, label: 'Projekt', count: props.typeCounts[NotificationType.PROJECT_COMMENT] },
+  { value: NotificationType.HACKATHON_REGISTRATION, label: 'Hackathon', count: props.typeCounts[NotificationType.HACKATHON_REGISTRATION] },
+  { value: NotificationType.COMMENT_REPLY, label: 'Kommentar', count: props.typeCounts[NotificationType.COMMENT_REPLY] },
+  { value: NotificationType.PROJECT_VOTE, label: 'Abstimmung', count: props.typeCounts[NotificationType.PROJECT_VOTE] },
+  { value: NotificationType.NEWSLETTER, label: 'Ankuendigung', count: props.typeCounts[NotificationType.NEWSLETTER] },
+  { value: NotificationType.HACKATHON_STARTING_SOON, label: 'Erinnerung', count: props.typeCounts[NotificationType.HACKATHON_STARTING_SOON] }
 ])
 
-const notificationStatuses = computed(() => [
-  { value: 'unread', label: 'Ungelesen', count: props.statusCounts.unread },
-  { value: 'read', label: 'Gelesen', count: props.statusCounts.read },
-  { value: 'archived', label: 'Archiviert', count: props.statusCounts.archived }
+const notificationStatuses = computed<Array<{ value: NotificationStatus; label: string; count?: number }>>(() => [
+  { value: NotificationStatus.UNREAD, label: 'Ungelesen', count: props.statusCounts[NotificationStatus.UNREAD] },
+  { value: NotificationStatus.READ, label: 'Gelesen', count: props.statusCounts[NotificationStatus.READ] },
+  { value: NotificationStatus.ARCHIVED, label: 'Archiviert', count: props.statusCounts[NotificationStatus.ARCHIVED] }
 ])
 
 const activeFilters = computed(() => {
-  const filters = []
+  const filters: Array<{ id: string; label: string; type: 'search' | 'type' | 'status' }> = []
 
   if (localFilters.value.search) {
     filters.push({ id: 'search', label: `Suche: "${localFilters.value.search}"`, type: 'search' })
@@ -234,7 +240,11 @@ const selectedStatusCount = computed(() => localFilters.value.status?.length || 
 const updateFilters = () => {
   emit('update:filters', { ...localFilters.value })
   emit('update-filters', { ...localFilters.value })
-  emit('update-sort', localFilters.value.sortBy || 'createdAt', localFilters.value.sortDirection || 'desc')
+  const sortField: NotificationSortField =
+    localFilters.value.sortBy === 'priority' || localFilters.value.sortBy === 'type'
+      ? localFilters.value.sortBy
+      : 'createdAt'
+  emit('update-sort', sortField, localFilters.value.sortDirection || 'desc')
 }
 
 const resetFilters = () => {
@@ -250,10 +260,10 @@ const resetFilters = () => {
   updateFilters()
 }
 
-const isTypeSelected = (value: string) => (localFilters.value.type || []).includes(value)
-const isStatusSelected = (value: string) => (localFilters.value.status || []).includes(value)
+const isTypeSelected = (value: NotificationType) => (localFilters.value.type || []).includes(value)
+const isStatusSelected = (value: NotificationStatus) => (localFilters.value.status || []).includes(value)
 
-const toggleType = (value: string) => {
+const toggleType = (value: NotificationType) => {
   const current = localFilters.value.type || []
   localFilters.value.type = current.includes(value)
     ? current.filter(type => type !== value)
@@ -261,7 +271,7 @@ const toggleType = (value: string) => {
   updateFilters()
 }
 
-const toggleStatus = (value: string) => {
+const toggleStatus = (value: NotificationStatus) => {
   const current = localFilters.value.status || []
   localFilters.value.status = current.includes(value)
     ? current.filter(status => status !== value)
@@ -275,10 +285,10 @@ const removeFilter = (filter: { id: string, type: string }) => {
       localFilters.value.search = ''
       break
     case 'type':
-      localFilters.value.type = localFilters.value.type?.filter(t => t !== filter.id.replace('type-', '')) || []
+      localFilters.value.type = localFilters.value.type?.filter(t => t !== filter.id.replace('type-', '') as NotificationType) || []
       break
     case 'status':
-      localFilters.value.status = localFilters.value.status?.filter(s => s !== filter.id.replace('status-', '')) || []
+      localFilters.value.status = localFilters.value.status?.filter(s => s !== filter.id.replace('status-', '') as NotificationStatus) || []
       break
   }
   updateFilters()

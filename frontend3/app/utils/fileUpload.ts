@@ -4,7 +4,7 @@
  * Migriert auf ApiClient für konsistente API-Interaktion
  */
 
-import { ApiClient } from '~/utils/api-client'
+import { useApiClient } from '~/utils/api-client'
 import type { ApiUploadResponse } from '~/types/file-upload-types'
 import { normalizeUploadPathForApi } from '~/utils/imageUrl'
 
@@ -55,7 +55,7 @@ export async function uploadFile(
   const params: Record<string, any> = { type }
 
   // Use ApiClient for consistent API interaction
-  const apiClient = new ApiClient()
+  const apiClient = useApiClient()
 
   try {
     // Upload durchführen (POST mit FormData)

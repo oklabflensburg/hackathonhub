@@ -1,0 +1,14 @@
+<div class="content">
+    <p>Hello {{ user_name }},</p>
+    <p>We detected a sign-in to your account from a new device.</p>
+    <p><strong>Login time:</strong> {{ login_time }}</p>
+    <p><strong>Location:</strong> {{ location }}</p>
+    <p><strong>Device:</strong> {{ device_info }}</p>
+    {% if browser_info %}
+    <p><strong>Browser:</strong> {{ browser_info }}</p>
+    {% endif %}
+    {% if ip_address %}
+    <p><strong>IP address:</strong> {{ ip_address }}</p>
+    {% endif %}
+    <p>If this was not you, secure your account immediately.</p>
+</div>

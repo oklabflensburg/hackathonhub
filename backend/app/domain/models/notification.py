@@ -27,7 +27,9 @@ class UserNotificationPreference(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     __table_args__ = (
-        UniqueConstraint('user_id', name='uq_user_notification_preferences_user'),
+        UniqueConstraint(
+            'user_id', name='uq_user_notification_preferences_user'
+        ),
     )
 
     @property
@@ -52,6 +54,8 @@ class NotificationType(Base):
     default_channels = Column(String(100), default='email,in_app')
     description = Column(Text)
     help_text = Column(Text)
+    help_text_key = Column(String(100))
+    email_template = Column(String(200))
     type_flag = Column(String(255))
     sort_order = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

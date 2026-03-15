@@ -9,9 +9,9 @@
         <h2>Wichtige Informationen</h2>
         <ul>
             <li><strong>Startzeit:</strong> {{ start_time }}</li>
-            <li><strong>Endzeit:</strong> {{ end_time }}</li>
-            <li><strong>Dauer:</strong> {{ duration_hours }} Stunden</li>
-            <li><strong>Aktuelle Phase:</strong> {{ current_phase }}</li>
+            {% if end_time %}<li><strong>Endzeit:</strong> {{ end_time }}</li>{% endif %}
+            {% if duration_hours %}<li><strong>Dauer:</strong> {{ duration_hours }} Stunden</li>{% endif %}
+            {% if current_phase %}<li><strong>Aktuelle Phase:</strong> {{ current_phase }}</li>{% endif %}
         </ul>
     </div>
     
@@ -28,16 +28,20 @@
         <a href="{{ hackathon_dashboard_url }}" class="button">Zum Hackathon-Dashboard</a>
     </div>
     
+    {% if submission_portal_url %}
     <div class="cta-button">
         <a href="{{ submission_portal_url }}" class="button secondary">Projekt einreichen</a>
     </div>
+    {% endif %}
     
+    {% if slack_channel_url or resources_url or mentor_schedule_url %}
     <p>Wichtige Ressourcen:</p>
     <ul>
-        <li><a href="{{ slack_channel_url }}">Slack Channel</a> für Echtzeit-Kommunikation</li>
-        <li><a href="{{ resources_url }}">Ressourcen & Dokumentation</a></li>
-        <li><a href="{{ mentor_schedule_url }}">Mentoren-Zeitplan</a></li>
+        {% if slack_channel_url %}<li><a href="{{ slack_channel_url }}">Slack Channel</a> für Echtzeit-Kommunikation</li>{% endif %}
+        {% if resources_url %}<li><a href="{{ resources_url }}">Ressourcen & Dokumentation</a></li>{% endif %}
+        {% if mentor_schedule_url %}<li><a href="{{ mentor_schedule_url }}">Mentoren-Zeitplan</a></li>{% endif %}
     </ul>
+    {% endif %}
     
     <p>Viel Glück und happy hacking!</p>
     

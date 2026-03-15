@@ -90,7 +90,7 @@ interface Stat {
 
 interface PrimaryAction {
   label: string
-  variant?: string
+  variant?: 'primary' | 'danger' | 'outline' | 'secondary' | 'ghost'
   icon?: string
 }
 

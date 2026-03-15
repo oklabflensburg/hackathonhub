@@ -1,0 +1,14 @@
+<div class="content">
+    <p>Hallo {{ user_name }},</p>
+    <p>Wir haben eine Anmeldung von einem neuen Gerät in deinem Konto erkannt.</p>
+    <p><strong>Anmeldezeit:</strong> {{ login_time }}</p>
+    <p><strong>Standort:</strong> {{ location }}</p>
+    <p><strong>Gerät:</strong> {{ device_info }}</p>
+    {% if browser_info %}
+    <p><strong>Browser:</strong> {{ browser_info }}</p>
+    {% endif %}
+    {% if ip_address %}
+    <p><strong>IP-Adresse:</strong> {{ ip_address }}</p>
+    {% endif %}
+    <p>Falls du das nicht warst, sichere dein Konto bitte sofort.</p>
+</div>

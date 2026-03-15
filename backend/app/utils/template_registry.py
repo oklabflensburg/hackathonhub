@@ -2,7 +2,9 @@
 Template Registry with Type Safety.
 Provides type-safe template definitions and validation.
 """
-from typing import Dict, List, Optional, TypedDict
+import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional, TypedDict
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -81,6 +83,40 @@ class TemplateDefinition:
 
 class TemplateRegistry:
     """Registry of all email templates with type-safe definitions."""
+
+    TEMPLATE_ROOT = (
+        Path(__file__).resolve().parents[2] / "templates" / "emails"
+    )
+    COMMON_TEMPLATE_VARIABLES = {
+        "subject",
+        "title",
+        "content",
+        "current_year",
+        "lang",
+        "notification_title",
+        "notification_message",
+    }
+    TEMPLATE_LANGUAGES = ("en", "de")
+    _JINJA_IDENTIFIER_RE = re.compile(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b")
+    _JINJA_EXPRESSION_RE = re.compile(r"(\{\{.*?\}\}|\{%.*?%\})", re.DOTALL)
+    _JINJA_RESERVED_NAMES = {
+        "true",
+        "false",
+        "none",
+        "and",
+        "or",
+        "not",
+        "in",
+        "if",
+        "else",
+        "elif",
+        "endif",
+        "for",
+        "endfor",
+        "set",
+        "with",
+        "endwith",
+    }
 
     # Template definitions
     TEMPLATES: Dict[str, TemplateDefinition] = {
@@ -162,6 +198,42 @@ class TemplateRegistry:
                     "description": "URL to accept the invitation",
                     "required": True,
                     "example": "https://example.com/team/accept?token=inv123"
+                },
+                {
+                    "name": "recipient_name",
+                    "description": "Display name of the recipient",
+                    "required": False,
+                    "example": "Bob Wilson"
+                },
+                {
+                    "name": "actor_name",
+                    "description": "Fallback actor display name",
+                    "required": False,
+                    "example": "Alice Johnson"
+                },
+                {
+                    "name": "invitation_url",
+                    "description": "Alias URL to view the invitation",
+                    "required": False,
+                    "example": "https://example.com/team/invitations/123"
+                },
+                {
+                    "name": "team_description",
+                    "description": "Optional description of the team",
+                    "required": False,
+                    "example": "We build a sustainability app."
+                },
+                {
+                    "name": "hackathon_name",
+                    "description": "Hackathon name for the team",
+                    "required": False,
+                    "example": "Global Hackathon 2026"
+                },
+                {
+                    "name": "expiration_date",
+                    "description": "Invitation expiration date",
+                    "required": False,
+                    "example": "2026-04-10 18:00"
                 }
             ],
             subject_key="email.team_invitation_subject",
@@ -184,6 +256,54 @@ class TemplateRegistry:
                     "description": "Name of the user who accepted",
                     "required": True,
                     "example": "Bob Wilson"
+                },
+                {
+                    "name": "recipient_name",
+                    "description": "Display name of the recipient",
+                    "required": False,
+                    "example": "Alice Johnson"
+                },
+                {
+                    "name": "actor_name",
+                    "description": "Fallback actor display name",
+                    "required": False,
+                    "example": "Bob Wilson"
+                },
+                {
+                    "name": "team_description",
+                    "description": "Optional description of the team",
+                    "required": False,
+                    "example": "We build a sustainability app."
+                },
+                {
+                    "name": "hackathon_name",
+                    "description": "Hackathon name for the team",
+                    "required": False,
+                    "example": "Global Hackathon 2026"
+                },
+                {
+                    "name": "member_role",
+                    "description": "Role of the newly accepted member",
+                    "required": False,
+                    "example": "Developer"
+                },
+                {
+                    "name": "team_url",
+                    "description": "URL to open the team",
+                    "required": False,
+                    "example": "https://example.com/teams/123"
+                },
+                {
+                    "name": "team_dashboard_url",
+                    "description": "Fallback dashboard URL for the team",
+                    "required": False,
+                    "example": "https://example.com/teams/123/dashboard"
+                },
+                {
+                    "name": "member_count",
+                    "description": "Current team member count",
+                    "required": False,
+                    "example": "4"
                 }
             ],
             subject_key="email.team_invitation_accepted_subject",
@@ -206,6 +326,54 @@ class TemplateRegistry:
                     "description": "Name of the person who added the member",
                     "required": True,
                     "example": "Charlie Brown"
+                },
+                {
+                    "name": "recipient_name",
+                    "description": "Display name of the recipient",
+                    "required": False,
+                    "example": "Bob Wilson"
+                },
+                {
+                    "name": "actor_name",
+                    "description": "Fallback actor display name",
+                    "required": False,
+                    "example": "Charlie Brown"
+                },
+                {
+                    "name": "team_description",
+                    "description": "Optional description of the team",
+                    "required": False,
+                    "example": "We build a sustainability app."
+                },
+                {
+                    "name": "hackathon_name",
+                    "description": "Hackathon name for the team",
+                    "required": False,
+                    "example": "Global Hackathon 2026"
+                },
+                {
+                    "name": "member_role",
+                    "description": "Role assigned to the recipient",
+                    "required": False,
+                    "example": "Developer"
+                },
+                {
+                    "name": "team_url",
+                    "description": "URL to open the team",
+                    "required": False,
+                    "example": "https://example.com/teams/123"
+                },
+                {
+                    "name": "team_dashboard_url",
+                    "description": "Fallback dashboard URL for the team",
+                    "required": False,
+                    "example": "https://example.com/teams/123/dashboard"
+                },
+                {
+                    "name": "member_count",
+                    "description": "Current team member count",
+                    "required": False,
+                    "example": "4"
                 }
             ],
             subject_key="email.team_member_added_subject",
@@ -234,6 +402,48 @@ class TemplateRegistry:
                     "description": "ID of the team",
                     "required": False,
                     "example": "789"
+                },
+                {
+                    "name": "user_name",
+                    "description": "Display name of the recipient",
+                    "required": False,
+                    "example": "Eva Garcia"
+                },
+                {
+                    "name": "creation_date",
+                    "description": "Date when the team was created",
+                    "required": False,
+                    "example": "2026-04-01 09:00"
+                },
+                {
+                    "name": "hackathon_name",
+                    "description": "Associated hackathon name",
+                    "required": False,
+                    "example": "Global Hackathon 2026"
+                },
+                {
+                    "name": "team_dashboard_url",
+                    "description": "URL to open the team dashboard",
+                    "required": False,
+                    "example": "https://example.com/teams/789/dashboard"
+                },
+                {
+                    "name": "team_url",
+                    "description": "Fallback URL to the team",
+                    "required": False,
+                    "example": "https://example.com/teams/789"
+                },
+                {
+                    "name": "invite_members_url",
+                    "description": "URL to invite more members",
+                    "required": False,
+                    "example": "https://example.com/teams/789/invite"
+                },
+                {
+                    "name": "help_center_url",
+                    "description": "Help center URL",
+                    "required": False,
+                    "example": "https://example.com/help"
                 }
             ],
             subject_key="email.team_created_subject",
@@ -262,6 +472,54 @@ class TemplateRegistry:
                     "description": "URL to view the project",
                     "required": True,
                     "example": "https://example.com/projects/123"
+                },
+                {
+                    "name": "recipient_name",
+                    "description": "Display name of the recipient",
+                    "required": False,
+                    "example": "Bob Wilson"
+                },
+                {
+                    "name": "user_name",
+                    "description": "Fallback recipient display name",
+                    "required": False,
+                    "example": "Bob Wilson"
+                },
+                {
+                    "name": "actor_name",
+                    "description": "Fallback creator display name",
+                    "required": False,
+                    "example": "Frank Miller"
+                },
+                {
+                    "name": "project_title",
+                    "description": "Alias project title",
+                    "required": False,
+                    "example": "Hackathon Dashboard"
+                },
+                {
+                    "name": "project_description",
+                    "description": "Optional project description",
+                    "required": False,
+                    "example": "A platform for hackathon coordination."
+                },
+                {
+                    "name": "project_technologies",
+                    "description": "Optional project technologies",
+                    "required": False,
+                    "example": "Vue, FastAPI, PostgreSQL"
+                },
+                {
+                    "name": "hackathon_name",
+                    "description": "Associated hackathon name",
+                    "required": False,
+                    "example": "Global Hackathon 2026"
+                },
+                {
+                    "name": "team_name",
+                    "description": "Associated team name",
+                    "required": False,
+                    "example": "Innovation Squad"
                 }
             ],
             subject_key="email.project_created_subject",
@@ -296,6 +554,42 @@ class TemplateRegistry:
                     "description": "URL to view the project and comment",
                     "required": True,
                     "example": "https://example.com/projects/123"
+                },
+                {
+                    "name": "user_name",
+                    "description": "Display name of the recipient",
+                    "required": False,
+                    "example": "Bob Wilson"
+                },
+                {
+                    "name": "hackathon_name",
+                    "description": "Associated hackathon name",
+                    "required": False,
+                    "example": "Global Hackathon 2026"
+                },
+                {
+                    "name": "comment_date",
+                    "description": "Date of the comment",
+                    "required": False,
+                    "example": "2026-04-01 10:30"
+                },
+                {
+                    "name": "reply_url",
+                    "description": "URL to reply to the comment",
+                    "required": False,
+                    "example": "https://example.com/projects/123#reply"
+                },
+                {
+                    "name": "unsubscribe_url",
+                    "description": "URL to unsubscribe from comment notifications",
+                    "required": False,
+                    "example": "https://example.com/settings/notifications"
+                },
+                {
+                    "name": "comment_is_truncated",
+                    "description": "Whether the comment preview is truncated",
+                    "required": False,
+                    "example": "false"
                 }
             ],
             subject_key="email.project_commented_subject",
@@ -330,6 +624,24 @@ class TemplateRegistry:
                     "description": "URL to hackathon details",
                     "required": True,
                     "example": "https://example.com/hackathons/456"
+                },
+                {
+                    "name": "hackathon_location",
+                    "description": "Hackathon location",
+                    "required": False,
+                    "example": "Berlin"
+                },
+                {
+                    "name": "registration_id",
+                    "description": "Registration identifier",
+                    "required": False,
+                    "example": "REG-2026-001"
+                },
+                {
+                    "name": "organizer_email",
+                    "description": "Organizer contact email",
+                    "required": False,
+                    "example": "team@example.com"
                 }
             ],
             subject_key="email.hackathon_registered_subject",
@@ -364,6 +676,48 @@ class TemplateRegistry:
                     "description": "URL to hackathon dashboard",
                     "required": True,
                     "example": "https://example.com/hackathons/456/dashboard"
+                },
+                {
+                    "name": "end_time",
+                    "description": "Hackathon end time",
+                    "required": False,
+                    "example": "2026-04-02 18:00"
+                },
+                {
+                    "name": "duration_hours",
+                    "description": "Hackathon duration in hours",
+                    "required": False,
+                    "example": "36"
+                },
+                {
+                    "name": "current_phase",
+                    "description": "Current hackathon phase",
+                    "required": False,
+                    "example": "Build phase"
+                },
+                {
+                    "name": "submission_portal_url",
+                    "description": "Submission portal URL",
+                    "required": False,
+                    "example": "https://example.com/submissions"
+                },
+                {
+                    "name": "slack_channel_url",
+                    "description": "Slack/community URL",
+                    "required": False,
+                    "example": "https://example.slack.com"
+                },
+                {
+                    "name": "resources_url",
+                    "description": "Resources and docs URL",
+                    "required": False,
+                    "example": "https://example.com/resources"
+                },
+                {
+                    "name": "mentor_schedule_url",
+                    "description": "Mentor schedule URL",
+                    "required": False,
+                    "example": "https://example.com/mentors"
                 }
             ],
             subject_key="email.hackathon_started_subject",
@@ -722,6 +1076,84 @@ if template:
             for var_def in template.variables
             if not var_def["required"]
         ]
+
+    @classmethod
+    def extract_template_variables(cls, template_path: Path) -> List[str]:
+        """Extract variable names referenced by a Jinja template file."""
+        source = template_path.read_text(encoding="utf-8")
+        names = set()
+        for expression in cls._JINJA_EXPRESSION_RE.findall(source):
+            inner = expression[2:-2]
+            for identifier in cls._JINJA_IDENTIFIER_RE.findall(inner):
+                if identifier in cls._JINJA_RESERVED_NAMES:
+                    continue
+                names.add(identifier)
+        return sorted(names)
+
+    @classmethod
+    def validate_template_files(cls) -> Dict[str, Any]:
+        """Validate registered templates against on-disk placeholders."""
+        report: Dict[str, Any] = {
+            "missing_templates": [],
+            "missing_languages": [],
+            "unknown_templates": [],
+            "issues": [],
+        }
+
+        known_templates = set(cls.TEMPLATES.keys())
+        disk_templates = set()
+        for template_path in cls.TEMPLATE_ROOT.rglob("*.html"):
+            relative = template_path.relative_to(cls.TEMPLATE_ROOT)
+            if len(relative.parts) != 2:
+                continue
+            template_name = relative.parent.as_posix()
+            language = relative.stem
+            disk_templates.add(template_name)
+            if template_name not in known_templates:
+                report["unknown_templates"].append(
+                    {"template": template_name, "language": language}
+                )
+                continue
+
+            allowed = (
+                set(cls.COMMON_TEMPLATE_VARIABLES)
+                | set(cls.get_required_variables(template_name))
+                | set(cls.get_optional_variables(template_name))
+            )
+            used = set(cls.extract_template_variables(template_path))
+            undocumented = sorted(used - allowed)
+            if undocumented:
+                report["issues"].append(
+                    {
+                        "template": template_name,
+                        "language": language,
+                        "undocumented_variables": undocumented,
+                    }
+                )
+
+        for template_name, definition in cls.TEMPLATES.items():
+            template_dir = cls.TEMPLATE_ROOT / template_name
+            if not template_dir.exists():
+                report["missing_templates"].append(template_name)
+                continue
+            for language in definition.languages or list(
+                cls.TEMPLATE_LANGUAGES
+            ):
+                if not (template_dir / f"{language}.html").exists():
+                    report["missing_languages"].append(
+                        {"template": template_name, "language": language}
+                    )
+
+        report["valid"] = not any(
+            report[key]
+            for key in (
+                "missing_templates",
+                "missing_languages",
+                "unknown_templates",
+                "issues",
+            )
+        )
+        return report
 
 
 # Convenience functions

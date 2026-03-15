@@ -1,0 +1,33 @@
+<p>Hallo {{ recipient_name or team_owner_name or user_name }},</p>
+
+<p>{{ actor_name or user_name }} hat deine Einladung angenommen und ist dem Team <strong>{{ team_name }}</strong> beigetreten.</p>
+
+{% if team_description %}
+<p><strong>Team-Details:</strong><br>
+{{ team_description }}</p>
+{% endif %}
+
+{% if hackathon_name %}
+<p><strong>Hackathon:</strong> {{ hackathon_name }}</p>
+{% endif %}
+
+{% if member_role %}
+<p><strong>Neue Rolle im Team:</strong> {{ member_role }}</p>
+{% endif %}
+
+<p>Um das Team und seine Mitglieder anzusehen, klicke auf die Schaltfläche unten:</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ team_url or team_dashboard_url }}" class="button">Team ansehen</a>
+</div>
+
+<p>Oder kopiere diesen Link in deinen Browser:</p>
+<p style="word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px;">
+    {{ team_url or team_dashboard_url }}
+</p>
+
+{% if member_count %}
+<p>Das Team hat jetzt {{ member_count }} Mitglieder.</p>
+{% endif %}
+
+<p>Wenn du Fragen zur Team-Verwaltung hast, prüfe bitte die Team-Einstellungen.</p>

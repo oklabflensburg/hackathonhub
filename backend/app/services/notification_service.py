@@ -398,12 +398,29 @@ class NotificationService:
                 error="User not found or has no email",
             )
 
-        payload = dict(variables)
+        payload: Dict[str, Any] = {}
+        if isinstance(notification.data, dict):
+            payload.update(notification.data)
+            metadata = notification.data.get("metadata")
+            if isinstance(metadata, dict):
+                payload.update(metadata)
+        payload.update(variables)
         payload.setdefault("notification_title", notification.title)
         payload.setdefault("notification_message", notification.message)
-        payload.setdefault(
-            "user_name", user.name or user.username or user.email
-        )
+        recipient_name = user.name or user.username or user.email
+        payload.setdefault("user_name", recipient_name)
+        payload.setdefault("recipient_name", recipient_name)
+        payload.setdefault("team_name", payload.get("team_name"))
+        payload.setdefault("project_name", payload.get("project_title"))
+        payload.setdefault("project_title", payload.get("project_name"))
+        if not payload.get("actor_name"):
+            payload["actor_name"] = (
+                payload.get("inviter_name")
+                or payload.get("creator_name")
+                or payload.get("added_by_name")
+            )
+        payload.setdefault("invitation_url", payload.get("accept_url"))
+        payload.setdefault("accept_url", payload.get("invitation_url"))
 
         context = EmailContext(
             user_id=notification.user_id,

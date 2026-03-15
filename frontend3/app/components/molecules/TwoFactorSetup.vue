@@ -303,7 +303,7 @@ const verify2FA = async () => {
     
     // Refresh token to ensure valid session after 2FA activation
     try {
-      await authStore.refreshToken()
+      await authStore.refreshAccessToken({ silent: true })
     } catch (refreshError) {
       console.warn('Token refresh after 2FA activation failed:', refreshError)
       // Non-critical error, user can still continue

@@ -76,6 +76,7 @@ export interface Hackathon {
   bannerUrl?: string | null
   status: HackathonStatus
   isActive: boolean
+  is_active?: boolean
   participantCount: number
   viewCount: number
   projectCount: number

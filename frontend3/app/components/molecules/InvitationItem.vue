@@ -4,22 +4,22 @@
       <!-- Left side: User info -->
       <div class="flex items-center">
         <!-- Avatar -->
-        <slot name="avatar" :user="invitation.invited_user">
+        <slot name="avatar" :user="invitedUser">
           <NuxtLink
-            v-if="invitation.invited_user"
-            :to="`/users/${invitation.invited_user.id}`"
+            v-if="invitedUser"
+            :to="`/users/${invitedUser.id}`"
             class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4 overflow-hidden hover:opacity-90 transition-opacity"
-            :title="invitation.invited_user.username"
+            :title="invitedUser.username"
           >
             <img
-              v-if="invitation.invited_user?.avatar_url"
-              :src="invitation.invited_user.avatar_url"
-              :alt="invitation.invited_user?.username || labels.unknownUser"
+              v-if="invitedUser?.avatar_url"
+              :src="invitedUser.avatar_url"
+              :alt="invitedUser?.username || labels.unknownUser"
               class="w-full h-full object-cover"
               @error="handleAvatarError"
             />
             <span v-else class="text-sm font-medium text-primary-600 dark:text-primary-400">
-              {{ (invitation.invited_user?.username || labels.unknownUserInitial).charAt(0).toUpperCase() }}
+              {{ (invitedUser?.username || unknownUserInitial).charAt(0).toUpperCase() }}
             </span>
           </NuxtLink>
           <div
@@ -27,7 +27,7 @@
             class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mr-4 overflow-hidden"
           >
             <span class="text-sm font-medium text-primary-600 dark:text-primary-400">
-              {{ labels.unknownUserInitial.charAt(0).toUpperCase() }}
+              {{ unknownUserInitial }}
             </span>
           </div>
         </slot>
@@ -36,11 +36,11 @@
         <div>
           <div class="font-medium text-gray-900 dark:text-white">
             <NuxtLink
-              v-if="invitation.invited_user"
-              :to="`/users/${invitation.invited_user.id}`"
+              v-if="invitedUser"
+              :to="`/users/${invitedUser.id}`"
               class="hover:text-primary-600 dark:hover:text-primary-400"
             >
-              {{ invitation.invited_user.username }}
+              {{ invitedUser.username }}
             </NuxtLink>
             <span v-else>
               {{ labels.unknownUser }}
@@ -154,6 +154,8 @@ const emit = defineEmits<{
 }>()
 
 const cancelling = ref(false)
+const invitedUser = computed(() => props.invitation.invited_user ?? null)
+const unknownUserInitial = computed(() => (props.labels?.unknownUserInitial ?? '?').charAt(0).toUpperCase())
 
 // Computed
 const formattedDate = computed(() => {

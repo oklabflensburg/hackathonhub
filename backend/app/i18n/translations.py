@@ -226,6 +226,27 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "team_created_subject": (
                 "Your team has been created! - Hackathon Dashboard"
             ),
+            "verification_confirmed_subject": (
+                "Your email has been verified - Hackathon Dashboard"
+            ),
+            "password_reset_confirmed_subject": (
+                "Your password reset was completed - Hackathon Dashboard"
+            ),
+            "password_changed_subject": (
+                "Your password was changed - Hackathon Dashboard"
+            ),
+            "newsletter_unsubscribed_subject": (
+                "You have been unsubscribed - Hackathon Dashboard"
+            ),
+            "security_login_new_device_subject": (
+                "New device sign-in detected - Hackathon Dashboard"
+            ),
+            "settings_changed_subject": (
+                "Your account settings were changed - Hackathon Dashboard"
+            ),
+            "hackathon_start_reminder_subject": (
+                "{hackathon_name} starts in {days_until_start} day(s) - Hackathon Dashboard"
+            ),
             "team_invitation_title": "Team Invitation",
             "team_invitation_accepted_title": "Invitation Accepted",
             "team_member_added_title": "Team Member Added",
@@ -233,7 +254,14 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "hackathon_registered_title": "Hackathon Registration",
             "hackathon_started_title": "Hackathon Started",
             "project_commented_title": "New Project Comment",
-            "team_created_title": "Team Created"
+            "team_created_title": "Team Created",
+            "verification_confirmed_title": "Email Verified",
+            "password_reset_confirmed_title": "Password Reset Confirmed",
+            "password_changed_title": "Password Changed",
+            "newsletter_unsubscribed_title": "Newsletter Unsubscribed",
+            "security_login_new_device_title": "New Device Sign-In",
+            "settings_changed_title": "Settings Changed",
+            "hackathon_start_reminder_title": "Hackathon Reminder"
         },
         "notifications": {
             "help_text.team_invitation": "Alerts you when another participant invites you to a team so you can accept, decline, or react before collaboration starts without you.",
@@ -507,6 +535,27 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "team_created_subject": (
                 "Dein Team wurde erstellt! - Hackathon Dashboard"
             ),
+            "verification_confirmed_subject": (
+                "Deine E-Mail wurde verifiziert - Hackathon Dashboard"
+            ),
+            "password_reset_confirmed_subject": (
+                "Dein Passwort-Reset wurde abgeschlossen - Hackathon Dashboard"
+            ),
+            "password_changed_subject": (
+                "Dein Passwort wurde geändert - Hackathon Dashboard"
+            ),
+            "newsletter_unsubscribed_subject": (
+                "Du wurdest vom Newsletter abgemeldet - Hackathon Dashboard"
+            ),
+            "security_login_new_device_subject": (
+                "Anmeldung von neuem Gerät erkannt - Hackathon Dashboard"
+            ),
+            "settings_changed_subject": (
+                "Deine Kontoeinstellungen wurden geändert - Hackathon Dashboard"
+            ),
+            "hackathon_start_reminder_subject": (
+                "{hackathon_name} startet in {days_until_start} Tag(en) - Hackathon Dashboard"
+            ),
             "team_invitation_title": "Teameinladung",
             "team_invitation_accepted_title": "Einladung angenommen",
             "team_member_added_title": "Teammitglied hinzugefügt",
@@ -514,7 +563,14 @@ TRANSLATIONS: Dict[str, Dict[str, Any]] = {
             "hackathon_registered_title": "Hackathon-Registrierung",
             "hackathon_started_title": "Hackathon gestartet",
             "project_commented_title": "Neuer Projekt-Kommentar",
-            "team_created_title": "Team erstellt"
+            "team_created_title": "Team erstellt",
+            "verification_confirmed_title": "E-Mail verifiziert",
+            "password_reset_confirmed_title": "Passwort-Reset bestätigt",
+            "password_changed_title": "Passwort geändert",
+            "newsletter_unsubscribed_title": "Newsletter abgemeldet",
+            "security_login_new_device_title": "Neues Gerät erkannt",
+            "settings_changed_title": "Einstellungen geändert",
+            "hackathon_start_reminder_title": "Hackathon-Erinnerung"
         },
         "notifications": {
             "help_text.team_invitation": "Informiert dich, wenn dich jemand in ein Team einlädt, damit du rechtzeitig annehmen, ablehnen oder reagieren kannst, bevor die Zusammenarbeit ohne dich startet.",

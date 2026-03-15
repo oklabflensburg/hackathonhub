@@ -83,6 +83,7 @@ import { ref, computed, watch } from 'vue'
 import { useFeatureFlags } from '~/composables/useFeatureFlags'
 import ProjectsPageTemplate from '~/components/templates/ProjectsPageTemplate.vue'
 import { 
+  ProjectSortOption,
   ProjectStatus,
   ProjectVisibility,
   type Project, 
@@ -191,13 +192,13 @@ const emit = defineEmits<{
   search: [query: string]
   create: []
   viewModeChange: [mode: 'grid' | 'list']
-  sortChange: [sortOption: string]
+  sortChange: [sortOption: ProjectSortOption | null, direction: 'asc' | 'desc']
   filterChange: [filters: ProjectFilterOptions]
   clearFilters: []
   pageChange: [page: number]
   retry: []
   projectClick: [project: any]
-  projectVote: [project: any, voteValue: 1 | -1 | null]
+  projectVote: [project: any, voteType: 'up' | 'down']
   projectComment: [project: any]
   projectShare: [project: any]
   projectBookmark: [project: any, isBookmarked: boolean]
@@ -347,8 +348,8 @@ const handleViewModeChange = (mode: 'grid' | 'list') => {
   emit('viewModeChange', mode)
 }
 
-const handleSortChange = (sortOption: string) => {
-  emit('sortChange', sortOption)
+const handleSortChange = (sortOption: ProjectSortOption | null, direction: 'asc' | 'desc') => {
+  emit('sortChange', sortOption, direction)
 }
 
 const handleFilterChange = (filters: ProjectFilterOptions) => {
@@ -373,9 +374,9 @@ const handleProjectClick = (project: Project) => {
   emit('projectClick', legacyProject)
 }
 
-const handleProjectVote = (project: Project, voteValue: 1 | -1 | null) => {
+const handleProjectVote = (project: Project, voteType: 'up' | 'down') => {
   const legacyProject = convertAtomicProjectToLegacy(project)
-  emit('projectVote', legacyProject, voteValue)
+  emit('projectVote', legacyProject, voteType)
 }
 
 const handleProjectComment = (project: Project) => {

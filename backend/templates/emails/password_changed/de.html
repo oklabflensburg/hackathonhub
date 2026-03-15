@@ -1,0 +1,12 @@
+<div class="content">
+    <p>Hallo {{ user_name }},</p>
+    <p>Das Passwort deines Kontos wurde geändert.</p>
+    <p><strong>Zeitpunkt:</strong> {{ change_date }}</p>
+    {% if ip_address %}
+    <p><strong>IP-Adresse:</strong> {{ ip_address }}</p>
+    {% endif %}
+    {% if device_info %}
+    <p><strong>Gerät:</strong> {{ device_info }}</p>
+    {% endif %}
+    <p>Falls du das nicht warst, setze dein Passwort bitte sofort zurück und überprüfe deine Sicherheitseinstellungen.</p>
+</div>

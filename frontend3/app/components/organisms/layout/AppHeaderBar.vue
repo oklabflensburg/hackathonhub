@@ -51,38 +51,58 @@
           <div v-if="authStore.isAuthenticated" class="flex items-center gap-2">
             <NotificationBadge />
             <div class="relative" ref="userMenuContainer">
-            <UserAvatarButton
-              :avatar-url="authStore.user?.avatar_url"
-              :username="username"
-              :subtitle="t('appHeader.viewProfile')"
-              :menu-label="t('appHeader.userMenu')"
-              @toggle="isUserMenuOpen = !isUserMenuOpen"
-            />
+              <UserAvatarButton
+                :avatar-url="authStore.user?.avatar_url"
+                :username="username"
+                :subtitle="t('appHeader.viewProfile')"
+                :menu-label="t('appHeader.userMenu')"
+                :open="isUserMenuOpen"
+                @toggle="isUserMenuOpen = !isUserMenuOpen"
+              />
 
-            <div
-              v-if="isUserMenuOpen"
-              class="absolute right-0 mt-2 w-56 rounded-lg bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 py-2"
-            >
-              <NuxtLink to="/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700" @click="isUserMenuOpen = false">
-                {{ t('appHeader.myProfile') }}
-              </NuxtLink>
-              <NuxtLink to="/my-projects" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700" @click="isUserMenuOpen = false">
-                {{ t('appHeader.myProjects') }}
-              </NuxtLink>
-              <NuxtLink to="/my-votes" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700" @click="isUserMenuOpen = false">
-                {{ t('appHeader.myVotes') }}
-              </NuxtLink>
-              <Button
-                type="button"
-                variant="danger"
-                size="sm"
-                class="w-full text-left px-4 py-2"
-                @click="handleLogout"
+              <div
+                v-if="isUserMenuOpen"
+                class="absolute right-0 mt-2 w-48 sm:w-56 bg-white dark:bg-gray-800 rounded-xl shadow-elevated border border-gray-200 dark:border-gray-700 py-2 z-50 animate-slide-in glass-effect"
               >
-                {{ t('appHeader.logout') }}
-              </Button>
+                <div class="px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-100 dark:border-gray-700">
+                  <p class="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+                    {{ t('appHeader.userMenu') }}
+                  </p>
+                  <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                    {{ username }}
+                  </p>
+                </div>
+
+                <NuxtLink
+                  to="/profile"
+                  class="flex items-center w-full px-3 sm:px-4 py-2 sm:py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base"
+                  @click="isUserMenuOpen = false"
+                >
+                  {{ t('appHeader.myProfile') }}
+                </NuxtLink>
+                <NuxtLink
+                  to="/my-projects"
+                  class="flex items-center w-full px-3 sm:px-4 py-2 sm:py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base"
+                  @click="isUserMenuOpen = false"
+                >
+                  {{ t('appHeader.myProjects') }}
+                </NuxtLink>
+                <NuxtLink
+                  to="/my-votes"
+                  class="flex items-center w-full px-3 sm:px-4 py-2 sm:py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base"
+                  @click="isUserMenuOpen = false"
+                >
+                  {{ t('appHeader.myVotes') }}
+                </NuxtLink>
+                <button
+                  type="button"
+                  class="flex items-center w-full px-3 sm:px-4 py-2 sm:py-3 text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base"
+                  @click="handleLogout"
+                >
+                  {{ t('appHeader.logout') }}
+                </button>
+              </div>
             </div>
-          </div>
           </div>
 
           <div v-else class="flex items-center gap-1 sm:gap-2">

@@ -62,7 +62,7 @@ const emit = defineEmits<{
 }>()
 
 const { isEnabled } = useFeatureFlags()
-const useAtomicComponents = computed(() => isEnabled('atomicProjectComponents'))
+const useAtomicComponents = computed(() => false)
 
 const handleVote = (project: Project, voteValue: 1 | -1 | null) => {
   emit('vote', project.id, voteValue)

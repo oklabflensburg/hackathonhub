@@ -496,8 +496,8 @@ const getInitials = (name: string): string => {
 }
 
 // Event Handlers
-const handleVote = (voteValue: 1 | -1 | null) => {
-  emit('vote', props.project, voteValue)
+const handleVote = (_projectId: string, voteType: 'up' | 'down') => {
+  emit('vote', props.project, voteType === 'up' ? 1 : -1)
 }
 
 const handleComment = () => {

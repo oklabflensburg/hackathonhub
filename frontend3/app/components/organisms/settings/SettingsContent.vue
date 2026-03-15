@@ -154,7 +154,7 @@
                      {{ session.device_name || 'Unbekanntes Gerät' }}
                    </p>
                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                     {{ session.location || 'Unbekannter Standort' }} • {{ formatDate(session.last_activity) }}
+                     {{ session.location || 'Unbekannter Standort' }} • {{ formatDate(session.last_activity || session.last_active) }}
                    </p>
                  </div>
                </div>

@@ -150,7 +150,9 @@ export function mapApiTeamToTeam(apiTeam: any): Team {
       totalComments: team.totalComments || 0,
       averageRating: team.averageRating || null,
       lastActivityAt: team.lastActivityAt || null,
-      viewCount: team.viewCount || 0
+      viewCount: team.viewCount || 0,
+      engagementScore: team.engagementScore || 0,
+      engagementLevel: team.engagementLevel || 'low'
     }
   }
 }

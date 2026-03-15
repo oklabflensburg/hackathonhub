@@ -12,10 +12,10 @@ from .middleware import get_locale_from_request
 async def get_locale(request: Request) -> str:
     """
     Dependency to get locale from request.
-    
+
     Args:
         request: FastAPI request object
-    
+
     Returns:
         Language code (e.g., 'en', 'de')
     """
@@ -28,11 +28,11 @@ async def get_locale_or_default(
 ) -> str:
     """
     Dependency to get locale from request with fallback default.
-    
+
     Args:
         request: FastAPI request object
         default: Default locale if not found in request
-    
+
     Returns:
         Language code
     """
@@ -48,11 +48,11 @@ async def get_locale_with_fallback(
 ) -> str:
     """
     Dependency to get locale with preferred fallback.
-    
+
     Args:
         request: FastAPI request object
         preferred: Preferred locale if not found in request
-    
+
     Returns:
         Language code
     """

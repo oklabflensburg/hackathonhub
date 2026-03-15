@@ -9,8 +9,8 @@
         <h2>Veranstaltungsdetails</h2>
         <ul>
             <li><strong>Datum:</strong> {{ hackathon_date }}</li>
-            <li><strong>Ort:</strong> {{ hackathon_location }}</li>
-            <li><strong>Registrierungs-ID:</strong> {{ registration_id }}</li>
+            {% if hackathon_location %}<li><strong>Ort:</strong> {{ hackathon_location }}</li>{% endif %}
+            {% if registration_id %}<li><strong>Registrierungs-ID:</strong> {{ registration_id }}</li>{% endif %}
         </ul>
     </div>
     
@@ -26,7 +26,9 @@
         <a href="{{ hackathon_url }}" class="button">Hackathon-Details ansehen</a>
     </div>
     
+    {% if organizer_email %}
     <p>Wenn du Fragen hast, wende dich bitte an die Organisatoren unter {{ organizer_email }}.</p>
+    {% endif %}
     
     <p>Wir freuen uns darauf zu sehen, was du entwickeln wirst!</p>
     

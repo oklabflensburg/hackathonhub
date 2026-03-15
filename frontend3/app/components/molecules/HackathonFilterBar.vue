@@ -18,12 +18,12 @@
       <label class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
         Status:
       </label>
-      <Select v-model="selectedStatus" @change="onStatusChange" class="min-w-[120px]">
-        <option value="all">Alle</option>
-        <option value="upcoming">Bevorstehend</option>
-        <option value="active">Aktiv</option>
-        <option value="past">Vergangen</option>
-      </Select>
+      <Select
+        v-model="selectedStatus"
+        :options="statusOptions"
+        class="min-w-[120px]"
+        @update:model-value="onStatusChange"
+      />
     </div>
 
     <!-- Location Filter -->
@@ -31,12 +31,12 @@
       <label class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
         Ort:
       </label>
-      <Select v-model="selectedLocation" @change="onLocationChange" class="min-w-[140px]">
-        <option value="all">Alle</option>
-        <option value="virtual">Virtual</option>
-        <option value="physical">Vor Ort</option>
-        <option value="hybrid">Hybrid</option>
-      </Select>
+      <Select
+        v-model="selectedLocation"
+        :options="locationOptions"
+        class="min-w-[140px]"
+        @update:model-value="onLocationChange"
+      />
     </div>
 
     <!-- Sort Options -->
@@ -44,13 +44,12 @@
       <label class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
         Sortieren:
       </label>
-      <Select v-model="selectedSort" @change="onSortChange" class="min-w-[140px]">
-        <option value="newest">Neueste zuerst</option>
-        <option value="oldest">Älteste zuerst</option>
-        <option value="participants">Meiste Teilnehmer</option>
-        <option value="prize">Höchster Preis</option>
-        <option value="deadline">Nächste Deadline</option>
-      </Select>
+      <Select
+        v-model="selectedSort"
+        :options="sortOptions"
+        class="min-w-[140px]"
+        @update:model-value="onSortChange"
+      />
     </div>
 
     <!-- Clear Filters Button -->
@@ -103,6 +102,28 @@ const selectedStatus = ref(props.initialStatus)
 const selectedLocation = ref(props.initialLocation)
 const selectedSort = ref(props.initialSort)
 
+const statusOptions = [
+  { value: 'all', label: 'Alle' },
+  { value: 'upcoming', label: 'Bevorstehend' },
+  { value: 'active', label: 'Aktiv' },
+  { value: 'past', label: 'Vergangen' }
+]
+
+const locationOptions = [
+  { value: 'all', label: 'Alle' },
+  { value: 'virtual', label: 'Virtual' },
+  { value: 'physical', label: 'Vor Ort' },
+  { value: 'hybrid', label: 'Hybrid' }
+]
+
+const sortOptions = [
+  { value: 'newest', label: 'Neueste zuerst' },
+  { value: 'oldest', label: 'Aelteste zuerst' },
+  { value: 'participants', label: 'Meiste Teilnehmer' },
+  { value: 'prize', label: 'Hoechster Preis' },
+  { value: 'deadline', label: 'Naechste Deadline' }
+]
+
 const hasActiveFilters = computed(() => {
   return (
     searchQuery.value !== '' ||
@@ -116,15 +137,18 @@ function onSearch() {
   emit('search', searchQuery.value)
 }
 
-function onStatusChange() {
+function onStatusChange(value: string | number | null) {
+  selectedStatus.value = String(value ?? 'all')
   emit('status-change', selectedStatus.value)
 }
 
-function onLocationChange() {
+function onLocationChange(value: string | number | null) {
+  selectedLocation.value = String(value ?? 'all')
   emit('location-change', selectedLocation.value)
 }
 
-function onSortChange() {
+function onSortChange(value: string | number | null) {
+  selectedSort.value = String(value ?? 'newest')
   emit('sort-change', selectedSort.value)
 }
 

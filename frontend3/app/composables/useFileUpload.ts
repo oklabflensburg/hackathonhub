@@ -7,7 +7,7 @@
  */
 
 import { ref, computed } from 'vue'
-import { ApiClient } from '~/utils/api-client'
+import { useApiClient } from '~/utils/api-client'
 import { useUIStore } from '~/stores/ui'
 import type { ApiUploadResponse } from '~/types/file-upload-types'
 import { mapApiUploadResponseToFileMetadata } from '~/utils/api-mappers'
@@ -113,7 +113,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
       params.type = type
       
       // ApiClient für Upload verwenden
-      const apiClient = new ApiClient()
+      const apiClient = useApiClient()
       
       let result: ApiUploadResponse
       

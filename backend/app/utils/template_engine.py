@@ -12,6 +12,11 @@ from app.i18n.translations import get_translation
 logger = logging.getLogger(__name__)
 
 
+class _SafeFormatDict(dict):
+    def __missing__(self, key: str) -> str:
+        return "{" + key + "}"
+
+
 class TemplateEngine:
     """Engine for loading and rendering email templates."""
 
@@ -116,7 +121,14 @@ class TemplateEngine:
         subject_key = subject_key_map.get(template_name)
         if subject_key:
             try:
-                subject = get_translation(subject_key, language)
+                subject = get_translation(subject_key, language).format_map(
+                    _SafeFormatDict(
+                        {
+                            key: "" if value is None else str(value)
+                            for key, value in variables.items()
+                        }
+                    )
+                )
             except KeyError:
                 subject = "Email from Hackathon Dashboard"
         else:

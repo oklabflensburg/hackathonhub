@@ -344,7 +344,8 @@ function getMockSettings(): UserSettings {
           created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           current: true
         }
-      ]
+      ],
+      trusted_devices: []
     },
     privacy: {
       profile_visibility: 'public',
