@@ -18,8 +18,9 @@ from app.i18n.helpers import (
     raise_forbidden,
     raise_bad_request
 )
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 
 # Initialize repository instances
 comment_repository = CommentRepository()

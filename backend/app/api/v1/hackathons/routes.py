@@ -1,7 +1,7 @@
 """
 Hackathon API routes.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -26,6 +26,7 @@ from app.repositories.hackathon_repository import (
 )
 from app.services.team_service import team_service
 from app.services.report_service import report_service
+from app.api.openapi_responses import NOT_FOUND_RESPONSE, UNAUTHORIZED_RESPONSE
 
 router = APIRouter()
 hackathon_repository = HackathonRepository()
@@ -34,8 +35,8 @@ registration_repository = HackathonRegistrationRepository()
 
 @router.get("", response_model=List[Hackathon])
 async def get_hackathons(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0, le=1000),
+    limit: int = Query(100, ge=0, le=1000),
     db: Session = Depends(get_db)
 ):
     """Get all hackathons."""
@@ -45,7 +46,11 @@ async def get_hackathons(
     return hackathons
 
 
-@router.get("/{hackathon_id}", response_model=Hackathon)
+@router.get(
+    "/{hackathon_id}",
+    response_model=Hackathon,
+    responses=NOT_FOUND_RESPONSE,
+)
 async def get_hackathon(
     hackathon_id: int,
     db: Session = Depends(get_db)
@@ -63,7 +68,7 @@ async def get_hackathon(
     return hackathon
 
 
-@router.post("", response_model=Hackathon)
+@router.post("", response_model=Hackathon, responses=UNAUTHORIZED_RESPONSE)
 async def create_hackathon(
     hackathon: HackathonCreate,
     db: Session = Depends(get_db),
@@ -78,7 +83,11 @@ async def create_hackathon(
     return new_hackathon
 
 
-@router.put("/{hackathon_id}", response_model=Hackathon)
+@router.put(
+    "/{hackathon_id}",
+    response_model=Hackathon,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def update_hackathon(
     hackathon_id: int,
     hackathon_update: HackathonUpdate,
@@ -99,7 +108,7 @@ async def update_hackathon(
     return updated_hackathon
 
 
-@router.delete("/{hackathon_id}")
+@router.delete("/{hackathon_id}", responses=UNAUTHORIZED_RESPONSE)
 async def delete_hackathon(
     hackathon_id: int,
     db: Session = Depends(get_db),
@@ -122,7 +131,7 @@ async def delete_hackathon(
     return {"message": "Hackathon deleted successfully"}
 
 
-@router.post("/{hackathon_id}/register")
+@router.post("/{hackathon_id}/register", responses=UNAUTHORIZED_RESPONSE)
 async def register_for_hackathon(
     hackathon_id: int,
     db: Session = Depends(get_db),
@@ -166,7 +175,8 @@ async def register_for_hackathon(
 
 @router.get(
     "/{hackathon_id}/register",
-    response_model=HackathonRegistrationStatus
+    response_model=HackathonRegistrationStatus,
+    responses=UNAUTHORIZED_RESPONSE,
 )
 async def check_hackathon_registration(
     hackathon_id: int,
@@ -206,7 +216,7 @@ async def check_hackathon_registration(
     return response_data
 
 
-@router.get("/{hackathon_id}/projects")
+@router.get("/{hackathon_id}/projects", responses=NOT_FOUND_RESPONSE)
 async def get_hackathon_projects(
     hackathon_id: int,
     db: Session = Depends(get_db)
@@ -237,7 +247,7 @@ async def get_hackathon_projects(
     return {"projects": project_list, "hackathon_id": hackathon_id}
 
 
-@router.get("/{hackathon_id}/teams")
+@router.get("/{hackathon_id}/teams", responses=NOT_FOUND_RESPONSE)
 async def get_hackathon_teams(
     hackathon_id: int,
     db: Session = Depends(get_db)
@@ -278,7 +288,11 @@ async def get_hackathon_teams(
     return {"teams": team_list, "hackathon_id": hackathon_id}
 
 
-@router.post("/{hackathon_id}/reports", response_model=Report)
+@router.post(
+    "/{hackathon_id}/reports",
+    response_model=Report,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def report_hackathon(
     hackathon_id: int,
     payload: ReportCreateRequest,
@@ -302,7 +316,11 @@ async def report_hackathon(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/{hackathon_id}/reports", response_model=List[Report])
+@router.get(
+    "/{hackathon_id}/reports",
+    response_model=List[Report],
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def get_hackathon_reports(
     hackathon_id: int,
     status: str | None = None,
@@ -321,7 +339,11 @@ async def get_hackathon_reports(
     )
 
 
-@router.get("/{hackathon_id}/team-reports", response_model=List[TeamReport])
+@router.get(
+    "/{hackathon_id}/team-reports",
+    response_model=List[TeamReport],
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def get_hackathon_team_reports(
     hackathon_id: int,
     status: str | None = None,

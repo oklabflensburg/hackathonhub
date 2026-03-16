@@ -16,12 +16,13 @@ from app.i18n.helpers import raise_i18n_http_exception
 from app.services.notification_settings_service import (
     notification_settings_service,
 )
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
 router = APIRouter()
 push_subscription_repository = PushSubscriptionRepository()
 
 
-@router.get("/notification-preferences")
+@router.get("/notification-preferences", responses=UNAUTHORIZED_RESPONSE)
 async def get_notification_preferences(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -36,7 +37,7 @@ async def get_notification_preferences(
         return {"global_enabled": False, "channels": {}, "categories": {}}
 
 
-@router.put("/notification-preferences")
+@router.put("/notification-preferences", responses=UNAUTHORIZED_RESPONSE)
 async def update_notification_preferences(
     preferences: Dict[str, Any],
     db: Session = Depends(get_db),
@@ -57,7 +58,11 @@ async def update_notification_preferences(
         )
 
 
-@router.get("/push-subscriptions", response_model=List[PushSubscription])
+@router.get(
+    "/push-subscriptions",
+    response_model=List[PushSubscription],
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def get_push_subscriptions(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),

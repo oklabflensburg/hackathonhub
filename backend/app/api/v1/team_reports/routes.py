@@ -6,8 +6,9 @@ from app.core.database import get_db
 from app.core.permissions import can_review_team_report
 from app.domain.schemas.team import TeamReport, TeamReportUpdateRequest
 from app.services.team_service import team_service
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 
 
 @router.get('/{report_id}', response_model=TeamReport)

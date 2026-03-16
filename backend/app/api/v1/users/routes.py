@@ -16,11 +16,20 @@ from app.i18n.dependencies import get_locale
 from app.i18n.helpers import (
     raise_not_found, raise_forbidden
 )
+from app.api.openapi_responses import (
+    FORBIDDEN_RESPONSE,
+    NOT_FOUND_RESPONSE,
+    UNAUTHORIZED_RESPONSE,
+)
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 
 
-@router.get("", response_model=list[User])
+@router.get(
+    "",
+    response_model=list[User],
+    responses=FORBIDDEN_RESPONSE,
+)
 async def get_users(
     username: str = None,
     skip: int = 0,
@@ -180,7 +189,10 @@ async def get_user_votes(
     return enriched_votes
 
 
-@router.get("/me/teams/{hackathon_id}")
+@router.get(
+    "/me/teams/{hackathon_id}",
+    responses=NOT_FOUND_RESPONSE,
+)
 async def get_user_teams_for_hackathon(
     hackathon_id: int,
     db: Session = Depends(get_db),
@@ -380,7 +392,7 @@ async def delete_user(
     return {"message": "User deleted successfully"}
 
 
-@router.get("/{user_id}/profile")
+@router.get("/{user_id}/profile", responses=NOT_FOUND_RESPONSE)
 async def get_user_profile(
     user_id: int,
     db: Session = Depends(get_db),

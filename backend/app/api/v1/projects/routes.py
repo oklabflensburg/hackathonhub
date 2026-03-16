@@ -1,7 +1,7 @@
 """Project API routes."""
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Body, Request, HTTPException
+from fastapi import APIRouter, Depends, Body, Request, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
@@ -33,6 +33,7 @@ from app.i18n.helpers import (
 )
 from app.i18n.translations import get_translation
 from app.services.report_service import report_service
+from app.api.openapi_responses import NOT_FOUND_RESPONSE, UNAUTHORIZED_RESPONSE
 
 router = APIRouter()
 
@@ -175,8 +176,8 @@ def _attach_project_stats(db: Session, projects: List[Project]) -> None:
 
 @router.get("", response_model=List[Project])
 async def get_projects(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0, le=1000),
+    limit: int = Query(100, ge=0, le=1000),
     user: Optional[int] = None,
     technology: Optional[str] = None,
     technologies: Optional[str] = None,
@@ -209,7 +210,11 @@ async def get_projects(
     return projects
 
 
-@router.get("/{project_id}", response_model=Project)
+@router.get(
+    "/{project_id}",
+    response_model=Project,
+    responses=NOT_FOUND_RESPONSE,
+)
 async def get_project(
     project_id: int,
     request: Request,
@@ -224,7 +229,7 @@ async def get_project(
     return project
 
 
-@router.post("", response_model=Project)
+@router.post("", response_model=Project, responses=UNAUTHORIZED_RESPONSE)
 async def create_project(
     project: ProjectCreate,
     request: Request,
@@ -241,7 +246,11 @@ async def create_project(
     return new_project
 
 
-@router.put("/{project_id}", response_model=Project)
+@router.put(
+    "/{project_id}",
+    response_model=Project,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def update_project(
     project_id: int,
     project_update: ProjectUpdate,
@@ -263,7 +272,7 @@ async def update_project(
     return updated_project
 
 
-@router.delete("/{project_id}")
+@router.delete("/{project_id}", responses=UNAUTHORIZED_RESPONSE)
 async def delete_project(
     project_id: int,
     request: Request,
@@ -286,7 +295,11 @@ async def delete_project(
     return {"message": message}
 
 
-@router.post("/{project_id}/reports", response_model=Report)
+@router.post(
+    "/{project_id}/reports",
+    response_model=Report,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def report_project(
     project_id: int,
     payload: ReportCreateRequest,
@@ -311,7 +324,11 @@ async def report_project(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/reports", response_model=List[Report])
+@router.get(
+    "/{project_id}/reports",
+    response_model=List[Report],
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def get_project_reports(
     project_id: int,
     status: Optional[str] = None,
@@ -339,7 +356,7 @@ async def get_project_reports(
     )
 
 
-@router.post("/{project_id}/vote")
+@router.post("/{project_id}/vote", responses=UNAUTHORIZED_RESPONSE)
 async def vote_for_project(
     project_id: int,
     request: Request,
@@ -469,7 +486,7 @@ async def vote_for_project(
     return response_data
 
 
-@router.get("/{project_id}/vote-stats")
+@router.get("/{project_id}/vote-stats", responses=NOT_FOUND_RESPONSE)
 async def get_project_vote_stats(
     project_id: int,
     request: Request,
@@ -500,7 +517,7 @@ async def get_project_vote_stats(
     }
 
 
-@router.post("/{project_id}/view")
+@router.post("/{project_id}/view", responses=NOT_FOUND_RESPONSE)
 async def increment_project_view(
     project_id: int,
     request: Request,
@@ -525,7 +542,7 @@ async def increment_project_view(
     }
 
 
-@router.delete("/{project_id}/vote")
+@router.delete("/{project_id}/vote", responses=UNAUTHORIZED_RESPONSE)
 async def remove_vote(
     project_id: int,
     request: Request,
@@ -569,7 +586,7 @@ async def remove_vote(
     }
 
 
-@router.get("/{project_id}/comments")
+@router.get("/{project_id}/comments", responses=NOT_FOUND_RESPONSE)
 async def get_project_comments(
     project_id: int,
     request: Request,
@@ -593,7 +610,11 @@ async def get_project_comments(
     return {"comments": comment_list, "project_id": project_id}
 
 
-@router.post("/{project_id}/comments", response_model=Comment)
+@router.post(
+    "/{project_id}/comments",
+    response_model=Comment,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def create_project_comment(
     project_id: int,
     comment: CommentCreate,

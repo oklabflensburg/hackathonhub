@@ -14,8 +14,9 @@ from app.repositories.rbac_repository import (
     UserRoleRepository
 )
 from app.repositories.user_repository import UserRepository
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 role_repository = RoleRepository()
 permission_repository = PermissionRepository()
 user_role_repository = UserRoleRepository()

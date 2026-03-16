@@ -19,7 +19,7 @@ def is_base64_data_url(value: str) -> bool:
 
 
 class UserBase(BaseModel):
-    username: str
+    username: Optional[str] = None
     email: str
     name: Optional[str] = None
     avatar_url: Optional[str] = None
@@ -51,7 +51,7 @@ class UserCreate(UserBase):
 
 class PublicUser(BaseModel):
     id: int
-    username: str
+    username: Optional[str] = None
     name: Optional[str] = None
     avatar_url: Optional[str] = None
     bio: Optional[str] = None

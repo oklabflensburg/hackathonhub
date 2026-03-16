@@ -12,11 +12,12 @@ from app.domain.models.user import User
 from app.services.notification_preference_service import (
     notification_preference_service,
 )
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
 router = APIRouter(prefix="/preferences", tags=["notification-preferences"])
 
 
-@router.get("")
+@router.get("", responses=UNAUTHORIZED_RESPONSE)
 async def get_notification_preferences(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -24,7 +25,7 @@ async def get_notification_preferences(
     return notification_preference_service.get_user_preferences(db, current_user.id)
 
 
-@router.put("")
+@router.put("", responses=UNAUTHORIZED_RESPONSE)
 async def update_notification_preferences(
     preferences: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db),
@@ -35,7 +36,7 @@ async def update_notification_preferences(
     )
 
 
-@router.get("/channels")
+@router.get("/channels", responses=UNAUTHORIZED_RESPONSE)
 async def get_channel_preferences(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -45,7 +46,7 @@ async def get_channel_preferences(
     )
 
 
-@router.put("/channels")
+@router.put("/channels", responses=UNAUTHORIZED_RESPONSE)
 async def update_channel_preferences(
     channel_preferences: Dict[str, Dict[str, Any]] = Body(...),
     db: Session = Depends(get_db),
@@ -56,7 +57,7 @@ async def update_channel_preferences(
     )
 
 
-@router.get("/types")
+@router.get("/types", responses=UNAUTHORIZED_RESPONSE)
 async def get_notification_type_preferences(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -66,7 +67,7 @@ async def get_notification_type_preferences(
     )
 
 
-@router.put("/types")
+@router.put("/types", responses=UNAUTHORIZED_RESPONSE)
 async def update_notification_type_preferences(
     type_preferences: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db),
@@ -77,7 +78,7 @@ async def update_notification_type_preferences(
     )
 
 
-@router.get("/quiet-hours")
+@router.get("/quiet-hours", responses=UNAUTHORIZED_RESPONSE)
 async def get_quiet_hours(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -85,7 +86,7 @@ async def get_quiet_hours(
     return notification_preference_service.get_quiet_hours(db, current_user.id)
 
 
-@router.put("/quiet-hours")
+@router.put("/quiet-hours", responses=UNAUTHORIZED_RESPONSE)
 async def update_quiet_hours(
     quiet_hours: Dict[str, Any] = Body(...),
     db: Session = Depends(get_db),
@@ -96,7 +97,7 @@ async def update_quiet_hours(
     )
 
 
-@router.post("/quiet-hours/disable")
+@router.post("/quiet-hours/disable", responses=UNAUTHORIZED_RESPONSE)
 async def disable_quiet_hours(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -106,7 +107,7 @@ async def disable_quiet_hours(
     )
 
 
-@router.post("/quiet-hours/enable")
+@router.post("/quiet-hours/enable", responses=UNAUTHORIZED_RESPONSE)
 async def enable_quiet_hours(
     start_hour: int = Body(22, embed=True),
     end_hour: int = Body(8, embed=True),
@@ -130,7 +131,7 @@ async def get_default_preferences():
     return notification_preference_service.get_default_preferences()
 
 
-@router.post("/reset")
+@router.post("/reset", responses=UNAUTHORIZED_RESPONSE)
 async def reset_preferences(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

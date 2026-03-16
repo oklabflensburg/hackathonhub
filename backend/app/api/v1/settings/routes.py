@@ -21,8 +21,9 @@ from app.domain.schemas.settings import (
 from app.services.settings_service import SettingsService
 from app.i18n.dependencies import get_locale
 from app.utils.cookies import get_refresh_token_from_cookies
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 settings_service = SettingsService()
 
 

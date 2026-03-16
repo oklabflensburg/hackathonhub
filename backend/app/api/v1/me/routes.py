@@ -13,8 +13,9 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.team_repository import TeamInvitationRepository
 from app.i18n.dependencies import get_locale
 from app.i18n.helpers import raise_not_found
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 
 
 @router.get("/me", response_model=schemas.UserWithDetails)

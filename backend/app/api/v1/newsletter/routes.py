@@ -2,6 +2,7 @@ import json
 from typing import Any, Optional
 
 from fastapi import APIRouter, Header, Depends, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
@@ -11,11 +12,21 @@ from app.domain.schemas.newsletter import (
     NewsletterUnsubscribeRequest
 )
 from app.services.newsletter_service import newsletter_service
+from app.api.openapi_responses import (
+    BAD_REQUEST_RESPONSE,
+    VALIDATION_ERROR_RESPONSE,
+)
 
 router = APIRouter()
 
 
-@router.post("/subscribe")
+@router.post(
+    "/subscribe",
+    responses={
+        **BAD_REQUEST_RESPONSE,
+        **VALIDATION_ERROR_RESPONSE,
+    },
+)
 async def subscribe_to_newsletter(
     request: Request,
     idempotency_key: Optional[str] = Header(None),
@@ -23,7 +34,9 @@ async def subscribe_to_newsletter(
 ):
     """Subscribe to newsletter with atomic duplicate prevention"""
     try:
-        payload = await _parse_request_model(request, NewsletterSubscribeRequest)
+        payload = await _parse_request_model(
+            request, NewsletterSubscribeRequest
+        )
 
         # Use the newsletter service to handle subscription
         result = newsletter_service.subscribe(
@@ -40,6 +53,8 @@ async def subscribe_to_newsletter(
             "subscribed_at": result["subscribed_at"],
             "welcome_email_sent": result["welcome_email_sent"]
         }
+    except (HTTPException, RequestValidationError):
+        raise
     except Exception as e:
         # Log the error and return a generic error message
         # In production, you'd want more specific error handling
@@ -49,7 +64,7 @@ async def subscribe_to_newsletter(
         )
 
 
-@router.post("/unsubscribe")
+@router.post("/unsubscribe", responses=VALIDATION_ERROR_RESPONSE)
 async def unsubscribe_from_newsletter(
     request: Request,
     db: Session = Depends(get_db)
@@ -75,7 +90,9 @@ async def unsubscribe_from_newsletter(
 
 async def _parse_request_model(
     request: Request,
-    model_class: type[NewsletterSubscribeRequest] | type[NewsletterUnsubscribeRequest],
+    model_class: (
+        type[NewsletterSubscribeRequest] | type[NewsletterUnsubscribeRequest]
+    )
 ) -> Any:
     try:
         raw_body = await request.body()
@@ -86,5 +103,15 @@ async def _parse_request_model(
             if isinstance(payload, str):
                 payload = json.loads(payload)
         return model_class.model_validate(payload)
-    except (json.JSONDecodeError, ValidationError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except json.JSONDecodeError as exc:
+        raise RequestValidationError([
+            {
+                "type": "json_invalid",
+                "loc": ("body",),
+                "msg": "JSON decode error",
+                "input": None,
+                "ctx": {"error": str(exc)},
+            }
+        ]) from exc
+    except ValidationError as exc:
+        raise RequestValidationError(exc.errors()) from exc

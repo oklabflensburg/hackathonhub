@@ -36,6 +36,9 @@ from app.utils.cookies import (
     clear_auth_cookies,
     get_refresh_token_from_cookies,
 )
+from app.api.openapi_responses import (
+    BAD_REQUEST_RESPONSE, UNAUTHORIZED_RESPONSE
+)
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(
@@ -49,7 +52,7 @@ def _serialize_auth_user(db: Session, user):
     return apply_access_context(db, user)
 
 
-@router.post("/login")
+@router.post("/login", responses=UNAUTHORIZED_RESPONSE)
 async def login(
     login_data: UserLogin,
     response: Response,
@@ -127,7 +130,7 @@ async def login(
     }
 
 
-@router.post("/login/json")
+@router.post("/login/json", responses=UNAUTHORIZED_RESPONSE)
 async def login_json(
     login_data: UserLogin,
     response: Response,
@@ -150,7 +153,11 @@ async def login_json(
     return await login(login_data, response, db, locale)
 
 
-@router.post("/refresh", response_model=TokenWithRefresh)
+@router.post(
+    "/refresh",
+    response_model=TokenWithRefresh,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def refresh_token(
     request: Request,
     response: Response,
@@ -183,7 +190,7 @@ async def refresh_token(
     )
 
 
-@router.post("/logout")
+@router.post("/logout", responses=UNAUTHORIZED_RESPONSE)
 async def logout(
     request: Request,
     token: Optional[str] = Depends(oauth2_scheme),
@@ -236,9 +243,20 @@ async def google_auth(
         )
 
 
-@router.get("/google/callback")
+@router.get(
+    "/google/callback",
+    response_class=RedirectResponse,
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    responses={
+        200: {
+            "description": "HTML response after redirect follow",
+            "content": {"text/html": {}},
+        },
+        307: {"description": "Temporary Redirect"},
+    },
+)
 async def google_callback(
-    code: str,
+    code: str = Query(..., min_length=1),
     state: str = Query(None),
     db: Session = Depends(get_db)
 ):
@@ -304,7 +322,7 @@ async def google_callback(
         return RedirectResponse(url=redirect_url)
 
 
-@router.post("/register")
+@router.post("/register", responses=BAD_REQUEST_RESPONSE)
 async def register_user(
     user_data: UserRegister,
     db: Session = Depends(get_db),
@@ -327,7 +345,7 @@ async def register_user(
         raise_bad_request(locale, "registration")
 
 
-@router.post("/forgot-password")
+@router.post("/forgot-password", responses=BAD_REQUEST_RESPONSE)
 async def forgot_password(
     request: PasswordResetRequest,
     db: Session = Depends(get_db),
@@ -355,7 +373,7 @@ async def forgot_password(
         )
 
 
-@router.post("/reset-password")
+@router.post("/reset-password", responses=BAD_REQUEST_RESPONSE)
 async def reset_password(
     request: PasswordResetConfirm,
     db: Session = Depends(get_db),
@@ -453,9 +471,20 @@ async def github_auth(
     return {"authorization_url": authorization_url}
 
 
-@router.get("/github/callback")
+@router.get(
+    "/github/callback",
+    response_class=RedirectResponse,
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    responses={
+        200: {
+            "description": "HTML response after redirect follow",
+            "content": {"text/html": {}},
+        },
+        307: {"description": "Temporary Redirect"},
+    },
+)
 async def github_callback(
-    code: str,
+    code: str = Query(..., min_length=1),
     state: str = Query(None),
     db: Session = Depends(get_db)
 ):
@@ -543,7 +572,7 @@ async def github_callback(
         return RedirectResponse(url=redirect_url)
 
 
-@router.post("/verify-email")
+@router.post("/verify-email", responses=BAD_REQUEST_RESPONSE)
 async def verify_email(
     request: EmailVerificationRequest,
     db: Session = Depends(get_db),
@@ -622,7 +651,11 @@ async def resend_verification(
         }
 
 
-@router.post("/verify-2fa", response_model=TwoFactorLoginResponse)
+@router.post(
+    "/verify-2fa",
+    response_model=TwoFactorLoginResponse,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def verify_2fa_login(
     request: TwoFactorLoginVerifyRequest,
     response: Response,
@@ -685,7 +718,11 @@ async def verify_2fa_login(
     )
 
 
-@router.post("/verify-2fa-backup", response_model=TwoFactorLoginResponse)
+@router.post(
+    "/verify-2fa-backup",
+    response_model=TwoFactorLoginResponse,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def verify_2fa_backup(
     request: TwoFactorBackupVerifyRequest,
     response: Response,

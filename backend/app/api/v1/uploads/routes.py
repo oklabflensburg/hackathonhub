@@ -9,8 +9,9 @@ from app.core.database import get_db
 from app.core.permissions import PERMISSION_CODES, user_has_permission
 from app.utils.file_upload import file_upload_service
 from sqlalchemy.orm import Session
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 
 
 @router.post("/upload")

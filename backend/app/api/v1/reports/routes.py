@@ -6,8 +6,9 @@ from app.core.database import get_db
 from app.core.permissions import can_review_report
 from app.domain.schemas.report import Report, ReportUpdateRequest
 from app.services.report_service import report_service
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 
 
 @router.get('/{report_id}', response_model=Report)

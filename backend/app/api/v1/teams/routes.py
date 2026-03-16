@@ -2,7 +2,7 @@
 Team API routes.
 """
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 from typing import List
@@ -36,6 +36,7 @@ from app.i18n.helpers import (
     raise_not_found, raise_forbidden, raise_bad_request,
     raise_internal_server_error
 )
+from app.api.openapi_responses import NOT_FOUND_RESPONSE, UNAUTHORIZED_RESPONSE
 
 router = APIRouter()
 team_repository = TeamRepository()
@@ -144,8 +145,8 @@ def _attach_team_stats(db: Session, teams: List) -> None:
 
 @router.get("", response_model=List[Team])
 async def get_teams(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0, le=1000),
+    limit: int = Query(100, ge=0, le=1000),
     hackathon_id: int = None,
     db: Session = Depends(get_db)
 ):
@@ -163,7 +164,7 @@ async def get_teams(
     return teams
 
 
-@router.get("/{team_id}", response_model=Team)
+@router.get("/{team_id}", response_model=Team, responses=NOT_FOUND_RESPONSE)
 async def get_team(
     team_id: int,
     request: Request,
@@ -183,7 +184,7 @@ async def get_team(
     return team
 
 
-@router.post("", response_model=Team)
+@router.post("", response_model=Team, responses=UNAUTHORIZED_RESPONSE)
 async def create_team(
     team: TeamCreate,
     db: Session = Depends(get_db),
@@ -209,7 +210,11 @@ async def create_team(
     return new_team
 
 
-@router.put("/{team_id}", response_model=Team)
+@router.put(
+    "/{team_id}",
+    response_model=Team,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def update_team(
     team_id: int,
     team_update: TeamUpdate,
@@ -231,7 +236,7 @@ async def update_team(
     return updated_team
 
 
-@router.delete("/{team_id}")
+@router.delete("/{team_id}", responses=UNAUTHORIZED_RESPONSE)
 async def delete_team(
     team_id: int,
     db: Session = Depends(get_db),
@@ -253,7 +258,11 @@ async def delete_team(
     return {"message": "Team deleted successfully"}
 
 
-@router.get("/{team_id}/members", response_model=List[TeamMember])
+@router.get(
+    "/{team_id}/members",
+    response_model=List[TeamMember],
+    responses=NOT_FOUND_RESPONSE,
+)
 async def get_team_members(
     team_id: int,
     db: Session = Depends(get_db),
@@ -269,7 +278,11 @@ async def get_team_members(
     return members
 
 
-@router.get("/{team_id}/projects", response_model=List[Project])
+@router.get(
+    "/{team_id}/projects",
+    response_model=List[Project],
+    responses=NOT_FOUND_RESPONSE,
+)
 async def get_team_projects(
     team_id: int,
     skip: int = 0,
@@ -289,7 +302,11 @@ async def get_team_projects(
     return projects
 
 
-@router.post("/{team_id}/members", response_model=TeamMember)
+@router.post(
+    "/{team_id}/members",
+    response_model=TeamMember,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def add_team_member(
     team_id: int,
     member: TeamMemberCreateRequest,
@@ -340,7 +357,11 @@ async def add_team_member(
     return db_member
 
 
-@router.post("/{team_id}/reports", response_model=TeamReport)
+@router.post(
+    "/{team_id}/reports",
+    response_model=TeamReport,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def report_team(
     team_id: int,
     report: TeamReportCreateRequest,
@@ -368,7 +389,10 @@ async def report_team(
     )
 
 
-@router.delete("/{team_id}/members/{user_id}")
+@router.delete(
+    "/{team_id}/members/{user_id}",
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def remove_team_member(
     team_id: int,
     user_id: int,
@@ -427,7 +451,11 @@ async def remove_team_member(
     return {"message": "Member removed successfully"}
 
 
-@router.get("/{team_id}/invitations", response_model=List[TeamInvitation])
+@router.get(
+    "/{team_id}/invitations",
+    response_model=List[TeamInvitation],
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def get_team_invitations(
     team_id: int,
     db: Session = Depends(get_db),
@@ -448,7 +476,11 @@ async def get_team_invitations(
     return invitations
 
 
-@router.post("/{team_id}/invitations", response_model=TeamInvitation)
+@router.post(
+    "/{team_id}/invitations",
+    response_model=TeamInvitation,
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def create_team_invitation(
     team_id: int,
     invitation: TeamInvitationCreateRequest,
@@ -491,7 +523,10 @@ async def create_team_invitation(
     return db_invitation
 
 
-@router.post("/invitations/{invitation_id}/accept")
+@router.post(
+    "/invitations/{invitation_id}/accept",
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def accept_team_invitation(
     invitation_id: int,
     db: Session = Depends(get_db),
@@ -538,7 +573,10 @@ async def accept_team_invitation(
     return {"message": "Invitation accepted", "invitation_id": invitation_id}
 
 
-@router.post("/invitations/{invitation_id}/decline")
+@router.post(
+    "/invitations/{invitation_id}/decline",
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def decline_team_invitation(
     invitation_id: int,
     db: Session = Depends(get_db),
@@ -571,7 +609,10 @@ async def decline_team_invitation(
     return {"message": "Invitation declined", "invitation_id": invitation_id}
 
 
-@router.delete("/invitations/{invitation_id}")
+@router.delete(
+    "/invitations/{invitation_id}",
+    responses=UNAUTHORIZED_RESPONSE,
+)
 async def delete_team_invitation(
     invitation_id: int,
     db: Session = Depends(get_db),

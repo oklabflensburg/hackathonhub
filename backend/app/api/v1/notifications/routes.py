@@ -3,7 +3,7 @@ Notification API routes.
 """
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -26,8 +26,9 @@ from app.services.notification_settings_service import (
     notification_settings_service,
 )
 from app.services.notification_service import notification_service
+from app.api.openapi_responses import UNAUTHORIZED_RESPONSE
 
-router = APIRouter()
+router = APIRouter(responses=UNAUTHORIZED_RESPONSE)
 notification_repository = NotificationRepository()
 push_subscription_repository = PushSubscriptionRepository()
 in_app_service = InAppNotificationService()
@@ -35,8 +36,8 @@ in_app_service = InAppNotificationService()
 
 @router.get("", response_model=List[UserNotification])
 async def get_notifications(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0, le=1000),
+    limit: int = Query(100, ge=0, le=1000),
     unread_only: bool = False,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -266,8 +267,8 @@ async def create_in_app_notification(
 
 @router.get("/in-app/list")
 async def get_in_app_notifications(
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0, le=1000),
+    limit: int = Query(50, ge=0, le=1000),
     unread_only: bool = False,
     include_expired: bool = False,
     db: Session = Depends(get_db),
